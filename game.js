@@ -115,7 +115,7 @@
     }
 
     makeInitialState() {
-      const hpBonus = (Number(this.meta.upgrades.hull)||0)*B.meta.hullHpBonus;
+      const hpBonus = (this.runMetaLevel?.('hull')??(Number(this.meta.upgrades.hull)||0))*B.meta.hullHpBonus;
       const maxHp = B.train.carHp * (1 + hpBonus);
       const cars = [
         { id: uid('car'), name: '기관실', type: 'engine', hp: maxHp, maxHp, power: B.train.enginePower.start, equipment: [], repair: 0, armor: 0 },
@@ -284,6 +284,7 @@
       const s = this.state;
       for (const e of s.enemies) {
         if (e.dead) continue;
+        if(this.updateSpecialEnemy?.(e,dt))continue;
         const data = D.ENEMIES[e.type];
         if (!e.boarded) {
           e.x = Math.max(B.battle.boardDistance, e.x - B.battle.enemyApproachSpeed * e.speed * dt);
@@ -300,8 +301,8 @@
             }
           }
         } else {
-          e.attackTimer -= dt;
-          if (e.attackTimer <= 0) { this.enemyAttack(e); e.attackTimer = e.interval; }
+          if(this.tickBoardedEnemy)this.tickBoardedEnemy(e,dt);
+          else {e.attackTimer -= dt;if(e.attackTimer<=0){this.enemyAttack(e);e.attackTimer=e.interval;}}
         }
       }
       s.enemies = s.enemies.filter(e => !e.dead || e.deathTime > 0).map(e => { if (e.dead) e.deathTime -= dt; return e; });
@@ -338,25 +339,29 @@
       s.cars.forEach(car=>{if(car.hp<=car.maxHp*repairRules.repairStart)car.autoRepair=true;if(car.hp>=car.maxHp*repairRules.repairStop)car.autoRepair=false;});
       for (const c of s.crew) {
         if (c.dead || c.hp <= 0) continue;
+        if(this.bossCrewStopped?.(c)){this.bossCrewReturnFire?.(c,dt);continue;}
         if (c.moving) {
           c.moving.left -= dt*(this.crewMoveMultiplier?.()??1);
           if (c.moving.left <= 0) { c.car = c.moving.to; c.moving = null; this.log(`${c.name} → ${s.cars[c.car].name}`); }
           continue;
         }
         const car = s.cars[c.car];
+        const workDt=this.crewWorkStep?this.crewWorkStep(c,dt):dt;
         const boarders = s.enemies.filter(e => !e.dead && e.boarded && e.targetCar === c.car);
-        if (boarders.length) {
+        const firingAtArm=this.bossCrewReturnFire?.(c,dt);
+        if (boarders.length && !firingAtArm) {
           const target = boarders[0];
           let combat = this.effectiveStat(c, 'combat');
-          let damage = Math.max(0, combat) * B.crew.personalDpsPerCombat * dt;
+          let damage = Math.max(0, combat) * B.crew.personalDpsPerCombat * workDt;
           if (c.traits.includes('marksman')) damage *= D.TRAITS.marksman.damageMult;
-          this.damageEnemy(target, damage, 1);
-        } else this.crewReturnFire?.(c,dt);
+          if(damage>0){this.damageEnemy(target, damage, 1);this.onCrewBoardShot?.(c,target);}
+        } else if(!firingAtArm)this.crewReturnFire?.(c,dt);
         if (car.hp <= 0) {
           let repair = B.train.repairBasePerSecond + this.effectiveStat(c, 'repair') * B.train.repairStatScale;
           if (c.traits.includes('fixer')) repair *= D.TRAITS.fixer.repairMult;
           repair *= this.moduleEffect(c.car, 'repair', 'repairMult');
-          car.repair += repair * dt;
+          car.repair += repair * workDt;
+          if(repair*workDt>0)this.onCrewHammer?.(c);
           if (car.repair >= B.train.repairGoal) {
             car.hp = car.maxHp * B.train.restoredHpRatio; car.repair = 0; car.destroyedLogged = false;
             this.log(`${car.name} 긴급 복구 완료`, 'hot');
@@ -364,7 +369,8 @@
         } else if (car.autoRepair && car.hp < car.maxHp*repairRules.repairStop) {
           let repair=this.effectiveStat(c,'repair')*B.train.repairStatScale*this.moduleEffect(c.car,'repair','repairMult');
           if(c.traits.includes('fixer'))repair*=D.TRAITS.fixer.repairMult;
-          car.hp = Math.min(car.maxHp*repairRules.repairStop, car.hp + repair * dt);
+          car.hp = Math.min(car.maxHp*repairRules.repairStop, car.hp + repair * workDt);
+          if(repair*workDt>0)this.onCrewHammer?.(c);
         }
       }
     }
@@ -391,7 +397,8 @@
           if (car.armor > 0) cool *= B.armor.coolingMultiplier;
           eq.heat = Math.max(0, eq.heat - cool * dt);
           if (eq.overheated && eq.heat <= B.heat.resumeAt) eq.overheated = false;
-          if (car.hp <= 0 || car.power <= 0 || car.armor > 0 || eq.overheated || this.eventEquipmentDisabled?.(eq)) continue;
+          this.updateRage?.(eq,dt);
+          if (car.hp <= 0 || car.power <= 0 || car.armor > 0 || (eq.overheated&&!eq.rageLeft) || eq.rageCooling || this.eventEquipmentDisabled?.(eq) || this.bossCarSealed?.(carIndex)) continue;
           eq.cooldown -= dt;
           if (eq.cooldown > 0) continue;
           const target = this.pickTurretTarget(carIndex, t, eq);
@@ -400,7 +407,7 @@
           this.fireTurret(eq, stats, target, carIndex);
           eq.cooldown = stats.interval;
           eq.heat += stats.heat;
-          if (eq.heat >= B.heat.max) { eq.overheated = true; this.log(`${t.name} 과열`, 'bad'); }
+          if (eq.heat >= B.heat.max && !eq.overheated) { eq.overheated = true; this.log(`${t.name} 과열`, 'bad'); }
         }
       });
       s.cars.forEach(c => c.armor = Math.max(0, c.armor - dt));
@@ -420,6 +427,7 @@
       let mult = 1;
       this.state.cars.forEach((car, i) => car.equipment.forEach(eq => {
         if (eq.kind !== 'module') return;
+        if(this.bossCarSealed?.(i))return;
         const m = this.moduleData(eq);
         if (m.effect === effect && Math.abs(i - carIndex) <= m.range && car.hp > 0 && car.power > 0 && car.armor <= 0) mult *= m[key] ?? 1;
       }));
@@ -509,7 +517,7 @@
       const stage = Math.min(this.globalStage(), D.STAGE_CURVE.length);
       let titan = B.titan.speedBase + (stage - 1) * B.titan.speedPerStage;
       let train = B.train.speedByPower[this.effectiveCarPower?.(0) ?? s.cars[0].power] || B.train.speedByPower[B.train.enginePower.min];
-      if (this.meta.upgrades.engine) train *= 1 + B.meta.engineSpeedBonus*(Number(this.meta.upgrades.engine)||0);
+      train *= 1 + B.meta.engineSpeedBonus*(this.runMetaLevel?.('engine')??(Number(this.meta.upgrades.engine)||0));
       const engineer = s.crew.find(c => !c.dead && !c.moving && c.car === 0 && c.traits.includes('engineer'));
       if (engineer) train *= D.TRAITS.engineer.engineSpeedMult;
       if (s.battle?.boss) {
@@ -559,6 +567,7 @@
       let scrap = B.rewards.battleScrapBase + stage * B.rewards.battleScrapPerStage;
       if (elite) { money = Math.round(money * B.rewards.eliteMultiplier); scrap = Math.round(scrap * B.rewards.eliteMultiplier); }
       const relics = B.rewards.battleRelics + (elite ? B.rewards.eliteBonusRelics : 0);
+      money=this.metaGain?.('money',money)??money;scrap=this.metaGain?.('scrap',scrap)??scrap;
       s.money += money; s.scrap += scrap; s.relics += relics;
       s.armorCharge = clamp(s.armorCharge + (elite ? B.armor.eliteCharge : B.armor.battleCharge), 0, B.armor.maxCharge);
       this.healAfterStage();
@@ -603,7 +612,7 @@
         });return;
       }
       this.mode = 'ending'; this.setSpeed(0);
-      const earned = this.state.relics + D.BOSSES[this.state.battle.bossId].rewardRelics + B.run.clearRelicBonus;
+      const earned = this.metaRelicReward?.(this.state.relics + D.BOSSES[this.state.battle.bossId].rewardRelics + B.run.clearRelicBonus) ?? (this.state.relics + D.BOSSES[this.state.battle.bossId].rewardRelics + B.run.clearRelicBonus);
       this.meta.relics += earned; this.meta.clears++; store.write(this.meta);
       this.state.clear = true;
       this.showEnding(earned);
@@ -612,7 +621,7 @@
     completeAct() {
       if (this.mode === 'ending') return;
       this.mode = 'ending'; this.setSpeed(0);
-      const earned = this.state.relics + B.run.clearRelicBonus;
+      const earned = this.metaRelicReward?.(this.state.relics + B.run.clearRelicBonus) ?? (this.state.relics + B.run.clearRelicBonus);
       this.meta.relics += earned; this.meta.clears++; store.write(this.meta);
       this.showDialog('ACT CLEAR', '노선 완주', `이 Act의 모든 구간을 통과했습니다. 고대 잔해 ◆ ${earned}를 보관했습니다.`, [
         { label: '메인 메뉴로', text: '새로운 노선을 준비합니다.', hint: '클리어 기록 저장', icon: '✓' }
@@ -622,6 +631,7 @@
     gameOver(reason) {
       if (this.mode === 'gameover') return;
       this.mode = 'gameover'; this.setSpeed(0);
+      this.state.relics=this.metaRelicReward?.(this.state.relics)??this.state.relics;
       this.meta.relics += this.state.relics; store.write(this.meta);
       this.showDialog('RUN END', '열차가 멈췄습니다', reason, [
         { label: '메인 메뉴로', text: `이번 원정 고대 잔해 ◆ ${this.state.relics}`, hint: '다시 도전할 수 있습니다.', icon: '↺' }
@@ -652,7 +662,7 @@
 
     applyResult(r) {
       const s = this.state;
-      s.money += r.money || 0; s.scrap += r.scrap || 0; s.relics += r.relics || 0;
+      s.money += this.metaGain?.('money',r.money||0)??(r.money||0);s.scrap += this.metaGain?.('scrap',r.scrap||0)??(r.scrap||0);s.relics += r.relics || 0;
       s.titanDistance = clamp(s.titanDistance + (r.distance || 0), 0, B.run.maxTitanDistance);
       s.armorCharge = clamp(s.armorCharge + (r.armor || 0), 0, B.armor.maxCharge);
       s.runDamageMult *= 1 + (r.turretBuff || 0);

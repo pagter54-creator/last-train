@@ -235,6 +235,7 @@ modal.querySelector('.dialog-body').innerHTML=`<div class="choices"><div class="
 
   // A single projection is used by drawing, hit testing and projectile endpoints.
   function project(enemy,w,h){
+    const bossPoint=game.projectBossEntity?.(enemy,w,h);if(bossPoint)return bossPoint;
     if('destroyed' in enemy)return {x:w*enemy.x,y:h*(.26+(enemy.y-.3)*.65),scale:1,r:40};
     const depth=clamp(1-enemy.x,0,1);
     const lane=clamp((enemy.y-.25)/.48,0,1);
@@ -266,6 +267,8 @@ modal.querySelector('.dialog-body').innerHTML=`<div class="choices"><div class="
     let pace=inMenu?V.motion.idle:this.mode==='battle'?(overlay?0:this.state.speed):V.motion.idle;
     if(this.mode==='run'&&this.state?.launchElapsed<B.launch.seconds)pace=this.state.launchElapsed<B.launch.impactAt ? .2 : 1+B.launch.visualSpeed*clamp((this.state.launchElapsed-B.launch.impactAt)/(B.launch.seconds-B.launch.impactAt),0,1);
     if(this.sceneTransition)pace=this.sceneTransition.boost;
+    if(!this.sceneTransition&&['station','event','event-placement'].includes(this.mode))pace=0;
+    if(this.arrivalPace!==undefined&&!this.sceneTransition)pace=this.arrivalPace;
     pace*=((this.state?.currentTrainSpeed||B.train.speedByPower[B.train.enginePower.start])/B.train.speedByPower[B.train.enginePower.start]);
     visualClock+=dt*pace;
     const t=visualClock,horizon=h*V.horizon,palette=V.actPalettes?.[this.state?.actId]||V.palette;
@@ -303,7 +306,7 @@ modal.querySelector('.dialog-body').innerHTML=`<div class="choices"><div class="
   };
   game.drawEnemies=function(ctx,w,h,t){
     for(const e of [...this.state.enemies].sort((a,b)=>b.x-a.x)){
-      if(e.dead)continue;const d=D.ENEMIES[e.type],p=project(e,w,h);ctx.save();ctx.globalAlpha=clamp((e.age||0)/V.emergenceSeconds,0,1);ctx.translate(p.x+(e.hitFlash>0?Math.sin(e.hitFlash*130)*4:0),p.y);ctx.scale(p.scale,p.scale);
+      if(e.dead||e.boarded||D.ENEMIES[e.type].elite)continue;const d=D.ENEMIES[e.type],p=project(e,w,h);ctx.save();ctx.globalAlpha=clamp((e.age||0)/V.emergenceSeconds,0,1);ctx.translate(p.x+(e.hitFlash>0?Math.sin(e.hitFlash*130)*4:0),p.y);ctx.scale(p.scale,p.scale);
       ctx.fillStyle='#14202b50';ctx.beginPath();ctx.ellipse(0,13,28,6,0,0,Math.PI*2);ctx.fill();
       ctx.strokeStyle='#203338';ctx.lineWidth=2;
       if(d.special){ctx.fillStyle='#617e78';ctx.beginPath();ctx.moveTo(-25,0);ctx.lineTo(0,-13);ctx.lineTo(25,0);ctx.lineTo(0,10);ctx.closePath();ctx.fill();ctx.stroke();ctx.fillStyle='#b8ece0';ctx.fillRect(-8,-4,16,5);}
