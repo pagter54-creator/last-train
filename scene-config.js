@@ -7,6 +7,8 @@ window.SCENE_CONFIG = {
   motion: { ground: 740, mountains: 18, hills: 58, clouds: 9, debris: 78, streaks: 24, idle: 0.65 },
   perspective: { farScale: 0.25, nearScale: 1.6, approachEnd: 0.61 },
   palette: { sky: '#233c48', haze: '#9b9280', sand: '#74634e', earth: '#302b29', amber: '#edc67b', teal: '#83c6c4' },
+  actPalettes:{act2:{sky:'#382c52',haze:'#e78257',groundTop:'#b86d52',sand:'#854d43',earth:'#352838',sun:'#ffd394',sunX:.72,sunY:.245}},
+  actMountains:{act2:{colors:['#724952','#603e4e','#482f40'],peakHeight:115,segments:8,profile:[[0,0],[.12,.2],[.19,.86],[.4,1],[.62,.95],[.7,.38],[.9,0]]}},
   crewColors: ['#db976d', '#88b5be', '#c7ac67', '#ab9ebc', '#8fa980'],
   refreshMs: 140
 };

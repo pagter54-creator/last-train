@@ -191,8 +191,7 @@
     if(this.mode!=='battle')return;
     cancelSelection();if(!$('#overlay').classList.contains('show'))pausedSpeed=this.state.speed;this.state.speed=0;
     const modal=this.modalShell('작전 일시정지','LAST RAIL','열차장, 숨을 고르십시오.');
-    modal.querySelector('.dialog-body').innerHTML=`<div class="doctrine-row"><div><b>긴급 자동 수리 교리</b><p>수리 능력이 높은 직원이 심하게 손상된 객차를 수리합니다.</p></div><button class="switch ${this.state.doctrine?'on':''}" id="doctrine-switch" aria-label="자동 수리 교리 전환"></button></div><div class="station-actions"><button id="pause-howto">조작법</button><button id="abandon">런 종료</button><button class="depart" id="resume">계속 달리기 →</button></div>`;
-    $('#doctrine-switch').onclick=()=>{this.state.doctrine=!this.state.doctrine;$('#doctrine-switch').classList.toggle('on',this.state.doctrine);};
+    modal.querySelector('.dialog-body').innerHTML=`<div class="doctrine-row"><div><b>전 직원 자동 수리</b><p>객차 HP ${window.PROGRESSION_CONFIG.crew.repairStart*100}% 이하에서 수리를 시작해 ${window.PROGRESSION_CONFIG.crew.repairStop*100}%까지 복구합니다. 수리 능력과 지원 효과가 속도에 반영됩니다.</p></div></div><div class="station-actions"><button id="pause-howto">조작법</button><button id="abandon">런 종료</button><button class="depart" id="resume">계속 달리기 →</button></div>`;
     $('#resume').onclick=()=>this.closeOverlay();$('#abandon').onclick=()=>this.returnMenu();$('#pause-howto').onclick=()=>{dialogReturn=()=>this.openPause();this.showHowTo();};
     this.renderSpeed();
   };
@@ -269,13 +268,13 @@ modal.querySelector('.dialog-body').innerHTML=`<div class="choices"><div class="
     if(this.sceneTransition)pace=this.sceneTransition.boost;
     pace*=((this.state?.currentTrainSpeed||B.train.speedByPower[B.train.enginePower.start])/B.train.speedByPower[B.train.enginePower.start]);
     visualClock+=dt*pace;
-    const t=visualClock,horizon=h*V.horizon;
+    const t=visualClock,horizon=h*V.horizon,palette=V.actPalettes?.[this.state?.actId]||V.palette;
     ctx.clearRect(0,0,w,h);
-    const sky=ctx.createLinearGradient(0,0,0,horizon+80);sky.addColorStop(0,V.palette.sky);sky.addColorStop(1,V.palette.haze);ctx.fillStyle=sky;ctx.fillRect(0,0,w,h);
-    ctx.fillStyle='#e7d7aa';ctx.globalAlpha=.62;ctx.beginPath();ctx.arc(w*.76,h*.16,h*.046,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+    const sky=ctx.createLinearGradient(0,0,0,horizon+80);sky.addColorStop(0,palette.sky);sky.addColorStop(1,palette.haze);ctx.fillStyle=sky;ctx.fillRect(0,0,w,h);
+    ctx.fillStyle=palette.sun||'#e7d7aa';ctx.globalAlpha=.62;ctx.beginPath();ctx.arc(w*(palette.sunX??.76),h*(palette.sunY??.16),h*.046,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
     for(let j=0;j<7;j++){const x=((j*w/5-t*V.motion.clouds)%(w+300)+(w+300))%(w+300)-200;ctx.fillStyle='#b4c4bc14';ctx.fillRect(x,h*(.10+(j%3)*.055),150+j*15,3+j%3);}
     this.drawMountainLayers?.(ctx,w,h,visualClock);
-    const ground=ctx.createLinearGradient(0,horizon+20,0,h);ground.addColorStop(0,'#9b8b70');ground.addColorStop(.28,V.palette.sand);ground.addColorStop(1,V.palette.earth);ctx.fillStyle=ground;ctx.fillRect(0,horizon+28,w,h);
+    const ground=ctx.createLinearGradient(0,horizon+20,0,h);ground.addColorStop(0,palette.groundTop||'#9b8b70');ground.addColorStop(.28,palette.sand);ground.addColorStop(1,palette.earth);ctx.fillStyle=ground;ctx.fillRect(0,horizon+28,w,h);
     const launching=this.mode==='run'&&this.state?.launchElapsed<B.launch.seconds;
     const launchProgress=launching?clamp((this.state.launchElapsed-B.launch.impactAt)/(B.launch.seconds-B.launch.impactAt),0,1):1;
     if(launching){

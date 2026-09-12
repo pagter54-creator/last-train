@@ -5,7 +5,7 @@ window.WEAPON_UPGRADES={
     3:{
       efficiency:{name:'효율 강화',text:'피해 -10% · 발열 -25% · 냉각 +20%',damage:.9,heat:.75,cooling:1.2},
       power:{name:'화력 강화',text:'공격 속도 -15% · 피해 +40% · 발열 +20%',rate:.85,damage:1.4,heat:1.2},
-      rapid:{name:'연사 강화',text:'공격 속도 +35% · 피해 -25% · 냉각 +20%',rate:1.35,damage:.75,cooling:1.2}
+      rapid:{name:'연사 강화',text:'공격 속도 +35% · 피해 -25%',rate:1.35,damage:.75}
     },
     5:{
       piercing:{name:'관통탄',text:'공격 속도 -10% · 피해 +15% · 관통 +25%p',rate:.9,damage:1.15,pierce:.25},

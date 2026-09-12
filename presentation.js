@@ -64,10 +64,10 @@
 
   // Two stable wider-than-screen tiles per layer, moved only after fully exiting.
   let mountainWidth=0,mountainClock=null,mountainLayers=[];
-  g.drawMountainLayers=function(ctx,w,h,clock){const config=V.mountains,L=w*Math.max(1.1,config.tileWidthRatio),dt=mountainClock===null?0:Math.max(0,clock-mountainClock);mountainClock=clock;
+  g.drawMountainLayers=function(ctx,w,h,clock){const config={...V.mountains,...V.actMountains?.[this.state?.actId]},L=w*Math.max(1.1,config.tileWidthRatio),dt=mountainClock===null?0:Math.max(0,clock-mountainClock);mountainClock=clock;
     if(mountainWidth!==w){const ratio=mountainWidth?w/mountainWidth:1;mountainLayers=config.colors.map((_,layer)=>mountainLayers[layer]?.map(tile=>({...tile,x:tile.x*ratio}))||[{x:0,id:0},{x:L,id:1}]);mountainWidth=w;}
     mountainLayers.forEach((tiles,layer)=>{const speed=layer===0?V.motion.mountains:V.motion.hills*layer*.6;tiles.forEach(tile=>tile.x-=dt*speed);tiles.sort((a,b)=>a.x-b.x);while(tiles[0].x+L<=0){const tile=tiles.shift();tile.x=tiles[0].x+L;tiles.push(tile);}
-      const base=h*V.horizon+layer*config.layerOffset;ctx.fillStyle=config.colors[layer];for(const tile of tiles){ctx.beginPath();ctx.moveTo(tile.x,base);const stride=L/config.segments;for(let i=0;i<config.segments;i++){const x=tile.x+i*stride,seed=(i*7+tile.id*11+layer*3)%13,peak=base-config.peakHeight*(.35+seed/18)/(layer+1);ctx.lineTo(x,base);ctx.lineTo(x+stride*.22,peak);ctx.lineTo(x+stride*.63,peak+4);ctx.lineTo(x+stride*.88,base);}ctx.lineTo(tile.x+L+.5,base);ctx.lineTo(tile.x+L+.5,h*V.horizon+V.groundOffset+2);ctx.lineTo(tile.x,h*V.horizon+V.groundOffset+2);ctx.closePath();ctx.fill();}
+      const base=h*V.horizon+layer*config.layerOffset;ctx.fillStyle=config.colors[layer];for(const tile of tiles){ctx.beginPath();ctx.moveTo(tile.x,base);const stride=L/config.segments;for(let i=0;i<config.segments;i++){const x=tile.x+i*stride,seed=(i*7+tile.id*11+layer*3)%13,peak=base-config.peakHeight*(.35+seed/18)/(layer+1);if(config.profile){for(const [px,py] of config.profile)ctx.lineTo(x+stride*px,base-(base-peak)*py);}else{ctx.lineTo(x,base);ctx.lineTo(x+stride*.22,peak);ctx.lineTo(x+stride*.63,peak+4);ctx.lineTo(x+stride*.88,base);}}ctx.lineTo(tile.x+L+.5,base);ctx.lineTo(tile.x+L+.5,h*V.horizon+V.groundOffset+2);ctx.lineTo(tile.x,h*V.horizon+V.groundOffset+2);ctx.closePath();ctx.fill();}
     });
   };
 

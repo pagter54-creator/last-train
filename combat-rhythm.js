@@ -52,12 +52,17 @@
     r.queue.sort((a,b)=>a.at-b.at);
     for(const id of [...new Set(r.queue.map(e=>e.group))]){
       const batch=r.queue.filter(e=>e.group===id),first=batch[0],special=batch.some(e=>major(e.type)),alive=this.state.enemies.filter(e=>!e.dead);
+      const cancelWarning=()=>batch.forEach(e=>delete e.warningAt);
       if(!first.adjusted){let shift=0;if(special&&(severe||status.major>=this.threatLimit()))shift=Math.min(C.director.delaySeconds,r.phases[first.phase].duration*C.director.maxAdjustment);else if(!special&&status.integrity>=C.director.stableIntegrity&&!status.major)shift=-Math.min(C.director.advanceSeconds,r.phases[first.phase].duration*C.director.maxAdjustment);batch.forEach(e=>{e.at+=shift;e.adjusted=true;});}
-      if(first.at>r.clock||r.clock<(r.lastSpawnAt??-Infinity)+(r.lastSpawnGap||0)||alive.length+batch.length>B.battle.maxAlive)continue;
-      if(special&&r.phase.kind==='RECOVERY')continue;
+      if(first.at>r.clock||r.clock<(r.lastSpawnAt??-Infinity)+(r.lastSpawnGap||0)||alive.length+batch.length>B.battle.maxAlive){cancelWarning();continue;}
+      if(special&&r.phase.kind==='RECOVERY'){cancelWarning();continue;}
       const blocked=Object.entries(C.tagCaps).some(([tag,cap])=>alive.filter(e=>role(e.type).includes(tag)).length+batch.filter(e=>e.tags.includes(tag)).length>cap);
-      if(blocked)continue;
-      if(special&&r.stage<=C.director.earlyStage&&new Set([...alive.filter(e=>major(e.type)).map(e=>e.type),...batch.filter(e=>major(e.type)).map(e=>e.type)]).size>C.director.earlySpecialTypes)continue;
+      if(blocked){cancelWarning();continue;}
+      if(special&&r.stage<=C.director.earlyStage&&new Set([...alive.filter(e=>major(e.type)).map(e=>e.type),...batch.filter(e=>major(e.type)).map(e=>e.type)]).size>C.director.earlySpecialTypes){cancelWarning();continue;}
+      if(batch.some(item=>item.side==='left')){
+        if(first.warningAt===undefined){batch.forEach(item=>item.warningAt=b.elapsed);this.playSound('boardingAlarm');}
+        if(b.elapsed-first.warningAt<window.PROGRESSION_CONFIG.leftWarning.seconds)break;
+      }
       for(const item of batch){this.spawnEnemy(item.type);const enemy=this.state.enemies.at(-1);enemy.y=item.lane;enemy.entrySide=item.side;if(item.side==='left'){enemy.x=C.director.leftEntryDistance;enemy.entryStart=enemy.x;}enemy.spawnRole=item.role;r.spent+=item.cost;r.phases[item.phase].spent+=item.cost;r.queue.splice(r.queue.indexOf(item),1);}
       r.lastSpawnAt=r.clock;r.lastSpawnGap=r.phases[first.phase].duration/Math.max(1,r.phases[first.phase].budget/C.swarm.budgetMultiplier/D.ENEMIES.biker.threatCost)*C.swarm.intervalMin;break;
     }

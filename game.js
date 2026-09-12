@@ -7,7 +7,7 @@
   const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
   const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
   const fmtTime = (s) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
-  const uid = (() => { let n = 0; return (p) => `${p}-${++n}`; })();
+  const uid = (() => { const session=Array.from(crypto.getRandomValues(new Uint32Array(4)),v=>v.toString(16).padStart(8,'0')).join('');let n = 0; return (p) => `${p}-${session}-${++n}`; })();
   const deepCopy = (v) => JSON.parse(JSON.stringify(v));
 
   class Registry {
@@ -334,10 +334,12 @@
 
     updateCrew(dt) {
       const s = this.state;
+      const repairRules=window.PROGRESSION_CONFIG.crew;
+      s.cars.forEach(car=>{if(car.hp<=car.maxHp*repairRules.repairStart)car.autoRepair=true;if(car.hp>=car.maxHp*repairRules.repairStop)car.autoRepair=false;});
       for (const c of s.crew) {
         if (c.dead || c.hp <= 0) continue;
         if (c.moving) {
-          c.moving.left -= dt;
+          c.moving.left -= dt*(this.crewMoveMultiplier?.()??1);
           if (c.moving.left <= 0) { c.car = c.moving.to; c.moving = null; this.log(`${c.name} → ${s.cars[c.car].name}`); }
           continue;
         }
@@ -349,7 +351,7 @@
           let damage = Math.max(0, combat) * B.crew.personalDpsPerCombat * dt;
           if (c.traits.includes('marksman')) damage *= D.TRAITS.marksman.damageMult;
           this.damageEnemy(target, damage, 1);
-        }
+        } else this.crewReturnFire?.(c,dt);
         if (car.hp <= 0) {
           let repair = B.train.repairBasePerSecond + this.effectiveStat(c, 'repair') * B.train.repairStatScale;
           if (c.traits.includes('fixer')) repair *= D.TRAITS.fixer.repairMult;
@@ -359,8 +361,10 @@
             car.hp = car.maxHp * B.train.restoredHpRatio; car.repair = 0; car.destroyedLogged = false;
             this.log(`${car.name} 긴급 복구 완료`, 'hot');
           }
-        } else if ((this.isCarGrabbed?.(c.car) || (s.doctrine && car.hp < car.maxHp * B.battle.doctrineRepairThreshold && this.effectiveStat(c,'repair') >= B.battle.doctrineMinRepairStat))) {
-          car.hp = Math.min(car.maxHp, car.hp + this.effectiveStat(c,'repair') * B.train.repairStatScale * this.moduleEffect(c.car,'repair','repairMult') * dt);
+        } else if (car.autoRepair && car.hp < car.maxHp*repairRules.repairStop) {
+          let repair=this.effectiveStat(c,'repair')*B.train.repairStatScale*this.moduleEffect(c.car,'repair','repairMult');
+          if(c.traits.includes('fixer'))repair*=D.TRAITS.fixer.repairMult;
+          car.hp = Math.min(car.maxHp*repairRules.repairStop, car.hp + repair * dt);
         }
       }
     }
@@ -370,7 +374,7 @@
       if(c.traits.includes('coward')&&this.state.enemies.some(e=>!e.dead&&e.boarded&&e.targetCar===c.car))v+=stat==='combat'?D.TRAITS.coward.combatVsBoarder:stat==='repair'?D.TRAITS.coward.repairVsBoarder:0;
       const same = this.state.crew.filter(x => !x.dead && !x.moving && x.car === c.car && x.hp > 0).length;
       if (c.traits.includes('lonewolf') && same === 1) v += D.TRAITS.lonewolf.soloBonus;
-      if (this.state.orders.command.active > 0 && this.state.orders.command.car === c.car && ['combat','operate','repair'].includes(stat)) v += B.crew.directCommandBonus;
+      if (this.state.orders.command.active > 0 && this.state.orders.command.car === c.car && ['combat','operate','repair'].includes(stat)) v += this.commandStatBonus?.()??B.crew.directCommandBonus;
       return v;
     }
 
@@ -378,7 +382,7 @@
       const s = this.state;
       s.cars.forEach((car, carIndex) => {
         for (const eq of car.equipment) {
-          if (eq.kind !== 'turret' || car.power <= 0) continue;
+          if (eq.kind !== 'turret') continue;
           const t = D.TURRETS[eq.type];
           let operator = s.crew.filter(c => !c.dead && !c.moving && c.car === carIndex && c.hp > 0).sort((a,b) => this.effectiveStat(b,'operate') - this.effectiveStat(a,'operate'))[0];
           const operate = operator ? this.effectiveStat(operator, 'operate') : 0;
@@ -387,7 +391,7 @@
           if (car.armor > 0) cool *= B.armor.coolingMultiplier;
           eq.heat = Math.max(0, eq.heat - cool * dt);
           if (eq.overheated && eq.heat <= B.heat.resumeAt) eq.overheated = false;
-          if (car.hp <= 0 || car.armor > 0 || eq.overheated) continue;
+          if (car.hp <= 0 || car.power <= 0 || car.armor > 0 || eq.overheated || this.eventEquipmentDisabled?.(eq)) continue;
           eq.cooldown -= dt;
           if (eq.cooldown > 0) continue;
           const target = this.pickTurretTarget(carIndex, t, eq);
@@ -405,6 +409,7 @@
     equipmentCapacity(i) { return i===0?B.train.engineEquipmentSlots:B.train.equipmentSlots; }
     crewCapacity(i) { return i===0?Math.max(0,B.train.engineCrewSlots-B.train.captainReservedSlots):B.train.crewSlots; }
     moduleData(eq) {
+      if(D.MODULES[eq.type].upgradeable===false)return {...D.MODULES[eq.type]};
       const base=D.MODULES[eq.type],branch=B.moduleUpgrade.branches[eq.model],factor=(1+((eq.level||1)-1)*B.moduleUpgrade.perLevel)*(branch?.factor||1),m={...base};
       for(const key of ['heatMult','coolingMult','stageHealMult','repairMult','ammoDamageMult'])if(key in m)m[key]=Math.max(0,1+(base[key]-1)*factor);
       if('extraPower' in m)m.extraPower=base.extraPower*factor;
@@ -436,8 +441,10 @@
         damage *= t.branch.damageMult || 1; interval *= t.branch.intervalMult || 1; heat *= t.branch.heatMult || 1;
         chains += t.branch.chainsBonus || 0; splash = Math.max(splash, t.branch.splash || 0);
       }
-      if (operator) {
-        heat *= 1 - clamp(this.effectiveStat(operator,'operate') * B.heat.operatorHeatReductionPerPoint, 0, B.heat.maxOperatorModifier);
+      const operators=this.crewForCar?.(carIndex)||(operator?[operator]:[]),operate=operators.reduce((sum,c)=>sum+this.effectiveStat(c,'operate'),0);
+      heat *= 1-clamp(operate*B.heat.operatorHeatReductionPerPoint,0,B.heat.maxOperatorModifier);
+      damage *= 1+clamp(operate*window.PROGRESSION_CONFIG.crew.operateDamagePerPoint,0,window.PROGRESSION_CONFIG.crew.maxOperateDamage);
+      for (const operator of operators) {
         if (operator.traits.includes('gunner') && eq.type === 'gatling') { interval *= D.TRAITS.gunner.gatlingIntervalMult; heat *= D.TRAITS.gunner.gatlingHeatMult; }
         if (operator.traits.includes('marksman')) damage *= D.TRAITS.marksman.damageMult;
         if (operator.traits.includes('scholar') && eq.type === 'tesla') damage *= D.TRAITS.scholar.ancientDamageMult;
@@ -445,7 +452,7 @@
       heat *= this.moduleEffect(carIndex, 'cooling', 'heatMult');
       if (t.ammo) damage *= this.moduleEffect(carIndex, 'ammo', 'ammoDamageMult');
       damage *= this.state.runDamageMult;
-      if (this.state.orders.focus.active > 0) damage *= 1 + B.focus.damageBonus;
+      if (this.state.orders.focus.active > 0) damage *= 1 + (this.focusDamageBonus?.()??B.focus.damageBonus);
       return { damage, interval, heat, chains, chainRatio: p.chainRatio || t.chainRatio || 1, splash, armorPierce: eq.branch && t.branch.armorPierce || t.armorPierce || 0 };
     }
 
@@ -571,7 +578,7 @@
     }
 
     advanceStage() {
-      this.state.titanDistance = clamp(this.state.titanDistance + B.run.branchDistanceBonus, 0, B.run.maxTitanDistance);
+      this.state.titanDistance = clamp(this.state.titanDistance + (this.departureDistance?.()??B.run.branchDistanceBonus), 0, B.run.maxTitanDistance);
       this.state.stageIndex++;
       this.state.kills = 0;
       this.state.battle = null;
@@ -591,7 +598,7 @@
         this.state.orders.focus.active=0;this.state.orders.focus.target=null;
         this.state.relics+=D.BOSSES[this.state.battle.bossId].rewardRelics;
         this.healAfterStage();
-        this.showDialog('ACT I CLEAR','다음 노선 · '+D.ACTS[next].name,D.ACTS[next].intro,[{label:'ACT II 진입',text:'열차·직원·장비·자원을 유지합니다. 다리 파괴로 포획을 해제할 수 있습니다.',hint:`출발 거리 +${B.run.branchDistanceBonus} km`,icon:'→'}],()=>{
+        this.showDialog('ACT I CLEAR','다음 노선 · '+D.ACTS[next].name,D.ACTS[next].intro,[{label:'ACT II 진입',text:'열차·직원·장비·자원을 유지합니다. 다리 파괴로 포획을 해제할 수 있습니다.',hint:`출발 거리 +${(this.departureDistance?.()??B.run.branchDistanceBonus)} km`,icon:'→'}],()=>{
           this.closeOverlay();this.state.actId=next;this.state.stageIndex=-1;this.stationOffers=null;this.stationStage=null;this.advanceStage();
         });return;
       }

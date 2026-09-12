@@ -1,10 +1,10 @@
 /* ACT content and tuning remain separate from simulation. Prototype feedback wins. */
 (() => {
   const D=window.GAME_DATA,C=window.COMBAT_CONFIG,B=D.BALANCE;
-  B.station.turretOfferCount=4;
+  B.station.turretOfferCount=2;B.station.moduleOfferCount=2;
   B.launch.impactAt=.65;
   window.ACT2_CONFIG={
-    shop:{priceMultiplier:1.2,crewBonus:2,crewPrices:[110,170],advancedChance:.65},
+    shop:{priceMultiplier:1.2,crewBonus:0,crewPrices:[110,170],advancedChance:.65},
     hook:{repairMultiplier:.55,boardingSpeed:1.25,range:.32},
     power:{seconds:8,amount:1}, shield:{radius:.2,damageMultiplier:.65},
     transport:{range:.22,count:3,laneSpacing:.035},repair:{radius:.24,hpPerSecond:8},

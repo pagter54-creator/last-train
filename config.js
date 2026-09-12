@@ -71,11 +71,11 @@ window.GAME_DATA = (() => {
   TURRETS.mortar.trajectory='arc';
 
   const MODULES = {
-    cooling: { name: '냉각 모듈', icon: '❄', price: 90, effect: 'cooling', heatMult: 0.85, coolingMult: 1.25, range: 1 },
+    cooling: { name: '냉각 모듈', icon: '❄', price: 90, effect: 'cooling', heatMult: 0.90, coolingMult: 1.15, range: 1 },
     medical: { name: '의료 모듈', icon: '+', price: 85, effect: 'medical', stageHealMult: 1.3, range: 1 },
     repair: { name: '수리 모듈', icon: '⚒', price: 80, effect: 'repair', repairMult: 1.3, range: 1 },
     ammo: { name: '탄약 모듈', icon: '▦', price: 105, effect: 'ammo', ammoDamageMult: 1.15, range: 1 },
-    generator: { name: '발전 모듈', icon: 'ϟ', price: 130, effect: 'generator', extraPower: 1, range: 0, unlockSpent: 50 }
+    generator: { name: '발전 모듈', icon: 'ϟ', price: 180, effect: 'generator', extraPower: 1, range: 0, upgradeable: false }
   };
 
   const ENEMIES = {
@@ -108,6 +108,9 @@ window.GAME_DATA = (() => {
   };
 
   const TRAITS = {
+    adaptable: { name: '적응력', text: '본인의 경험치 획득량 +20%', xpMultiplier: 1.2 },
+    teacher: { name: '친절한 선생님', text: '자신과 같은 칸의 활동 직원 경험치 +10%. 여러 선생님의 보너스는 합산됩니다.', crewXpBonus: .1 },
+    arrogant: { name: '오만함', text: '모든 능력 +1 · 경험치 획득량 -50%', allStats: 1, xpMultiplier: .5 },
     coward: { name: '겁쟁이', text: '승선병이 같은 칸에 있으면 전투 -2, 수리 +2', combatVsBoarder: -2, repairVsBoarder: 2 },
     marksman: { name: '명사수', text: '개인화기 및 포탑 피해 +15%', damageMult: 1.15 },
     fixer: { name: '응급수리공', text: '파괴 객차 수리 +30%', repairMult: 1.3 },

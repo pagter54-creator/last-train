@@ -1,0 +1,165 @@
+/* Event transactions use an independent seeded generator. No combat clock or Math.random rolls. */
+(()=>{
+  'use strict';
+  const g=window.lastRail,D=window.GAME_DATA,B=D.BALANCE,C=window.EVENT_CONFIG,P=window.PROGRESSION_CONFIG,A=window.LAST_RAIL_SCENE;
+  const $=s=>document.querySelector(s),copy=v=>JSON.parse(JSON.stringify(v)),esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const clamp=(n,a,b)=>Math.max(a,Math.min(b,n)),labels={money:'돈',scrap:'고철',relics:'고대 잔해',distance:'타이탄 거리',combat:'전투',operate:'운용',repair:'수리',recovery:'회복',engine:'엔진 속도',cooling:'냉각 효율',module:'모듈 효과',hull:'최대 내구'};
+  let session=null,busy=false,powerBudgetRead=0;
+  function rng(seed){let h=2166136261;for(const c of String(seed))h=Math.imul(h^c.charCodeAt(0),16777619);return()=>{h+=0x6D2B79F5;let t=h;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return((t^t>>>14)>>>0)/4294967296;};}
+  const integer=(r,v)=>Array.isArray(v)?Math.floor(r()*(v[1]-v[0]+1))+v[0]:v||0;
+  const pick=(r,a)=>a.length?a[Math.floor(r()*a.length)]:null;
+  const shuffled=(r,a)=>{a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
+  function weighted(r,weights){let n=r()*weights.reduce((a,b)=>a+b,0);for(let i=0;i<weights.length;i++){n-=weights[i];if(n<0)return i;}return weights.length-1;}
+  const staff=()=>g.state.crew.filter(c=>!c.dead&&c.hp>0&&!c.moving);
+  const trait=id=>staff().find(c=>c.traits.includes(id));
+  const ev=()=>C.events.find(e=>e.id===session.eventId);
+  const definition=id=>ev().choices.find(c=>c.id===id);
+  const fmt=n=>Number(n.toFixed(2));
+  const newSeed=()=>Array.from(crypto.getRandomValues(new Uint32Array(4)),n=>n.toString(16).padStart(8,'0')).join('');
+  function gearDetails(eq){const d=(eq.kind==='turret'?D.TURRETS:D.MODULES)[eq.type];let html=g.equipmentHTML(eq,null)+`<p>획득 장비 Lv.${eq.level} · 직원/전력 보정 전</p>`;if(eq.level>1){if(eq.kind==='turret')html+=`<p>강화 반영: 1회 피해 <span class="positive">${fmt(d.damage*(d.pellets||1)*(1+(eq.level-1)*B.upgrade.damagePerLevel))}</span> · 발열 <span class="negative">${fmt(d.heat*(1+(eq.level-1)*B.upgrade.heatPerLevel))}</span></p>`;else for(const k of ['heatMult','coolingMult','stageHealMult','repairMult','ammoDamageMult'])if(k in d)html+=`<p>${({heatMult:'발열',coolingMult:'냉각',stageHealMult:'회복',repairMult:'수리',ammoDamageMult:'실탄 피해'})[k]}: ×${fmt(1+(d[k]-1)*(1+(eq.level-1)*B.moduleUpgrade.perLevel))}</p>`;}return html;}
+  function clearSave(){try{localStorage.removeItem(C.storageKey);}catch{} }
+  function readSave(){try{const p=JSON.parse(localStorage.getItem(C.storageKey));return p?.version===C.version&&p.state?.cars?.length&&C.events.some(e=>e.id===p.session?.eventId)?p:null;}catch{return null;}}
+  function save(){localStorage.setItem(C.storageKey,JSON.stringify({version:C.version,state:g.state,session,preferredSpeed:g.preferredSpeed}));}
+  function transaction(action){if(busy)return;busy=true;const before=copy(g.state),previous=copy(session);try{action();save();}catch(error){g.state=before;session=previous;g.toast('이벤트 처리·저장에 실패했습니다. 저장 공간·브라우저 설정을 확인한 뒤 다시 선택해 주세요.');console.warn('Event transaction not committed',error);busy=false;render();return false;}busy=false;g.updateHUD();g.renderCars();g.playSound('select');render();return true;}
+  function candidate(r,id,weights=C.survivorStars){
+    const pool=D.CREW_TEMPLATES.filter(c=>!g.state.crew.some(s=>s.name===c.name)),base=pick(r,pool.length?pool:D.CREW_TEMPLATES),stars=weighted(r,weights)+1;
+    const level=Math.min(P.crew.maxRecruitLevel,1+Math.floor((g.globalStage()-1)/P.crew.recruitStageStep),(P.stars.promotion[stars+1]||P.crew.maxLevel+1)-1);
+    const c={...copy(base),id,stars,birthStars:stars,level,xp:0,pendingStats:0,traits:[],starTraits:[],eventTraits:[],training:{combat:0,operate:0,repair:0,recovery:0},past:base.background,maxHp:B.crew.maxHp,car:-1,moving:null,dead:false};
+    for(let n=0;n<P.stars.statBonus[stars]+(level>1?level:0);n++){const k=pick(r,Object.keys(c.stats));c.stats[k]+=P.crew.statGain;c.training[k]+=P.crew.statGain;}
+    const talents=shuffled(r,Object.keys(D.TRAITS).filter(k=>!D.TRAITS[k].unlockSpent||g.meta.spent>=D.TRAITS[k].unlockSpent));c.starTraits=talents.slice(0,stars-1);c.traits=[...c.starTraits];c.hp=Math.round(c.maxHp*(C.survivorHp[0]+r()*(C.survivorHp[1]-C.survivorHp[0])));return c;
+  }
+  function gear(r,id,kind='any'){
+    const rare=kind==='rare'||kind==='rareModule',wanted=kind==='rareModule'?'module':kind;
+    let pool=['turret','module'].flatMap(k=>Object.entries(k==='turret'?D.TURRETS:D.MODULES).filter(([,d])=>!d.unlockSpent||g.meta.spent>=d.unlockSpent).map(([type,data])=>({kind:k,type,data})));
+    if(['turret','module'].includes(wanted))pool=pool.filter(e=>e.kind===wanted);
+    if(rare){pool.sort((a,b)=>b.data.price-a.data.price);pool=pool.slice(0,Math.max(1,Math.ceil(pool.length*C.shop.rarePoolFraction)));}
+    const item=pick(r,pool);return {id,kind:item.kind,type:item.type,level:rare&&item.data.upgradeable!==false?C.shop.rareLevel:1,branch:false,heat:0,overheated:false,cooldown:0};
+  }
+  function prepareReward(raw,seed){
+    const r=rng(seed),out={...raw};for(const k of ['money','scrap','relics','moneyLoss','crewDamage','actorDamage','carDamage'])if(k in out)out[k]=integer(r,out[k]);
+    out.carIds=shuffled(r,g.state.cars.map(c=>c.id)).slice(0,out.carCount==='all'?g.state.cars.length:out.carCount||1);
+    out.crewIds=shuffled(r,g.state.crew.filter(c=>!c.dead).map(c=>c.id)).slice(0,out.crewCount||1);
+    if(out.possibleCandidate&&r()<C.candidateChance)out.candidates=1;
+    if(out.possibleRareGear&&r()<C.rareGearChance)out.gear='rare';
+    if(out.labReward)Object.assign(out,pick(r,C.labRewards));
+    if(out.medicalRescue){out.candidates=1;out.medical=true;}
+    if(out.candidates)out.people=Array.from({length:out.candidates},(_,i)=>candidate(r,`${seed}-crew-${i}`,out.medical?C.medicalStars:C.survivorStars));
+    if(out.people?.length>1&&out.people[0].name===out.people[1].name)out.people[1].name+=' · 동행자';
+    if(out.gear)out.equipment=gear(r,`${seed}-equipment`,out.gear);
+    if(out.disableGear)out.disabledId=pick(r,g.state.cars.flatMap(c=>c.equipment.map(e=>e.id)));
+    if(out.buff)out.effect=pick(r,Object.entries(C.buffs));
+    if(out.debuff)out.effect=pick(r,Object.entries(C.debuffs));
+    if(out.possibleTalent&&r()<C.talentChance)out.talentOrder=shuffled(r,C.combatTalents);
+    if(out.shop){
+      if(out.shop==='exchange')out.offers=shuffled(r,C.exchanges).slice(0,C.shop.exchangeCount).map((x,i)=>({label:x.label,cost:x.cost,reward:prepareReward(x.reward,`${seed}-trade-${i}`)}));
+      else out.offers=Array.from({length:C.shop.count},(_,i)=>{const equipment=gear(r,`${seed}-shop-${i}`,r()<C.shop.rareChance?'rare':'any'),d=(equipment.kind==='turret'?D.TURRETS:D.MODULES)[equipment.type],price=out.shop==='relic'?integer(r,C.shop.relicPrice):Math.ceil(d.price*(C.shop.markup[0]+r()*(C.shop.markup[1]-C.shop.markup[0]))*(out.shopFactor||1));return{label:d.name,cost:out.freeItem&&i===0?{}:{[out.shop==='relic'?'relics':'money']:price},reward:{equipment}};});
+    }
+    return out;
+  }
+  function allowed(c){const q=c.condition;if(!q)return true;if(q.trait&&!trait(q.trait))return false;if(q.stat&&!staff().some(s=>g.effectiveStat(s,q.stat)>=q.min))return false;if(q.damagedTrain&&!g.state.cars.some(s=>s.hp<s.maxHp))return false;return true;}
+  function chance(c,actor){let p=c.chance;if(c.scholarChance&&trait('scholar'))p=c.scholarChance;if(c.skill){const value=actor?g.effectiveStat(actor,c.skill):Math.max(0,...staff().map(s=>g.effectiveStat(s,c.skill)));p+= (value-C.skill.reference)*C.skill.step;}if(c.engineChance){const car=g.state.cars[0];p+=(g.effectiveCarPower(0)-C.engine.powerReference)*C.engine.powerStep+(car.hp/car.maxHp-1)*C.engine.hullStep;}return p===undefined?null:clamp(p,C.skill.min,C.skill.max);}
+  function outcomeIndex(c,actor){const p=chance(c,actor),prepared=session.prepared[c.id];return p===null?prepared.weightedIndex:prepared.roll<p?0:1;}
+  function chanceText(c,actor){if(!c.outcomes)return '확정 결과';const p=chance(c,actor);if(p===null)return '여러 결과 중 하나';const label=p<.3?'매우 낮음':p<.45?'낮음':p<.65?'보통':p<.8?'높음':'매우 높음';return `성공 가능성 ${label}${c.skill||c.engineChance?' · '+Math.round(p*100)+'%':''}`;}
+  function costText(c){return [`거리 −${fmt(c.time||0)} km`,...Object.entries(c.cost||{}).map(([k,v])=>`${labels[k]} −${v}`)].join(' · ');}
+  function rewardText(raw={}){return Object.entries(raw).flatMap(([k,v])=>{const range=Array.isArray(v)?v.join('~'):v;if(['money','scrap','relics'].includes(k))return `${labels[k]} +${range}`;if(k==='distance')return `거리 ${v>=0?'+':''}${v} km`;if(k==='moneyLoss')return `돈 −${range}`;if(k==='crewDamage')return `직원 ${raw.crewCount||1}명 HP −${range}`;if(k==='carDamage')return `${raw.carCount==='all'?'모든':raw.carCount||1} 객차 HP −${range}`;if(k==='actorDamage')return `출전 직원 HP −${range}`;if(k==='engineDamage')return `기관실 HP −${range}`;if(k==='temporaryEngine')return `다음 전투 엔진 속도 ${fmt((v-1)*100)}%`;if(k==='disableGear')return '무작위 장비 1개 다음 전투 정지';if(k==='gear'||k==='possibleRareGear')return '장비 획득 가능';if(k==='candidates'||k==='medicalRescue'||k==='possibleCandidate')return '직원 후보 확인';if(k==='shop')return '거래 창 열기';if(k==='voucher')return '무료 포탑 강화 1회';if(k==='labReward')return '잔해 4 / 희귀 모듈 / 무료 강화 중 하나';if(k==='buff')return '이번 런 무작위 성능 개선';if(k==='debuff')return '이번 런 무작위 성능 감소';if(k==='repairRatio')return `모든 객차 최대 HP의 +${v*100}%`;if(k==='healRatio')return `모든 직원 최대 HP의 +${v*100}% (만피 직원은 소량 XP)`;return [];}).join(' · ');}
+  function hints(){return(ev().analysis||[]).filter(a=>trait(a.trait)).map(a=>`<p class="event-hint">${esc(trait(a.trait).name)}의 분석: ${esc(a.texts[outcomeIndex(definition(a.choice))])} · 분석 비용 없음</p>`).join('');}
+  function dispatchStaff(c){return staff().filter(s=>(!c.condition?.trait||s.traits.includes(c.condition.trait))&&(!c.condition?.stat||g.effectiveStat(s,c.condition.stat)>=c.condition.min));}
+  function rewardHTML(raw){return rewardText(raw).split(' · ').filter(Boolean).map(t=>`<span class="${/−| -|감소|정지/.test(t)?'negative':'positive'}">${esc(t)}</span>`).join(' · ');}
+  function shell(title,text){g.mode='event';g.state.speed=0;const m=g.modalShell(title,'황무지 사건 · v0.5',text);m.classList.add('event-modal');m.querySelector('.close-btn')?.remove();return m.querySelector('.dialog-body');}
+  function button(body,label,callback,disabled=false){const b=document.createElement('button');b.className='choice-card';b.innerHTML=label;b.disabled=disabled;b.onclick=callback;body.append(b);return b;}
+  function log(label,amount,unit='',tone=null){session.logs.push({label,amount,unit,tone});}
+  function numeric(key,delta){const old=g.state[key],max=key==='titanDistance'?B.run.maxTitanDistance:Infinity;g.state[key]=clamp(old+delta,0,max);log(key==='titanDistance'?'타이탄 거리':labels[key],g.state[key]-old,key==='titanDistance'?' km':'');}
+  function health(target,amount,label='HP'){if(!target)return;const old=target.hp;target.hp=clamp(old+amount,0,target.maxHp);log(`${target.name} ${label}`,target.hp-old);}
+  function apply(r,actor){
+    for(const k of ['money','scrap','relics'])if(r[k])numeric(k,r[k]);if(r.moneyLoss)numeric('money',-r.moneyLoss);if(r.distance)numeric('titanDistance',r.distance);
+    if(r.carDamage)for(const id of r.carIds)health(g.state.cars.find(c=>c.id===id),-r.carDamage);
+    if(r.crewDamage)for(const id of r.crewIds)health(g.state.crew.find(c=>c.id===id),-r.crewDamage);
+    if(r.actorDamage)health(actor,-r.actorDamage);if(r.engineDamage)health(g.state.cars[0],-r.engineDamage);
+    if(r.repairRatio)for(const c of g.state.cars)health(c,c.maxHp*r.repairRatio);
+    if(r.healRatio||r.healCrew)for(const c of g.state.crew.filter(c=>!c.dead)){if(c.hp>=c.maxHp&&c.level<P.crew.maxLevel){const xp=g.grantCrewXp(c,P.crew.fullHealXp,rng(`${session.seed}-${session.selected}-${c.id}-healing`));log(`${c.name} 경험치`,xp);}else health(c,r.healCrew||c.maxHp*r.healRatio);}
+    if(r.temporaryEngine){g.state.eventNextCombat??={};g.state.eventNextCombat.engine=(g.state.eventNextCombat.engine||1)*r.temporaryEngine;log('다음 전투 엔진 속도',(r.temporaryEngine-1)*100,'%');}
+    if(r.disabledId){g.state.eventNextCombat??={};g.state.eventNextCombat.disabled??=[];g.state.eventNextCombat.disabled.push(r.disabledId);const e=g.findEquipment(r.disabledId);log(`${(e.kind==='turret'?D.TURRETS:D.MODULES)[e.type].name} 다음 전투 정지`,null,'','negative');}
+    if(r.effect){const [k,v]=r.effect;if(k==='hull'){const c=g.state.cars.find(c=>c.id===r.carIds[0]),old=c.maxHp;c.maxHp*=v;log(`${c.name} 최대 HP`,c.maxHp-old);health(c,0);}else{g.state.eventModifiers??={};g.state.eventModifiers[k]=(g.state.eventModifiers[k]||1)*v;log(`이번 런 ${labels[k]}`,(v-1)*100,'%');}}
+    if(r.voucher){g.state.eventUpgradeCredits=(g.state.eventUpgradeCredits||0)+r.voucher;log('무료 포탑 강화권',r.voucher);}
+    if(r.talentOrder&&actor){actor.eventTraits??=[];const t=r.talentOrder.find(t=>!actor.traits.includes(t));if(t&&actor.eventTraits.length<P.stars.eventTalentSlots){actor.eventTraits.push(t);actor.traits.push(t);log(`${actor.name} 재능: ${D.TRAITS[t].name}`,1);}else log('재능 슬롯 또는 새로운 전투 재능 없음',0);}
+    if(r.people)session.pending.push({kind:'crew',candidates:r.people});if(r.equipment)session.pending.push({kind:'equipment',equipment:r.equipment});if(r.offers)session.shop={offers:r.offers,bought:[]};
+    if(r.routeInfo){const act=D.ACTS[g.state.actId],next=act.stages[g.state.stageIndex+1];session.info=next?`다음 구간: ${next.title||({battle:'일반 교전',elite:'정예 교전',station:'정비 스테이션',event:'이벤트',branch:'갈림길'}[next.node])}${next.options?' ('+next.options.join(' / ')+')':''}`:`다음 상대: ${D.BOSSES[act.boss].name}. ${act.boss==='arachne'?'다리를 파괴하면 객차 포획이 해제됩니다.':'포탑 부위가 남아 있으면 강력한 공격을 받습니다.'}`;}
+  }
+  function commit(c,actor){if(!['choices','dispatch'].includes(session?.phase)||!allowed(c)||!g.canPay(c.cost))return;
+    if(actor)actor=g.state.crew.find(s=>s.id===actor.id);if(c.dispatch&&(!actor||!dispatchStaff(c).includes(actor)))return;
+    actor??=c.condition?.trait?trait(c.condition.trait):c.condition?.stat?staff().find(s=>g.effectiveStat(s,c.condition.stat)>=c.condition.min):undefined;
+    transaction(()=>{session.selected=c.id;session.actor=actor?.id;session.logs=[];session.pending=[];for(const [k,v]of Object.entries(c.cost||{}))numeric(k,-v);numeric('titanDistance',-c.time);
+    const prepared=session.prepared[c.id];apply(prepared.common,actor);let result=c;
+    if(c.outcomes){const index=outcomeIndex(c,actor);result=c.outcomes[index];apply(prepared.outcomes[index],actor);}
+    if(c.avoidTrap&&outcomeIndex(definition(c.avoidTrap))!==0){session.pending=[];session.info='의무병이 함정을 간파했습니다. 직원 피해 없이 철수했습니다.';}
+    session.title=result.title||c.label;session.text=(actor?`${actor.name}이(가) 작업을 맡았다. `:'')+(result.text||`${c.label}. 확보한 물자를 싣고 다시 출발할 준비를 마쳤다.`);session.phase='result';});}
+  function logsHTML(){const distance=session.logs.filter(x=>x.label==='타이탄 거리').reduce((n,x)=>n+x.amount,0);return '<ul class="event-results">'+session.logs.map(x=>`<li class="${x.tone||(x.amount>0?'positive':x.amount<0?'negative':'')}">${esc(x.label)} <b>${x.amount===null?'':`${x.amount>0?'+':''}${fmt(x.amount)}${x.unit||''}`}</b></li>`).join('')+`</ul><p>이번 정산 거리 변화 <b class="${distance>0?'positive':distance<0?'negative':''}">${distance>0?'+':''}${fmt(distance)} km</b> · 현재 ${fmt(g.state.titanDistance)} km</p>`;}
+  function capacity(kind,ci){return kind==='crew'?g.state.crew.filter(c=>c.car===ci||c.moving?.to===ci).length<g.crewCapacity(ci):g.state.cars[ci].equipment.length<g.equipmentCapacity(ci);}
+  function nextReward(){transaction(()=>{session.phase=session.pending.length?(session.pending[0].kind==='crew'?'candidate':'placement'):session.shop?'shop':'finish';});}
+  function placement(){
+    g.mode='event-placement';g.state.speed=0;$('#overlay').classList.remove('show');document.body.classList.add('event-placement');g.renderCars();const reward=session.pending[0];
+    if(!reward){nextReward();return;}const valid=g.state.cars.map((_,i)=>i).filter(i=>capacity(reward.kind,i));
+    const bar=document.createElement('section');bar.id='event-placement-panel';bar.innerHTML=`<b>${esc(reward.kind==='crew'?reward.person.name:(reward.equipment.kind==='turret'?D.TURRETS:D.MODULES)[reward.equipment.type].name)} 배치</b><p>${valid.length?'녹색 빈자리를 클릭하세요. 시간은 흐르지 않습니다.':'빈자리가 없습니다. 기존 장비·직원은 교체하거나 삭제하지 않습니다.'}</p>`;
+    button(bar,valid.length?'보상 포기 · 다른 보상은 유지':'빈자리 없음 확인 · 다른 보상은 유지',()=>transaction(()=>{session.title=reward.kind==='crew'?'자리가 없다':'장비를 실을 공간이 없다';session.text=reward.kind==='crew'?'함께 가고 싶어 하는 사람과 짧게 인사를 나눈 뒤 다시 길을 떠났다.':'회수한 장비를 남겨두고 떠났다. 이미 확보한 다른 보상은 유지된다.';session.logs.push({label:'배치하지 않은 보상은 소멸했습니다',amount:0});session.pending.shift();session.phase='receipt';}));document.body.append(bar);
+    for(const ci of valid){const car=$(`[data-car-index="${ci}"]`);car?.querySelectorAll(reward.kind==='crew'?'.empty-crew':'.empty-equipment').forEach(el=>{el.classList.add('event-slot');el.disabled=false;el.setAttribute('role','button');el.tabIndex=0;el.dataset.eventSlot=ci;});}
+  }
+  function render(){
+    $('#event-placement-panel')?.remove();document.body.classList.remove('event-placement');$('#train-cars')._markup=null;g.renderCars();if(!session)return;
+    if(session.phase==='leaving'){leave();return;}if(session.phase==='placement'){placement();return;}
+    const body=shell(session.phase==='choices'?ev().title:session.title||ev().title,session.phase==='choices'?ev().text:session.text||'정보를 확인하는 동안 시간은 흐르지 않습니다.');
+    if(session.phase==='choices'){
+      body.innerHTML=hints()+'<p>선택 확정 시 표시된 비용을 한 번 지불합니다. 확정 보상은 실패해도 유지됩니다.</p>';
+      for(const c of ev().choices.filter(allowed)){const maybe=[c.reward,...(c.outcomes||[]).map(o=>o.reward)],noGear=maybe.some(r=>r.gear||r.possibleRareGear||r.labReward)&&!g.state.cars.some((_,i)=>capacity('equipment',i));button(body,`<div><b>${esc(c.label)}${c.dispatch?' · 직원 선택':''}</b><p class="${c.time||Object.keys(c.cost||{}).length?'negative':''}">${costText(c)}</p><p>${chanceText(c)}</p><p>${rewardHTML(c.reward)}</p>${c.outcomes?'<small>'+c.outcomes.map(o=>esc(o.title)+': '+rewardHTML(o.reward)).join(' / ')+'</small>':''}${noGear?'<p class="negative">장비 빈자리 없음 · 장비는 배치할 수 없지만 다른 보상은 유지됩니다.</p>':''}</div>`,()=>c.dispatch?transaction(()=>{session.phase='dispatch';session.selected=c.id;}):commit(c),!g.canPay(c.cost)||(c.dispatch&&!dispatchStaff(c).length));}
+    }else if(session.phase==='dispatch'){
+      const c=definition(session.selected);body.innerHTML='<p>직원 비교에는 비용이 없습니다. 아래 파견 확정 버튼을 누르면 비용을 지불합니다.</p>';
+      for(const person of dispatchStaff(c)){const article=document.createElement('article');article.className='event-person';article.innerHTML=g.crewHTML(person,true);button(article,`파견 확정: ${esc(person.name)} · ${chanceText(c,person)}<br>${costText(c)}`,()=>commit(c,person));body.append(article);}button(body,'선택지로 돌아가기 · 비용 없음',()=>transaction(()=>session.phase='choices'));
+    }else if(['result','receipt'].includes(session.phase)){
+      body.innerHTML=logsHTML()+(session.info?`<p class="event-hint">${esc(session.info)}</p>`:'')+session.pending.filter(p=>p.kind==='equipment').map(p=>'<details><summary>획득 장비 상세 정보 (클릭)</summary>'+gearDetails(p.equipment)+'</details>').join('');button(body,'보상 확인 계속 →',nextReward);
+    }else if(session.phase==='candidate'){
+      body.innerHTML='<p>한 명만 선택할 수 있습니다. 비교·선택·배치에는 추가 비용이 없습니다.</p>';const reward=session.pending[0];
+      for(const person of reward.candidates){const a=document.createElement('article');a.className='event-person';a.innerHTML=g.crewHTML(person,false)+`<p>HP ${person.hp} / ${person.maxHp}</p>`;button(a,`${esc(person.name)} 선택 후 빈자리 지정`,()=>transaction(()=>{reward.person=person;session.phase='placement';}));body.append(a);}
+      button(body,'영입하지 않는다 · 다른 보상은 유지',()=>transaction(()=>{session.pending.shift();session.phase='receipt';}));
+    }else if(session.phase==='shop'){
+      body.innerHTML='<p>입장 비용은 이미 반영되었습니다. 상품 확인·구매·보상 배치에는 거리 비용이 없습니다.</p>';
+      session.shop.offers.forEach((offer,i)=>{const a=document.createElement('article');a.className='event-person';a.innerHTML=`<h3>${esc(offer.label)}</h3><p>${Object.entries(offer.cost).map(([k,v])=>`${labels[k]} ${v}`).join(' · ')||'무료'}</p>`;if(offer.reward.equipment){const details=document.createElement('details');details.innerHTML='<summary>장비 상세 정보 (클릭)</summary>'+gearDetails(offer.reward.equipment);a.append(details);}button(a,session.shop.bought.includes(i)?'거래 완료':'거래 확정',()=>transaction(()=>{if(session.phase!=='shop'||session.shop.bought.includes(i)||!g.canPay(offer.cost))return;session.logs=[];for(const[k,v]of Object.entries(offer.cost))numeric(k,-v);apply(offer.reward);session.shop.bought.push(i);session.title='거래 완료';session.text='약속한 물자를 교환했다. 추가 시간 비용은 없다.';session.phase='receipt';}),session.shop.bought.includes(i)||!g.canPay(offer.cost));body.append(a);});
+      button(body,'거래 종료 · 추가 비용 없음',()=>transaction(()=>{session.shop=null;session.phase='finish';}));
+    }else if(session.phase==='finish'){body.innerHTML=logsHTML()+'<p>이벤트 정산이 끝났습니다. 다음 구간으로 이동하며 추가 거리 보너스나 비용은 발생하지 않습니다.</p>';button(body,'다음 구간으로 →',()=>transaction(()=>session.phase='leaving'));}
+  }
+  function place(ci){const reward=session?.pending[0];if(session?.phase!=='placement'||!reward||!capacity(reward.kind,ci))return;transaction(()=>{if(reward.kind==='crew'){reward.person.car=ci;g.state.crew.push(reward.person);log(`${reward.person.name} 영입 · ${g.state.cars[ci].name}`,1);}else{g.state.cars[ci].equipment.push(reward.equipment);log(`${(reward.equipment.kind==='turret'?D.TURRETS:D.MODULES)[reward.equipment.type].name} 장착 · ${g.state.cars[ci].name}`,1);}session.pending.shift();session.phase='receipt';});g.playSound('upgrade');}
+  $('#train-cars').addEventListener('click',e=>{if(g.mode!=='event-placement')return;e.stopImmediatePropagation();const el=e.target.closest('[data-event-slot]');if(el)place(Number(el.dataset.eventSlot));},true);
+  $('#train-cars').addEventListener('keydown',e=>{if(g.mode==='event-placement'&&['Enter',' '].includes(e.key)&&e.target.matches('[data-event-slot]')){e.preventDefault();place(Number(e.target.dataset.eventSlot));}},true);
+  function leave(){if(g.state.titanDistance<=0){session=null;clearSave();g.gameOver('이벤트에 시간을 쓰는 동안 타이탄이 열차를 따라잡았습니다.');return;}session=null;g.state.eventDeparture=true;g.closeOverlay();g.advanceStage();}
+  g.availableEvents=function(){const act=this.state.actId==='act2'?2:1;return C.events.filter(e=>e.act<=act);};
+  D.EVENTS=C.events;
+  g.resolveEventChoice=function(choice){const c=session&&definition(choice.id);if(c)commit(c);};
+  g.showEvent=function(){
+    if(session){try{save();render();}catch{g.toast('브라우저 저장 공간을 확보한 뒤 다시 시도해 주세요.');}return;}A.cancelSelection();g.state.speed=0;g.mode='event';const seed=newSeed(),r=rng(seed),history=g.state.eventHistory||[];let act=g.state.actId==='act2'&&r()<C.act2Weight?2:1;
+    const all=C.events.filter(e=>e.act===act),fresh=all.filter(e=>!history.slice(-C.historyLength).includes(e.id)),event=pick(r,fresh.length?fresh:all);
+    session={seed,eventId:event.id,phase:'choices',prepared:{},logs:[],pending:[],before:copy(g.state)};
+    for(const c of event.choices){const cr=rng(seed+c.id);session.prepared[c.id]={roll:cr(),weightedIndex:c.outcomes?weighted(cr,c.outcomes.map(o=>o.weight)):0,common:prepareReward(c.reward,`${seed}-${c.id}-common`),outcomes:(c.outcomes||[]).map((o,i)=>prepareReward(o.reward,`${seed}-${c.id}-${i}`))};}
+    g.state.eventHistory=[...history,event.id].slice(-C.historyLength);try{save();render();}catch{const body=shell('이벤트 저장 불가','확률과 보상을 고정하려면 브라우저 저장 공간이 필요합니다.');button(body,'저장 다시 시도',()=>g.showEvent());}
+  };
+  const oldDeparture=g.departureDistance.bind(g);g.departureDistance=function(){return this.state?.eventDeparture?0:oldDeparture();};
+  const oldEnter=g.enterNode.bind(g);g.enterNode=function(...args){if(this.state?.eventDeparture){delete this.state.eventDeparture;clearSave();}return oldEnter(...args);};
+  const oldMenu=g.showMainMenu.bind(g);g.showMainMenu=function(...args){oldMenu(...args);if(readSave()){$('#event-resume')?.remove();const b=document.createElement('button');b.id='event-resume';b.className='secondary-btn';b.textContent='저장된 이벤트 이어하기';b.onclick=()=>{const saved=readSave();if(!saved)return;g.state=saved.state;session=saved.session;g.preferredSpeed=saved.preferredSpeed||1;g.mode='event';g.state.speed=0;g.renderAll();render();};$('#new-run-btn')?.after(b);}};
+  for(const name of ['newRun','gameOver','showEnding']){const old=g[name].bind(g);g[name]=function(...args){session=null;clearSave();$('#event-placement-panel')?.remove();document.body.classList.remove('event-placement');return old(...args);};}
+  const modifier=k=>g.state?.eventModifiers?.[k]||1;
+  const renderCars=g.renderCars.bind(g);g.renderCars=function(){renderCars();if(session?.phase!=='placement'||this.mode!=='event-placement')return;const reward=session.pending[0];if(!reward)return;this.state.cars.forEach((_,ci)=>{if(!capacity(reward.kind,ci))return;$(`[data-car-index="${ci}"]`)?.querySelectorAll(reward.kind==='crew'?'.empty-crew':'.empty-equipment').forEach(el=>{el.classList.add('event-slot');el.disabled=false;el.setAttribute('role','button');el.tabIndex=0;el.dataset.eventSlot=ci;});});};
+  g.eventEquipmentDisabled=eq=>!!g.state?.eventCombat?.disabled?.includes(eq.id);
+  const readout=g.turretReadout.bind(g);g.turretReadout=function(eq,ci){const r=readout(eq,ci);if(this.eventEquipmentDisabled(eq)){r.active=false;for(const row of r.rows)if(['1회 피해','이론 DPS'].includes(row[0]))row[2]=0;}return r;};
+  const engine=g.trainDisruptionMultiplier.bind(g);g.trainDisruptionMultiplier=()=>engine()*modifier('engine')*(g.state?.eventCombat?.engine||1);
+  const cool=g.turretCooling.bind(g);g.turretCooling=(...args)=>cool(...args)*modifier('cooling');
+  const power=g.availableEnginePower.bind(g);g.availableEnginePower=function(){powerBudgetRead++;try{return power();}finally{powerBudgetRead--;}};
+  const module=g.moduleData.bind(g);g.moduleData=function(eq){const m=module(eq),factor=!powerBudgetRead&&this.eventEquipmentDisabled(eq)?0:modifier('module');for(const k of ['heatMult','coolingMult','stageHealMult','repairMult','ammoDamageMult'])if(k in m)m[k]=1+(m[k]-1)*factor;if('extraPower'in m)m.extraPower*=factor;return m;};
+  const effect=g.moduleEffect.bind(g);g.moduleEffect=(ci,effectId,key)=>effect(ci,effectId,key)*(key==='repairMult'?modifier('repair'):key==='stageHealMult'?modifier('recovery'):1);
+  for(const name of ['startBattle','startBoss']){const old=g[name].bind(g);g[name]=function(...args){this.state.eventCombat=this.state.eventNextCombat||{};delete this.state.eventNextCombat;return old(...args);};}
+  for(const name of ['battleClear','bossClear']){const old=g[name].bind(g);g[name]=function(...args){delete this.state.eventCombat;return old(...args);};}
+  const plan=g.weaponUpgradePlan.bind(g);g.weaponUpgradePlan=function(eq){const p=plan(eq);return p&&p.cost>0&&this.state?.eventUpgradeCredits>0?{...p,cost:0,eventCredit:true}:p;};
+  const upgrade=g.upgradeEquipment.bind(g);g.upgradeEquipment=function(id,...args){const eq=this.findEquipment(id),credit=eq?.kind==='turret'&&this.weaponUpgradePlan(eq)?.eventCredit,ok=upgrade(id,...args);if(ok&&credit)this.state.eventUpgradeCredits--;return ok;};
+  const html=g.carEffectsHTML.bind(g);g.carEffectsHTML=function(ci){return html(ci)+Object.entries(this.state.eventModifiers||{}).map(([k,v])=>`<p class="${v>=1?'positive':'negative'}">유적 · ${labels[k]} ×${fmt(v)}</p>`).join('')+this.state.cars[ci].equipment.filter(e=>this.eventEquipmentDisabled(e)).map(e=>`<p class="negative">${(e.kind==='turret'?D.TURRETS:D.MODULES)[e.type].name} · 이번 전투 정지</p>`).join('');};
+  const details=g.showEquipmentDetails.bind(g);g.showEquipmentDetails=function(id){details(id);const eq=this.findEquipment(id);if(eq&&this.eventEquipmentDisabled(eq))this.moduleRange=null;};
+  const howto=g.showHowTo.bind(g);g.showHowTo=function(){howto();$('.dialog-body').insertAdjacentHTML('beforeend','<h3>이벤트 · v0.5</h3><p>확정 버튼에 표시된 거리·자원을 한 번 지불합니다. 직원 비교와 보상 배치에는 시간이 들지 않습니다. 빈 슬롯을 직접 클릭하며 기존 장비·직원을 교체할 수 없습니다. 이벤트 도중 종료했다면 메뉴의 저장된 이벤트 이어하기로 돌아올 수 있습니다. 무료 포탑 강화권은 다음 유료 강화에 자동 사용하며, 분기는 정비소에서만 선택합니다.</p>');};
+  const css=document.createElement('style');css.textContent='.event-modal{max-height:90dvh;overflow:auto;background:rgba(15,25,29,.9)}.event-modal .choice-card{width:100%;margin:8px 0}.event-person{border:1px solid #65746e;padding:16px;margin:12px 0;border-radius:10px}.event-results{padding:0;list-style:none}.event-results li{display:flex;justify-content:space-between;padding:7px;border-bottom:1px solid #ffffff18}.event-hint{border-left:3px solid #d7be74;padding:12px}.event-placement #event-placement-panel{position:fixed;z-index:80;top:20%;left:50%;transform:translateX(-50%);width:min(480px,90vw);padding:18px;background:#142322ed;border:1px solid #64d68b;border-radius:12px}.event-placement .event-slot{border:3px solid #69ef91!important;background:#32bd6855!important;cursor:pointer;pointer-events:auto}.event-placement #inspector,.event-placement .order-target-bar{display:none!important}.event-modal details>summary{cursor:pointer;padding:10px}.event-modal .positive{color:#72e997}.event-modal .negative{color:#ff7878}';document.head.append(css);
+  if(g.mode==='menu')g.showMainMenu();
+  css.textContent+='.event-placement #train-cars{z-index:90}.event-placement #event-placement-panel{top:12px;max-height:35dvh;overflow:auto;pointer-events:none}.event-placement #event-placement-panel button{pointer-events:auto}.event-modal .event-person .stat-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}.event-modal .choice-card>div{min-width:0;text-align:left}.event-modal .choice-card small{display:block;line-height:1.7}.event-modal details{margin:12px 0}';
+})();

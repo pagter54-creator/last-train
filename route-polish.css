@@ -1,4 +1,13 @@
 /* Tactical risk stays in the world, not in a director readout. */
+.captain-tabs{position:sticky;top:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;background:#12262b;padding-bottom:10px;z-index:2}
+.captain-tabs button{font-size:14px;padding:8px 3px;min-height:44px;border:1px solid #6e8984;border-radius:4px;background:#233b42;color:#e6ecdf;white-space:normal}
+.captain-tabs button.active{border-color:#91d9a2;background:#315343;color:#bbf3c7}
+.tactical-panel:has(.captain-console){width:min(400px,calc(100vw - 24px));max-height:calc(100dvh - 330px)}
+.captain-console .upgrade-entry{display:flex;flex-direction:column;align-items:stretch;padding:10px;margin:8px 0;border:1px solid #6c817950;border-radius:5px}
+.captain-console p,.crew-growth{font-size:14px;line-height:1.5}
+.crew-training{border-top:1px solid #718b7966;padding:10px 0}.crew-training-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}.crew-training-stats button{padding:8px;min-height:44px;background:#25413d;border:1px solid #729c85;color:#e2eddf;border-radius:4px}.crew-training-stats button:disabled{opacity:.45}
+.crew-level-mark{position:absolute;top:-18px;left:50%;transform:translateX(-50%);width:22px;height:22px;border-radius:50%;background:#183629;border:2px solid #91f3a7;color:#baffc8;font:bold 17px sans-serif;text-align:center;line-height:18px;pointer-events:none;z-index:3}
+@media(max-height:550px){.tactical-panel:has(.captain-console){top:125px;max-height:calc(100dvh - 145px)}}
 .order-target-bar{display:none}
 @media (max-width:700px), (pointer:coarse) and (max-width:1100px){
   body.is-order-targeting .tactical-panel,
