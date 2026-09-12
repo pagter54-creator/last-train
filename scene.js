@@ -22,6 +22,16 @@
   panel.querySelector('button').onclick = () => cancelSelection();
   const dock = document.createElement('div'); dock.className = 'orders-dock'; dock.setAttribute('aria-label','열차장 명령');
   dock.append($('#focus-order'),$('#command-order'),$('#armor-order')); document.body.append(dock);
+  // Target selection must leave the battlefield touchable on narrow/coarse screens.
+  const orderTargetBar=document.createElement('div');orderTargetBar.className='order-target-bar';
+  orderTargetBar.innerHTML='<span role="status" aria-live="polite"></span><button type="button" aria-label="열차장 명령 대상 선택 취소">취소</button>';
+  orderTargetBar.querySelector('button').onclick=()=>cancelSelection();document.body.append(orderTargetBar);
+  function syncOrderTargeting(on){
+    const prompts={focus:'집중 사격 · 적 또는 보스 부위를 누르세요',command:'직접 지휘 · 객차를 누르세요',armor:'비상 장갑 · 보호할 객차를 누르세요'};
+    const prompt=on&&game.mode==='battle'?prompts[game.state?.targetMode]:null;
+    document.body.classList.toggle('is-order-targeting',!!prompt);
+    orderTargetBar.querySelector('span').textContent=prompt||'';
+  }
   const route = document.createElement('div'); route.className = 'stage-route'; $('.threat-strip').append(route);
   const routeLabel = document.createElement('div'); routeLabel.className='route-label'; $('.threat-strip').append(routeLabel);
   const note = document.createElement('div'); note.className='battle-note'; note.textContent='직원 클릭 → 빛나는 빈자리 클릭 · 포탑 클릭 → 장비 정보'; scene.append(note);
@@ -65,6 +75,7 @@
     if(on && tacticalSpeed===null){tacticalSpeed=this.state.speed;this.state.speed=tacticalSpeed===0?0:B.simulation.tacticalScale;}
     if(!on && tacticalSpeed!==null){if(this.state)this.state.speed=tacticalSpeed;tacticalSpeed=null;}
     document.body.classList.toggle('is-tactical',on);
+    syncOrderTargeting(on);
     panel.querySelector('.tactical-head span').textContent=this.state?.speed===0?'전술 선택 · 일시정지':`전술 선택 · 시간 ${tacticalPercent}%`;
     this.renderSpeed();
   };
@@ -191,7 +202,7 @@
 modal.querySelector('.dialog-body').innerHTML=`<div class="choices"><div class="choice-card"><span class="choice-icon">01</span><div><b>직원을 누르고, 빈자리를 누르세요</b><p>직원 선택 중에는 시간이 ${tacticalPercent}%로 느려집니다. 밝게 표시되는 빈자리를 누르면 이동합니다.</p></div></div><div class="choice-card"><span class="choice-icon">02</span><div><b>포탑을 눌러 성능 확인</b><p>지붕 위 포탑은 가까운 적을 자동 공격합니다. 포탑을 누르면 피해량, 발열, 강화 상태를 확인합니다.</p></div></div><div class="choice-card"><span class="choice-icon">03</span><div><b>객차 아래 전력 버튼</b><p>1 / 2 / 3으로 출력을 바꿉니다. 포탑에 전력을 더 주면 열차 속도가 낮아집니다.</p></div></div><div class="choice-card"><span class="choice-icon">04</span><div><b>오른쪽 아래 열차장 명령</b><p>집중 사격 → 적 선택. 직접 지휘 → 객차 선택. 비상 장갑 → 즉시 전개. Esc는 선택 취소, 다시 누르면 일시정지입니다.</p></div></div></div>`;
   };
   game.showMainMenu=function(){
-    this.mode='menu';this.state=null;tacticalSpeed=null;selectedEquipment=null;document.body.classList.remove('is-tactical');
+    this.mode='menu';this.state=null;tacticalSpeed=null;selectedEquipment=null;document.body.classList.remove('is-tactical');syncOrderTargeting(false);
     const modal=$('#modal');modal.className='modal menu-modal';modal.innerHTML=menuHTML;$('#overlay').classList.add('show');
     $('#new-run-btn').onclick=()=>this.newRun();$('#meta-btn').onclick=()=>this.showMeta();$('#codex-btn').onclick=()=>this.showCodex();$('#howto-btn').onclick=()=>this.showHowTo();
     $('#new-run-btn').innerHTML='출발하기 <span>ACT I →</span>';$('.menu-deck').textContent='재의 황무지를 가로지르는 마지막 열차. 승무원을 움직이고, 포대를 지휘하고, 타이탄의 추격에서 벗어나세요.';

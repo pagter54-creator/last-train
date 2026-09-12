@@ -1,4 +1,15 @@
 /* Tactical risk stays in the world, not in a director readout. */
+.order-target-bar{display:none}
+@media (max-width:700px), (pointer:coarse) and (max-width:1100px){
+  body.is-order-targeting .tactical-panel,
+  body.is-order-targeting .floating-guide,
+  body.is-order-targeting .orders-dock,
+  body.is-order-targeting #hint{display:none!important}
+  body.is-order-targeting .order-target-bar{display:flex;position:fixed;left:12px;right:12px;bottom:18px;z-index:9;align-items:center;justify-content:flex-end;gap:10px;pointer-events:none}
+  .order-target-bar span{min-width:0;flex:1;color:#f0e5c6;background:#14272dc9;border-radius:5px;padding:8px 10px;font-size:14px;line-height:1.4;pointer-events:none}
+  .order-target-bar button{min-width:56px;min-height:44px;padding:8px 12px;flex-shrink:0;pointer-events:auto;touch-action:manipulation;background:#18313a;color:#f0e5c6;border:1px solid #99aba3;border-radius:5px;font-size:14px}
+}
+@media (max-width:700px){body.is-order-targeting .order-target-bar{bottom:35px}}
 .branch-warning{color:#ff6f6f!important;border-left:3px solid #ff6f6f;padding-left:10px}.engine .captain{max-width:40px}.engine .crew-sprite:not(.captain){max-width:50px}
 .rhythm-hud,.battle-note{display:none!important}
 .railcar.engine{flex:.62}.engine .equipment-button{width:85%}.engine .engine-badge{display:none}.engine .car-window{right:12px}.captain svg{filter:drop-shadow(0 0 3px #d7c78b)!important}.captain .crew-tag{color:#ffe4a3;border:1px solid #bd9c59;background:#122748}.equipment-sale{position:fixed;z-index:32;transform:translateX(-50%);background:#5e252d;color:#ffe9e9;border:1px solid #eaa0a0;border-radius:5px;padding:7px 18px;cursor:pointer}.equipment-sale[hidden]{display:none}.equipment-sale:hover:after{content:attr(title);position:absolute;bottom:100%;left:50%;transform:translateX(-50%);white-space:nowrap;padding:8px;background:#18332b;border:1px solid #91dfaf;color:#c1f9d3}.sale-confirm{background:#142d34;color:#e8eee7;border:1px solid #9daea2;border-radius:10px;padding:25px;max-width:min(90vw,420px)}.sale-confirm::backdrop{background:#08151b99}.sale-confirm button{padding:9px 16px;margin:8px;border-radius:5px;background:#2b4447;color:#fff;border:1px solid #879f9b}.sale-confirm [data-confirm]{background:#5b2933}.upgrade-entry{flex-wrap:wrap;gap:8px}.upgrade-entry button{white-space:normal}.route-travel #train-cars,.route-travel .orders-dock,.route-travel .speed-controls{pointer-events:none}.route-travel .moving-sprite,.route-travel .command-callout{visibility:hidden}
