@@ -16,6 +16,6 @@ window.PROGRESSION_CONFIG={
 (() => {const D=window.GAME_DATA,B=D.BALANCE,P=window.PROGRESSION_CONFIG;
   D.CREW_TEMPLATES.forEach(c=>Object.keys(c.stats).forEach(k=>c.stats[k]-=P.crew.startingStatReduction));
   D.EVENTS.push({id:'mentor',title:'노련한 여행자',text:'폐역에서 만난 여행자가 승무원에게 자신의 경험을 전수하겠다고 제안했다.',choices:[{label:'경험을 전수받는다',result:{crewTalent:true},hint:'무작위 직원에게 이벤트 재능 1개 · 직원당 추가 재능 최대 1개'},{label:'대화를 마치고 출발한다',result:{},hint:'재능을 받지 않고 출발'}]});
-  B.heat.operatorHeatReductionPerPoint=.01;B.heat.operatorCoolingBonusPerPoint=.01;
+  B.heat.operatorHeatReductionPerPoint=.02;B.heat.operatorCoolingBonusPerPoint=.02;B.heat.maxOperatorModifier=.6;
   B.crew.personalDpsPerCombat=.8;B.crew.boarderDamageReductionPerCombat=.015;B.crew.stageHealPerRecovery=.025;B.train.repairStatScale=.12;
 })();

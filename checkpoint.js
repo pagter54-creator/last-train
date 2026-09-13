@@ -49,7 +49,7 @@
    if(p.node.type==='event'){
     const event=window.EVENT_CONFIG.events.find(e=>e.id===p.event?.eventId);
     if(!event||p.event.phase!=='choices'||!p.event.prepared||!event.choices.every(c=>p.event.prepared[c.id]))return null;
-    const rewardsValid=r=>!!r&&(!r.equipment||(['turret','module'].includes(r.equipment.kind)&&!!(r.equipment.kind==='turret'?D.TURRETS:D.MODULES)[r.equipment.type]))&&(!r.offers||Array.isArray(r.offers)&&r.offers.every(o=>rewardsValid(o.reward)));
+    const rewardsValid=r=>!!r&&(!r.skillReward||(Array.isArray(r.skillOrder)&&r.skillOrder.every(id=>D.TRAITS[id]?.canBeEventSkill)&&Number.isInteger(r.skillReward.count)&&r.skillReward.count>=1&&r.skillReward.count<=3))&&(!r.equipment||(['turret','module'].includes(r.equipment.kind)&&!!(r.equipment.kind==='turret'?D.TURRETS:D.MODULES)[r.equipment.type]))&&(!r.offers||Array.isArray(r.offers)&&r.offers.every(o=>rewardsValid(o.reward)));
     if(!event.choices.every(c=>{const v=p.event.prepared[c.id];return finite(v.roll)&&rewardsValid(v.common)&&Array.isArray(v.outcomes)&&v.outcomes.every(rewardsValid);}))return null;
    }
    if(p.node.type==='station'){
@@ -79,6 +79,7 @@
   current=id;
   try{
    // This is called only at a resolved node boundary, never by the combat loop.
+   g.resetTurretHeat?.();
    const snapshot=stable(s);snapshot.runId=s.runId||token();snapshot.runSeed=s.runSeed||token();
    Object.assign(s,{runId:snapshot.runId,runSeed:snapshot.runSeed});
    pending={version:C.version,runId:s.runId,seed:s.runSeed,savedAt:Date.now(),node:{...clone(node),id:`${s.actId}:${s.stageIndex}:${node.type}`},state:snapshot,preferredSpeed:g.preferredSpeed||1};
@@ -100,7 +101,7 @@
  g.continueRun=function(){
   const p=read();if(!p){status('이어할 수 있는 저장 데이터가 없습니다.',true);this.showMainMenu();return;}
   try{
-   restoring=true;this.showMainMenu();this.state=clone(p.state);this.restoreMetaRun();this.preferredSpeed=p.preferredSpeed;this.state.speed=p.preferredSpeed;
+   restoring=true;this.showMainMenu();this.state=clone(p.state);this.restoreMetaRun();this.resetTurretHeat?.();this.preferredSpeed=p.preferredSpeed;this.state.speed=p.preferredSpeed;
    this.restoreCheckpointEvent(p.event||null);this.stationOffers=p.shop?{...clone(p.shop),bought:new Set(p.shop.bought)}:null;this.stationStage=p.shop?this.state.stageIndex:null;
    if(this.stationOffers&&!this.stationOffers.reformReady&&window.EQUIPMENT_REFORM){this.stationOffers.reformReady=true;for(const [i,o]of this.stationOffers.gear.entries())o.equipment??={id:`${p.runId}-legacy-offer-${i}`,kind:o.kind,type:o.id,level:1,heat:0,cooldown:0,weaponBranches:{},investedScrap:0};}
    current=`${p.runId}:${this.state.actId}:${this.state.stageIndex}`;pending=null;this.mode='run';this.closeOverlay();this.renderAll();

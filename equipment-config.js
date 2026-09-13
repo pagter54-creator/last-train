@@ -34,7 +34,7 @@
  W.maxLevel=C.maxTurretLevel;Object.assign(W.costs,{6:115,7:160,8:230});B.upgrade.heatPerLevel=.025;B.moduleUpgrade.perLevel=C.moduleGrowth;
  const tuning={gatling:[1.2,10,10],cannon:[1.25,58,6],mortar:[1.25,54,5],scatter:[1.2,36,7],tesla:[1.2,30,6]};
  for(const[id,[damage,heat,cool]]of Object.entries(tuning))Object.assign(D.TURRETS[id],{damage:D.TURRETS[id].damage*damage,heat,cool});
- D.TURRETS.cannon.range='medium';D.TURRETS.scatter.armorPierce=.5;D.TURRETS.tesla.armorPierce=1;
+ B.targeting.cannon=1;D.TURRETS.cannon.range='cannon';D.TURRETS.scatter.armorPierce=.5;D.TURRETS.tesla.armorPierce=1;
  const add=(id,name,icon,role,damage,interval,range,heat,cool,price,extra={})=>D.TURRETS[id]={name,icon,role,damage,interval,range,heat,cool,price,ammo:true,armorPierce:0,power:REVISION_CONFIG.power.map(p=>({...p})),...extra};
  add('breaker','철갑파괴포','B','장갑 약화 / 지원',42,3.8,'long',65,6,175,{armorPierce:.6});
  add('phosphorus','백린탄포','P','지속 화염지대',32,3.2,'long',58,5,180,{trajectory:'arc',minRange:'mortarMin'});

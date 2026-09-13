@@ -5,6 +5,8 @@
  const alive=e=>e&&!e.dead&&!e.destroyed&&e.hp>0;
  const distance=(a,b)=>Math.hypot(a.x-b.x,(a.y-b.y)/B.projectile.laneSpan);
  let shot=null,personal=null;
+ g.resetTurretHeat=function(){for(const car of this.state?.cars||[])for(const eq of car.equipment)if(eq.kind==='turret'){eq.heat=0;eq.overheated=false;eq.rageLeft=0;eq.rageCooling=false;delete eq.minimumCooling;}};
+ g.isTurretOverheated=eq=>!!(eq.overheated||eq.rageCooling)&&!(eq.rageLeft>0);
  // Apply after crew, module, branch and nonlinear heat corrections, including UI readouts.
  const cooling=g.turretCooling.bind(g);g.turretCooling=function(eq,...args){return cooling(eq,...args)*((eq.overheated||eq.rageCooling)&&!(eq.rageLeft>0)?C.overheatCoolingMultiplier:1);};
  g.equipmentLocation=eq=>g.state?.cars.findIndex(c=>c.equipment.includes(eq)||c.equipment.some(h=>h.aux===eq))??-1;

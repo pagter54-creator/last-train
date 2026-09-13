@@ -5,7 +5,7 @@
    frequency:[{stage:1,count:0,gap:80},{stage:7,count:1,gap:65,chance:.3},{stage:11,count:2,gap:48,chance:.65},{stage:16,count:3,gap:36,chance:1},{stage:25,count:5,gap:25,chance:1}],eliteExtra:1,
    caps:{act1:1,act2:1,eliteAct1:2,eliteAct2:2,lateNormal:2,lateElite:3},boarderDanger:3,fireCaps:{act1:1,act2:2},fireTick:1,
    boardVisual:{roofOffset:65,spacing:25},heatGrowthMultiplier:.5,spawnDistance:.98,escortSpacing:.025,escortConvergence:1};
- REVISION_CONFIG.heat.gatlingGrowth*=ELITE_CONFIG.heatGrowthMultiplier;
+
  const make=(id,name,icon,hp,armor,speed,stage,behavior,settings,help)=>({id,name,icon,hp,armor,speed,elite:true,majorThreat:true,actMin:stage<16?1:2,eliteMinStage:stage,fromStage:999,rhythmMinStage:999,threatCost:30,tags:['ELITE'],behavior:'elite:'+behavior,attackPattern:behavior,specialBehavior:behavior,targetingRule:'ordinary',ranged:true,carDamage:0,crewDamage:0,interval:settings.interval||10,...settings,help});
  Object.assign(D.ENEMIES,{
   siegeElite:make('siegeElite','공성함포차','◆',320,.6,.4,11,'siege',{hold:.72,windup:3,interval:13,carDamage:55,crewDamage:2},'먼 거리에서 포격합니다. 장거리 화력 또는 비상 장갑으로 대응하세요.'),

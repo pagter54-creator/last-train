@@ -151,6 +151,7 @@
 
     enterNode() {
       if (!this.state) return;
+      this.resetTurretHeat?.();
       const act = D.ACTS[this.state.actId];
       if (this.state.stageIndex >= act.stages.length) {
         if (act.loop) { this.state.stageIndex = act.loop.fromStage || 0; return this.enterNode(); }
@@ -321,7 +322,7 @@
       if (occupants.length) {
         const victim = pick(occupants);
         const reduction = clamp(this.effectiveStat(victim, 'combat') * B.crew.boarderDamageReductionPerCombat, 0, B.crew.maxDamageReduction);
-        victim.hp = Math.max(0, victim.hp - e.crewDamage * (1 - reduction));
+        if(this.hurtCrew)this.hurtCrew(victim,e.crewDamage*(1-reduction),e.boarded?'boarded':'attack');else victim.hp=Math.max(0,victim.hp-e.crewDamage*(1-reduction));
         if (victim.hp <= 0) this.log(`${victim.name} 전투불능`, 'bad');
       }
       if (car.hp <= 0 && !car.destroyedLogged) {
@@ -341,7 +342,7 @@
         if (c.dead || c.hp <= 0) continue;
         if(this.bossCrewStopped?.(c)){this.bossCrewReturnFire?.(c,dt);continue;}
         if (c.moving) {
-          c.moving.left -= dt*(this.crewMoveMultiplier?.()??1);
+          c.moving.left -= dt*(this.crewMoveMultiplier?.(c)??1);
           if (c.moving.left <= 0) { c.car = c.moving.to; c.moving = null; this.log(`${c.name} → ${s.cars[c.car].name}`); }
           continue;
         }
@@ -355,13 +356,13 @@
           let damage = Math.max(0, combat) * B.crew.personalDpsPerCombat * workDt;
           if (c.traits.includes('marksman')) damage *= D.TRAITS.marksman.damageMult;
           damage*=this.crewWeaponMultiplier?.(c)??1;
-          if(damage>0){this.damageEnemy(target, damage, 1);this.onCrewBoardShot?.(c,target);}
+          if(damage>0){if(this.crewAttack)this.crewAttack(c,target,damage*(this.crewFireRate?.(c)??1),1);else this.damageEnemy(target,damage,1);this.onCrewBoardShot?.(c,target);}
         } else if(!firingAtArm)this.crewReturnFire?.(c,dt);
         if (car.hp <= 0) {
           let repair = B.train.repairBasePerSecond + this.effectiveStat(c, 'repair') * B.train.repairStatScale;
           if (c.traits.includes('fixer')) repair *= D.TRAITS.fixer.repairMult;
           repair *= this.moduleEffect(c.car, 'repair', 'repairMult');
-          car.repair += repair * workDt;
+          car.repair += repair * workDt * (this.crewRestorationMultiplier?.(c)??1);
           if(repair*workDt>0)this.onCrewHammer?.(c);
           if (car.repair >= B.train.repairGoal) {
             car.hp = car.maxHp * B.train.restoredHpRatio; car.repair = 0; car.destroyedLogged = false;
