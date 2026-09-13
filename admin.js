@@ -23,8 +23,8 @@
   else if(e.code==='KeyT'&&unlocked){e.preventDefault();e.stopImmediatePropagation();consolePanel();}
  },true);
  D.BALANCE.simulation.speedOptions=[0,...C.speeds];
- const controls=document.querySelector('.speed-controls');controls.innerHTML='<button data-cycle-speed aria-label="게임 속도 변경">1배</button>';
+ const controls=document.querySelector('.speed-controls');controls.innerHTML='<button data-cycle-speed aria-label="게임 속도 1배">▶</button>';
  controls.firstElementChild.onclick=()=>{const speed=g.preferredSpeed||1;g.setSpeed(C.speeds[(C.speeds.indexOf(speed)+1)%C.speeds.length]);};
- const render=g.renderSpeed.bind(g);g.renderSpeed=function(){render();const b=controls.querySelector('[data-cycle-speed]');b.textContent=`${this.preferredSpeed||1}배`;b.classList.add('active');};g.renderSpeed();
+ const render=g.renderSpeed.bind(g);g.renderSpeed=function(){render();const b=controls.querySelector('[data-cycle-speed]'),speed=this.preferredSpeed||1;b.textContent='▶'.repeat(speed);b.setAttribute('aria-label',`게임 속도 ${speed}배 · 클릭하여 변경`);b.title=`${speed}배`;b.style.minWidth='100px';b.style.letterSpacing='4px';b.classList.add('active');};g.renderSpeed();
  const style=document.createElement('style');style.textContent='.admin-dialog{width:min(560px,90vw);max-height:85vh;overflow:auto;background:#142a30;color:#e5eee5;border:1px solid #91a996;border-radius:10px;padding:24px}.admin-dialog::backdrop{background:#061014aa}.admin-dialog button,.admin-dialog input,.admin-dialog select{background:#28434a;color:#eef4ea;border:1px solid #79938b;padding:10px;margin:5px;border-radius:5px}.admin-dialog label{display:block;margin:12px 0}.admin-actions{display:flex;flex-wrap:wrap}.admin-dialog [data-error]{color:#ff8b85}';document.head.append(style);
 })();

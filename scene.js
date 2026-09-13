@@ -167,7 +167,7 @@
   };
   const armor=game.activateArmor.bind(game);
   game.activateArmor=function(){if(!$('#overlay').classList.contains('show')){armor();cancelSelection();}};
-  window.addEventListener('keydown',e=>{if(document.querySelector('.admin-dialog[open]'))return;if(e.key==='Escape'){e.stopImmediatePropagation();if(document.body.classList.contains('is-tactical'))cancelSelection();else if($('#overlay').classList.contains('show'))game.dismissDialog();else game.openPause();}},true);
+  window.addEventListener('keydown',e=>{if(document.querySelector('.admin-dialog[open],.progress-reset-dialog[open]'))return;if(e.key==='Escape'){e.stopImmediatePropagation();if(document.body.classList.contains('is-tactical'))cancelSelection();else if($('#overlay').classList.contains('show'))game.dismissDialog();else game.openPause();}},true);
 
   game.updateHUD=function(){
     if(this.state)original.updateHUD();
