@@ -82,7 +82,7 @@
   g.showStation=function(){
     this.mode='station';this.setSpeed(0);this.inspectedEquipment=null;this.inspectedCrew=null;
     this.state.crew.forEach(c=>{if(c.moving){c.car=c.moving.to;c.moving=null;}});
-    if(this.stationStage!==this.state.stageIndex||!this.stationOffers){this.stationStage=this.state.stageIndex;const available=reg=>Object.entries(reg).filter(([,d])=>!d.unlockSpent||this.meta.spent>=d.unlockSpent).sort(()=>Math.random()-.5);this.stationOffers={gear:[...available(D.TURRETS).slice(0,B.station.turretOfferCount).map(([id,d])=>({id,d,kind:'turret'})),...available(D.MODULES).slice(0,B.station.moduleOfferCount).map(([id,d])=>({id,d,kind:'module'}))],crew:D.CREW_TEMPLATES.filter(c=>!this.state.crew.some(x=>x.name===c.name)).slice(0,B.station.crewOfferCount),bought:new Set()};}
+    if(this.stationStage!==this.state.stageIndex||!this.stationOffers){this.stationStage=this.state.stageIndex;const available=reg=>Object.entries(reg).filter(([,d])=>!d.unlockSpent||this.meta.spent>=d.unlockSpent).sort(()=>Math.random()-.5);this.stationOffers={gear:[...available(D.TURRETS).slice(0,B.station.turretOfferCount).map(([id,d])=>({id,d,kind:'turret'})),...available(D.MODULES).slice(0,B.station.moduleOfferCount).map(([id,d])=>({id,d,kind:'module'}))],crew:this.crewCandidateTemplates(B.station.crewOfferCount),bought:new Set()};}
     this.prepareActShop?.();
     this.checkpointStationReady?.();
     const modal=this.modalShell('정비 스테이션',`구간 ${this.globalStage()}`,'열차는 정차 중입니다. 구매·분기 강화·재배치·수리·출발에 시간이 들며, 일반 강화와 정보 확인에는 시간이 들지 않습니다.');

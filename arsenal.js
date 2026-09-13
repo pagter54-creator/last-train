@@ -30,6 +30,7 @@
 
   // Floating numbers use effective HP differences, with a short aggregation window.
   let numbers=[],ricochets=[],clock=0,lastState=null,shot=null;
+  g.clearFloatingCombat=()=>{numbers=[];ricochets=[];};
   const floatCanvas=document.createElement('canvas');floatCanvas.setAttribute('aria-hidden','true');floatCanvas.style.cssText='position:fixed;inset:0;pointer-events:none;z-index:18';document.body.append(floatCanvas);
   function carPoint(i){const p=A.getCarPosition(i);return p||{x:g.view.w/2,y:g.view.h*.7};}
   function crewPoint(c){const el=$(`[data-crew="${c.id}"]`)||$(`.moving-sprite[data-id="${c.id}"]`);if(el){const r=worldRect(el);return{x:r.left+r.width/2,y:r.top};}return carPoint(c.car);}

@@ -57,7 +57,7 @@
     if(p.shop.gear.some(e=>!['turret','module'].includes(e.kind)||!(e.kind==='turret'?D.TURRETS:D.MODULES)[e.id]||!e.d))return null;
     for(const o of p.shop.gear){const e=o.equipment;if(!e)continue;if(e.kind!==o.kind||e.type!==o.id||typeof e.id!=='string'||e.aux)return null;e.level=Math.max(1,Math.min((e.kind==='turret'?D.TURRETS:D.MODULES)[e.type].maxLevel||1,Math.floor(number(e.level,1))));e.investedScrap=Math.max(0,number(e.investedScrap));e.weaponBranches=e.weaponBranches&&typeof e.weaponBranches==='object'?e.weaponBranches:{};for(const [tier,id]of Object.entries(e.weaponBranches))if(!window.WEAPON_UPGRADES?.tiers[tier]?.[id])delete e.weaponBranches[tier];}
    }
-   p.state=stable(s);p.preferredSpeed=[1,2].includes(p.preferredSpeed)?p.preferredSpeed:1;
+   p.state=stable(s);p.preferredSpeed=[1,2,3].includes(p.preferredSpeed)?p.preferredSpeed:1;
    return p;
   }catch{return null;}
  }
@@ -91,7 +91,8 @@
    if(node.type==='battle'||node.type==='elite'||node.type==='boss')commit();
   }catch(error){pending=null;status('자동 저장에 실패했습니다. 이전 저장은 유지됩니다.',true);console.warn(error);}
  }
- g.checkpointEventReady=()=>{if(pending?.node.type==='event'){pending.state.eventHistory=clone(g.state.eventHistory||[]);commit({event:g.exportCheckpointEvent()});}};
+ g.resetCheckpointBoundary=()=>{current=null;pending=null;};
+ g.checkpointEventReady=()=>{if(pending?.node.type==='event'){pending.state.eventHistory=clone(g.state.eventHistory||[]);pending.state.unexpectedStationSeen=!!g.state.unexpectedStationSeen;commit({event:g.exportCheckpointEvent()});}};
  g.checkpointStationReady=()=>{if(pending?.node.type==='station')commit({shop:clone({...g.stationOffers,bought:[...g.stationOffers.bought]})});};
  const initial=g.makeInitialState.bind(g);g.makeInitialState=function(){const s=initial();s.runId=token();s.runSeed=token();current=null;pending=null;return s;};
  const resolve=g.resolveNode.bind(g);g.resolveNode=function(type,node={}){begin({type,data:node});return resolve(type,node);};
@@ -120,7 +121,7 @@
   if(p){const a=document.createElement('button');a.className='secondary-btn';a.textContent='현재 런 포기';a.onclick=()=>abandon(()=>this.showMainMenu());b.after(a);const click=start.onclick;start.onclick=e=>abandon(()=>click?.call(start,e));}
  };
  function addWarning(anchor){const b=document.createElement('button');b.className='save-storage-note';b.textContent='⚠ 진행 데이터는 현재 브라우저에 저장됩니다.';b.onclick=g.showSaveWarning;anchor.after(b);}
- const pause=g.openPause.bind(g);g.openPause=function(...a){pause(...a);const button=$('#abandon');if(button){button.textContent='현재 런 포기';button.onclick=()=>abandon(()=>this.showMainMenu());addWarning(button);}};
+ const pause=g.openPause.bind(g);g.openPause=function(...a){pause(...a);const button=$('#abandon');if(button){button.textContent='현재 런 포기';button.onclick=()=>abandon(()=>this.showMainMenu());const codex=document.createElement('button');codex.id='pause-codex';codex.textContent='도감';codex.onclick=()=>{this.pauseCodex=true;this.showCodex();};button.after(codex);}};
  // Exposed read-only helpers also support isolated, storage-safe regression tests.
  g.runCheckpoint={read,validate:valid,snapshot:stable};
  const css=document.createElement('style');css.textContent=`#checkpoint-status{position:fixed;right:16px;bottom:16px;z-index:10000;padding:7px 12px;background:#112326e8;color:#88dba2;border-radius:6px;pointer-events:none;font-size:13px}#checkpoint-status.failed{color:#ff9292}#save-notice-dialog{max-width:580px;width:calc(100% - 40px);max-height:85vh;overflow:auto;background:#142326;color:#e8ece7;border:1px solid #647571;border-radius:14px;padding:24px;box-sizing:border-box;line-height:1.6}#save-notice-dialog::backdrop{background:#02090cbf}#save-notice-dialog button{padding:10px 18px;background:#304649;color:#fff;border:1px solid #728580;border-radius:7px;cursor:pointer}.save-dialog-actions{display:flex;gap:12px;justify-content:flex-end}.save-storage-note{display:block;width:100%;padding:10px;background:transparent;border:0;color:#b9c3bd;font-size:12px;cursor:pointer}#continue-run-btn{white-space:normal;width:100%}`;document.head.append(css);

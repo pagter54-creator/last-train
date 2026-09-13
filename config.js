@@ -6,7 +6,7 @@
 window.GAME_DATA = (() => {
   const BALANCE = {
     version: '0.6.0',
-    simulation: { tickRate: 30, maxDelta: 0.1, tacticalScale: 0.3, speedOptions: [0, 1, 2], canvasWidth: 1440, canvasHeight: 700 },
+    simulation: { tickRate: 30, maxDelta: 0.1, tacticalScale: 0.3, speedOptions: [0, 1, 2, 3], canvasWidth: 1440, canvasHeight: 700 },
     run: { startingMoney: 150, startingScrap: 20, startingRelics: 0, startingTitanDistance: 5, branchDistanceBonus: 0.35, maxTitanDistance: 8, clearRelicBonus: 5 },
     train: {
       carHp: 300, equipmentSlots: 2, crewSlots: 2, baseCarPower: 1,
@@ -44,7 +44,7 @@ window.GAME_DATA = (() => {
     transition: { exitSeconds: 0.8, enterSeconds: 1.2, backdropBoost: 4, shakePixels: 12, shakeSeconds: 0.35 },
     launch: { seconds: 3, startDistance: 1.2, visualSpeed: 3.5, shakeSeconds: 0.8, shakePixels: 18 },
     feedback: { carFlashSeconds: 0.22, enemyFlashSeconds: 0.12, walkCyclesPerSecond: 3, walkAngle: 8, walkLift: 3 },
-    audio: { volume: 0.14, defaultMaster: 0.65, minInterval: 0.055, maxVoices: 24, bgmPath: './bgm/bgm_normal.mp3', bgmGain: 0.3, bgmLobbyPath: './bgm/bgm_lobby.mp3', bgmFadeSeconds: 1.4, windInterval: 8, railInterval: 0.8,
+    audio: { volume: 0.14, defaultMaster: 0.65, minInterval: 0.055, maxVoices: 24, bgmTracks: { lobby: './bgm/bgm_lobby.mp3', act1_battle: './bgm/bgm_act1_battle.mp3', act2_battle: './bgm/bgm_act2_battle.mp3', act1_boss: './bgm/bgm_act1_boss.mp3', act2_boss: './bgm/bgm_act2_boss.mp3' }, bgmGain: 0.3, bgmFadeSeconds: 1.4, windInterval: 8, railInterval: 0.8,
       shot: { frequency: 150, duration: 0.07 }, hit: { frequency: 460, duration: 0.045 }, hull: { frequency: 65, duration: 0.16 },
       ui: { frequency: 650, duration: 0.045 }, purchase: { frequency: 900, end: 1350, duration: 0.18 }, recruit: { frequency: 440, end: 880, duration: 0.24 },
       equip: { frequency: 260, end: 110, duration: 0.17 }, skill: { frequency: 320, end: 960, duration: 0.28 }, upgrade: { frequency: 500, end: 1500, duration: 0.24 },

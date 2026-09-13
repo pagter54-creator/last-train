@@ -8,7 +8,7 @@
   // All sound sources use one master setting. A missing optional BGM never blocks play.
   let context,master,volume=B.audio.defaultMaster,voices=0,noiseBuffer,lastSound={},windClock=0,railClock=0;
   try{const saved=localStorage.getItem('lastRailVolume');if(saved!==null&&Number.isFinite(Number(saved)))volume=clamp(Number(saved),0,1);}catch{}
-  const music={normal:{audio:new Audio(),path:B.audio.bgmPath,gain:0},lobby:{audio:new Audio(),path:B.audio.bgmLobbyPath,gain:0}};
+  const music=Object.fromEntries(Object.entries(B.audio.bgmTracks).map(([key,path])=>[key,{audio:new Audio(),path,gain:0}]));
   for(const track of Object.values(music)){track.audio.loop=true;track.audio.preload='none';track.audio.addEventListener('error',()=>{track.missing=true;track.audio.pause();});}
   let musicLast=performance.now();
   const audioPanel=document.createElement('label');audioPanel.className='volume-control';audioPanel.innerHTML='<span>전체 음량</span><input type="range" min="0" max="100" step="1" aria-label="전체 소리 볼륨"><output></output>';document.body.append(audioPanel);
@@ -16,7 +16,8 @@
   audioPanel.querySelector('input').oninput=e=>{volume=Number(e.target.value)/100;syncVolume();try{localStorage.setItem('lastRailVolume',String(volume));}catch{};g.playSound('ui');};syncVolume();
   function unlock(){try{if(!context){context=new (window.AudioContext||window.webkitAudioContext)();master=context.createGain();master.connect(context.destination);master.gain.value=volume;noiseBuffer=context.createBuffer(1,context.sampleRate*3,context.sampleRate);const data=noiseBuffer.getChannelData(0);for(let i=0;i<data.length;i++)data[i]=Math.random()*2-1;}if(context.state==='suspended')context.resume().catch(()=>{});}catch{}syncMusic();}
   function syncMusic(){const now=performance.now(),dt=Math.min(.1,(now-musicLast)/1000);musicLast=now;
-    const desired=['menu','station','gameover','ending'].includes(g.mode)?'lobby':'normal';
+    const act=g.state?.actId==='act2'?'act2':'act1';
+    const desired=['menu','station','gameover','ending'].includes(g.mode)?'lobby':`${act}_${g.mode==='battle'&&g.state?.battle?.boss?'boss':'battle'}`;
     for(const [key,track] of Object.entries(music)){
       if(document.hidden||volume===0){track.audio.pause();continue;}
       const target=key===desired?1:0;track.gain=clamp(track.gain+Math.sign(target-track.gain)*Math.min(Math.abs(target-track.gain),dt/B.audio.bgmFadeSeconds),0,1);

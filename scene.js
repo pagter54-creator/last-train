@@ -121,7 +121,7 @@
       const blanks=Array.from({length:Math.max(0,this.crewCapacity(i)-crew.length)},(_,slot)=>`<button class="empty-crew ${available&&slot>=incoming?'available':''}" data-destination="${i}" aria-label="${car.name} 빈자리 ${slot+1}" ${available&&slot>=incoming?'':'disabled'}>${slot<incoming?'↘':'+'}</button>`).join('');
       const powerSteps=Math.max(...Object.values(D.TURRETS).map(t=>t.power.length));
       const p=i===0?`<span>엔진</span> ϟ ${car.power} <span>${(B.train.speedByPower[car.power]||0).toFixed(2)}</span>`:`<span>ϟ</span>${Array.from({length:powerSteps+1},(_,n)=>n).map(n=>`<button data-output="${n}" data-car="${i}" class="${car.power===n?'on':''}" aria-label="${car.name} 전력 ${n}">${n}</button>`).join('')}`;
-      return `<article class="railcar ${i===0?'engine':''} ${car.hp<=0?'destroyed':''} ${car.armor>0?'armored':''}" data-car-index="${i}" aria-label="${car.name}"><div class="car-hull"></div><div class="equipment-row">${art}${blankEquipment}</div><span class="car-name">${i===0?'01 · 기관실':`${String(i+1).padStart(2,'0')} · ${car.name}`}</span>${i===0?'<span class="engine-badge">LAST RAIL</span>':''}<div class="car-window">${people}${blanks}</div><div class="wheels"><i class="wheel"></i><i class="wheel"></i></div><div class="hull-hp" title="객차 HP ${Math.ceil(car.hp)}"><i style="width:${car.hp/car.maxHp*100}%;background:${car.hp<=car.maxHp*.3?'#da8d6e':''}"></i></div><div class="power-console">${p}</div></article>`;
+      return `<article class="railcar ${i===0?'engine':''} ${car.hp<=0?'destroyed':''} ${car.armor>0?'armored':''}" data-car-index="${i}" aria-label="${car.name}"><div class="car-hull"></div><div class="equipment-row">${art}${blankEquipment}</div><span class="car-name">${i===0?'01 · 기관실':`${String(i+1).padStart(2,'0')} · ${car.name}`}</span>${i===0?'<span class="engine-badge">LAST RAIL</span>':''}<div class="car-window">${people}${blanks}</div><div class="wheels"><i class="wheel"></i><i class="wheel"></i></div><div class="car-health-row" aria-label="객차 체력 ${Math.ceil(Math.max(0,car.hp))} / ${Math.ceil(car.maxHp)}"><span class="car-health-value">${Math.ceil(Math.max(0,car.hp))} / ${Math.ceil(car.maxHp)}</span><div class="hull-hp" title="객차 HP ${Math.ceil(Math.max(0,car.hp))} / ${Math.ceil(car.maxHp)}"><i style="width:${clamp(car.hp/car.maxHp*100,0,100)}%;background:${car.hp<=car.maxHp*.3?'#da8d6e':''}"></i></div></div><div class="power-console">${p}</div></article>`;
     }).join('');
     const deck=$('#train-cars');
     // Preserve buttons under the pointer; rebuild only when visible content changes.
@@ -167,7 +167,7 @@
   };
   const armor=game.activateArmor.bind(game);
   game.activateArmor=function(){if(!$('#overlay').classList.contains('show')){armor();cancelSelection();}};
-  window.addEventListener('keydown',e=>{if(e.key==='Escape'){e.stopImmediatePropagation();if(document.body.classList.contains('is-tactical'))cancelSelection();else if($('#overlay').classList.contains('show'))game.dismissDialog();else game.openPause();}},true);
+  window.addEventListener('keydown',e=>{if(document.querySelector('.admin-dialog[open]'))return;if(e.key==='Escape'){e.stopImmediatePropagation();if(document.body.classList.contains('is-tactical'))cancelSelection();else if($('#overlay').classList.contains('show'))game.dismissDialog();else game.openPause();}},true);
 
   game.updateHUD=function(){
     if(this.state)original.updateHUD();

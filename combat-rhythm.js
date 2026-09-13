@@ -10,6 +10,7 @@
 
   const callout=document.createElement('div');callout.className='command-callout';callout.hidden=true;callout.setAttribute('role','status');document.body.append(callout);
   let visualParticles=[],commandLeft=0,engineClock=0,alarmClock=0,metalClock=0;
+  g.clearRhythmCombat=()=>{visualParticles=[];commandLeft=0;callout.hidden=true;};
 
   function startRecord(){const s=g.state;if(!s.combatHistory){try{const history=JSON.parse(localStorage.getItem('lastRailCombatReports')||'[]');s.combatHistory=Array.isArray(history)?history.slice(-C.historyLimit):[];}catch{s.combatHistory=[];}}s.combatRecord={stage:s.stageIndex+1,boss:!!s.battle.boss,elite:s.battle.elite,carDamage:0,crewDamage:0,destroyedCars:0,incapacitatedCrew:0,crewDeaths:0,focus:0,command:0,armor:0,moves:0,power:0,startTitan:s.titanDistance,worst:{score:0,time:0},targets:s.stageIndex<2?C.actionTargets.early:C.actionTargets.normal};s.attackWindups=[];visualParticles=[];}
   function finishRecord(outcome){const s=g.state,r=s?.combatRecord;if(!r||r.finished)return;r.finished=true;s.attackWindups=[];r.outcome=outcome;r.duration=s.battle?.elapsed||0;r.titanDelta=s.titanDistance-r.startTitan;r.unmetTargets=Object.entries(r.targets).filter(([k,v])=>r[k]<v).map(([k])=>k);s.combatHistory.push({...r});if(s.combatHistory.length>C.historyLimit)s.combatHistory.shift();g.lastCombatReport=r;try{localStorage.setItem('lastRailCombatReports',JSON.stringify(s.combatHistory));}catch{}}
