@@ -17,9 +17,11 @@
   const fmt=n=>Number(n.toFixed(2));
   const newSeed=()=>Array.from(crypto.getRandomValues(new Uint32Array(4)),n=>n.toString(16).padStart(8,'0')).join('');
   function gearDetails(eq){const d=(eq.kind==='turret'?D.TURRETS:D.MODULES)[eq.type];let html=g.equipmentHTML(eq,null)+`<p>획득 장비 Lv.${eq.level} · 직원/전력 보정 전</p>`;if(eq.level>1){if(eq.kind==='turret')html+=`<p>강화 반영: 1회 피해 <span class="positive">${fmt(d.damage*(d.pellets||1)*(1+(eq.level-1)*B.upgrade.damagePerLevel))}</span> · 발열 <span class="negative">${fmt(d.heat*(1+(eq.level-1)*B.upgrade.heatPerLevel))}</span></p>`;else for(const k of ['heatMult','coolingMult','stageHealMult','repairMult','ammoDamageMult'])if(k in d)html+=`<p>${({heatMult:'발열',coolingMult:'냉각',stageHealMult:'회복',repairMult:'수리',ammoDamageMult:'실탄 피해'})[k]}: ×${fmt(1+(d[k]-1)*(1+(eq.level-1)*B.moduleUpgrade.perLevel))}</p>`;}return html;}
-  function clearSave(){try{localStorage.removeItem(C.storageKey);}catch{} }
-  function readSave(){try{const p=JSON.parse(localStorage.getItem(C.storageKey));return p?.version===C.version&&p.state?.cars?.length&&C.events.some(e=>e.id===p.session?.eventId)?p:null;}catch{return null;}}
-  function save(){localStorage.setItem(C.storageKey,JSON.stringify({version:C.version,state:g.state,session,preferredSpeed:g.preferredSpeed}));}
+  function clearSave(){if(g.checkpointEnabled)return;try{localStorage.removeItem(C.storageKey);}catch{} }
+  function readSave(){if(g.checkpointEnabled)return null;try{const p=JSON.parse(localStorage.getItem(C.storageKey));return p?.version===C.version&&p.state?.cars?.length&&C.events.some(e=>e.id===p.session?.eventId)?p:null;}catch{return null;}}
+  function save(){if(g.checkpointEnabled)return;localStorage.setItem(C.storageKey,JSON.stringify({version:C.version,state:g.state,session,preferredSpeed:g.preferredSpeed}));}
+  g.restoreCheckpointEvent=value=>{session=value?copy(value):null;busy=false;};
+  g.exportCheckpointEvent=()=>session?copy(session):null;
   function transaction(action){if(busy)return;busy=true;const before=copy(g.state),previous=copy(session);try{action();save();}catch(error){g.state=before;session=previous;g.toast('이벤트 처리·저장에 실패했습니다. 저장 공간·브라우저 설정을 확인한 뒤 다시 선택해 주세요.');console.warn('Event transaction not committed',error);busy=false;render();return false;}busy=false;g.updateHUD();g.renderCars();g.playSound('select');render();return true;}
   function candidate(r,id,weights=C.survivorStars){
     const pool=D.CREW_TEMPLATES.filter(c=>!g.state.crew.some(s=>s.name===c.name)),base=pick(r,pool.length?pool:D.CREW_TEMPLATES),stars=weighted(r,weights)+1;
@@ -137,7 +139,7 @@
     const all=C.events.filter(e=>e.act===act),fresh=all.filter(e=>!history.slice(-C.historyLength).includes(e.id)),event=pick(r,fresh.length?fresh:all);
     session={seed,eventId:event.id,phase:'choices',prepared:{},logs:[],pending:[],before:copy(g.state)};
     for(const c of event.choices){const cr=rng(seed+c.id);session.prepared[c.id]={roll:cr(),weightedIndex:c.outcomes?weighted(cr,c.outcomes.map(o=>o.weight)):0,common:prepareReward(c.reward,`${seed}-${c.id}-common`),outcomes:(c.outcomes||[]).map((o,i)=>prepareReward(o.reward,`${seed}-${c.id}-${i}`))};}
-    g.state.eventHistory=[...history,event.id].slice(-C.historyLength);try{save();g.recordEncounter?.('events',event.id);render();}catch{const body=shell('이벤트 저장 불가','확률과 보상을 고정하려면 브라우저 저장 공간이 필요합니다.');button(body,'저장 다시 시도',()=>g.showEvent());}
+    g.state.eventHistory=[...history,event.id].slice(-C.historyLength);g.checkpointEventReady?.();try{save();g.recordEncounter?.('events',event.id);render();}catch{const body=shell('이벤트 저장 불가','확률과 보상을 고정하려면 브라우저 저장 공간이 필요합니다.');button(body,'저장 다시 시도',()=>g.showEvent());}
   };
   const oldDeparture=g.departureDistance.bind(g);g.departureDistance=function(){return this.state?.eventDeparture?0:oldDeparture();};
   const oldEnter=g.enterNode.bind(g);g.enterNode=function(...args){if(this.state?.eventDeparture){delete this.state.eventDeparture;clearSave();}return oldEnter(...args);};
