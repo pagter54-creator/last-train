@@ -91,6 +91,7 @@
    if(node.type==='battle'||node.type==='elite'||node.type==='boss')commit();
   }catch(error){pending=null;status('자동 저장에 실패했습니다. 이전 저장은 유지됩니다.',true);console.warn(error);}
  }
+ g.validateRunCheckpoint=valid;
  g.resetCheckpointBoundary=()=>{current=null;pending=null;};
  g.checkpointEventReady=()=>{if(pending?.node.type==='event'){pending.state.eventHistory=clone(g.state.eventHistory||[]);pending.state.unexpectedStationSeen=!!g.state.unexpectedStationSeen;commit({event:g.exportCheckpointEvent()});}};
  g.checkpointStationReady=()=>{if(pending?.node.type==='station')commit({shop:clone({...g.stationOffers,bought:[...g.stationOffers.bought]})});};
