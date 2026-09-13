@@ -145,7 +145,7 @@
       const run = this.state;
       this.state.launchElapsed = 0;
       this.state.titanDistance = B.launch.startDistance;
-      setTimeout(() => { if(this.state === run && this.mode === 'run') { this.state.titanDistance = B.run.startingTitanDistance; this.enterNode(); } }, B.launch.seconds * 1000);
+      this.state.launchPending = true;
       this.log('장갑열차가 출발했습니다.', 'hot');
     }
 
@@ -314,7 +314,7 @@
       if (!car) return;
       if (car.armor > 0) { this.fx(.22 + e.targetCar * .12, .78, '#f0bd52'); return; }
       const damageSnapshot={car:car.hp,crew:s.crew.map(c=>({id:c.id,hp:c.hp,dead:c.dead}))};
-      car.hp = Math.max(0, car.hp - e.carDamage);
+      car.hp = Math.max(0, car.hp - (this.absorbHullDamage?.(e.targetCar,e.carDamage)??e.carDamage));
       car.hitFlash = B.feedback.carFlashSeconds;
       this.playSound?.('hull');
       const occupants = s.crew.filter(c => !c.dead && !c.moving && c.car === e.targetCar && c.hp > 0);
@@ -354,6 +354,7 @@
           let combat = this.effectiveStat(c, 'combat');
           let damage = Math.max(0, combat) * B.crew.personalDpsPerCombat * workDt;
           if (c.traits.includes('marksman')) damage *= D.TRAITS.marksman.damageMult;
+          damage*=this.crewWeaponMultiplier?.(c)??1;
           if(damage>0){this.damageEnemy(target, damage, 1);this.onCrewBoardShot?.(c,target);}
         } else if(!firingAtArm)this.crewReturnFire?.(c,dt);
         if (car.hp <= 0) {
@@ -395,8 +396,8 @@
           const opMod = clamp(operate * B.heat.operatorCoolingBonusPerPoint, 0, B.heat.maxOperatorModifier);
           let cool = this.turretCooling?this.turretCooling(eq,carIndex):t.cool * (1 + opMod) * this.moduleEffect(carIndex, 'cooling', 'coolingMult');
           if (car.armor > 0) cool *= B.armor.coolingMultiplier;
-          eq.heat = Math.max(0, eq.heat - cool * dt);
-          if (eq.overheated && eq.heat <= B.heat.resumeAt) eq.overheated = false;
+          eq.heat = clamp(eq.heat - cool * dt, 0, B.heat.max);
+          if (eq.overheated && eq.heat <= B.heat.resumeAt && !eq.rageCooling) eq.overheated = false;
           this.updateRage?.(eq,dt);
           if (car.hp <= 0 || car.power <= 0 || car.armor > 0 || (eq.overheated&&!eq.rageLeft) || eq.rageCooling || this.eventEquipmentDisabled?.(eq) || this.bossCarSealed?.(carIndex)) continue;
           eq.cooldown -= dt;
@@ -406,7 +407,7 @@
           const stats = this.turretStats(eq, carIndex, operator);
           this.fireTurret(eq, stats, target, carIndex);
           eq.cooldown = stats.interval;
-          eq.heat += stats.heat;
+          eq.heat = clamp(eq.heat + stats.heat, 0, B.heat.max);
           if (eq.heat >= B.heat.max && !eq.overheated) { eq.overheated = true; this.log(`${t.name} 과열`, 'bad'); }
         }
       });

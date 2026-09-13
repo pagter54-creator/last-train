@@ -51,6 +51,7 @@
     return svg(`<path d="M16 47L14 59H22L24 48 27 59H35L32 44" fill="#1d2c32" stroke="#101f25" stroke-width="2"/><path d="M12 31L17 27H30L35 33 37 47 31 48 29 37V50H17V37L13 47 8 44Z" fill="${color}" stroke="#192931" stroke-width="2"/><path d="M19 28L24 34 29 28M18 40H30" fill="none" stroke="#efe0b6" stroke-width="3"/><path d="M15 15H31V24L26 29H20L15 24Z" fill="#dab393" stroke="#2a3336" stroke-width="2"/>${hat}<path d="M18 20H21M26 20H29" stroke="#243038" stroke-width="2"/><path d="M25 33V47" stroke="#30404a" stroke-width="4"/><rect x="15" y="47" width="18" height="4" fill="#766951"/>`,'0 0 46 64');
   }
   function equipmentArt(eq) {
+    const custom=game.reformEquipmentArt?.(eq);if(custom)return custom;
     const module = eq.kind==='module';
     const outline='stroke="#192c32" stroke-width="3" stroke-linejoin="round"';
     const base='<path d="M20 50H62L66 58H14Z" fill="#798a80" stroke="#1a3036" stroke-width="3"/><rect x="32" y="36" width="15" height="17" fill="#374f55"/>';
@@ -127,8 +128,8 @@
     const structure=html.replace(/<span class="equipment-heat">.*?<\/span>/g,'');
     if(deck._markup!==structure){deck.innerHTML=html;deck._markup=structure;}
     s.cars.forEach(car=>car.equipment.filter(eq=>eq.kind==='turret').forEach(eq=>{const bar=deck.querySelector(`[data-equipment="${eq.id}"] .equipment-heat i`);if(bar)bar.style.width=`${clamp(eq.heat/B.heat.max*100,0,100)}%`;}));
-    deck.querySelectorAll('.railcar').forEach(el=>{const r=el.getBoundingClientRect();carPositions.set(Number(el.dataset.carIndex),{x:r.left+r.width/2,y:r.top+16,w:r.width,h:r.height});});
-    deck.querySelectorAll('[data-crew]').forEach(el=>{const r=el.getBoundingClientRect();crewPositions.set(el.dataset.crew,{x:r.left+r.width/2,y:r.top});});
+    deck.querySelectorAll('.railcar').forEach(el=>{const r=worldRect(el);carPositions.set(Number(el.dataset.carIndex),{x:r.left+r.width/2,y:r.top+16,w:r.width,h:r.height});});
+    deck.querySelectorAll('[data-crew]').forEach(el=>{const r=worldRect(el);crewPositions.set(el.dataset.crew,{x:r.left+r.width/2,y:r.top});});
     this.renderMovingCrew(s);
   };
   game.renderCrew=()=>{};
@@ -137,7 +138,7 @@
     document.querySelectorAll('.moving-sprite').forEach(el=>{if(!s.crew.some(c=>c.moving&&c.id===el.dataset.id))el.remove();});
     for(const c of s.crew.filter(c=>c.moving)){
       let el=document.querySelector(`.moving-sprite[data-id="${c.id}"]`);
-      if(!el){el=document.createElement('div');el.className='moving-sprite';el.dataset.id=c.id;el.innerHTML=portrait(c);document.body.append(el);}
+      if(!el){el=document.createElement('div');el.className='moving-sprite';el.dataset.id=c.id;el.innerHTML=portrait(c);(game.worldLayer||document.body).append(el);}
       const a=carPositions.get(c.moving.from),b=carPositions.get(c.moving.to);if(!a||!b)continue;
       const progress=clamp(1-c.moving.left/c.moving.total,0,1);
       el.style.left=`${a.x+(b.x-a.x)*progress-17}px`;el.style.top=`${a.y+15}px`;
@@ -173,7 +174,7 @@
     const s=this.state||menuPreview,act=D.ACTS[s.actId],b=s.battle;
     $('#stage-label').textContent=`${Math.min(s.stageIndex+1,act.stages.length)} / ${act.stages.length}`;
     route.innerHTML=act.stages.map((_,i)=>`<i class="${i<s.stageIndex?'done':i===s.stageIndex?'current':''}"></i>`).join('');
-    const progress=this.mode==='result'?1:b?clamp(b.elapsed/b.duration,0,1):0;
+    const progress=this.mode==='result'?1:b?clamp((b.routeProgress??b.elapsed)/b.duration,0,1):0;
     $('#threat-fill').style.width=`${progress*100}%`;
     $('.train-pin').style.left=`${progress*100}%`;$('.train-pin').style.right='auto';
     routeLabel.textContent=b?.boss?`${b.title} · 보스전`:`구간 진행 ${Math.round(progress*100)}%`;
@@ -247,7 +248,7 @@ modal.querySelector('.dialog-body').innerHTML=`<div class="choices"><div class="
   }
   game.canvasClick=function(event){
     if(this.mode!=='battle'||$('#overlay').classList.contains('show'))return;
-    const r=this.canvas.getBoundingClientRect(),x=event.clientX-r.left,y=event.clientY-r.top;
+    const {x,y}=worldPointer(event);
     const candidates=[...this.state.enemies.filter(e=>!e.dead),...(this.state.battle?.parts||[]).filter(p=>!p.destroyed)];
     const target=candidates.map(e=>({e,p:project(e,this.view.w,this.view.h)})).filter(({p})=>Math.hypot(p.x-x,p.y-y)<p.r+12).sort((a,b)=>Math.hypot(a.p.x-x,a.p.y-y)-Math.hypot(b.p.x-x,b.p.y-y))[0];
     if(target){if(this.state.targetMode==='focus')this.executeFocus(target.e);else{cancelSelection();this.setTactical(true);this.state.selectedEnemy=target.e.id;this.inspectEnemy(target.e);guide.textContent='집중 사격 명령을 선택한 뒤 적을 누르면 공격을 집중합니다.';}}
@@ -262,7 +263,7 @@ modal.querySelector('.dialog-body').innerHTML=`<div class="choices"><div class="
   };
   game.draw=function(){
     const ctx=this.ctx,w=this.view?.w||1,h=this.view?.h||1,now=performance.now();
-    const dt=Math.min((now-lastVisual)/1000,.1);lastVisual=now;
+    const dt=game.frameDelta??0;lastVisual=now;
     const inMenu=this.mode==='menu',overlay=$('#overlay').classList.contains('show');
     let pace=inMenu?V.motion.idle:this.mode==='battle'?(overlay?0:this.state.speed):V.motion.idle;
     if(this.mode==='run'&&this.state?.launchElapsed<B.launch.seconds)pace=this.state.launchElapsed<B.launch.impactAt ? .2 : 1+B.launch.visualSpeed*clamp((this.state.launchElapsed-B.launch.impactAt)/(B.launch.seconds-B.launch.impactAt),0,1);
@@ -294,7 +295,7 @@ modal.querySelector('.dialog-body').innerHTML=`<div class="choices"><div class="
       if(i%7===0){ctx.strokeStyle='#2d393866';ctx.lineWidth=1+depth;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+size*.4,y-size*3);ctx.lineTo(x+size*1.4,y-size*2);ctx.moveTo(x+size*.5,y-size*1.6);ctx.lineTo(x-size,y-size*2.6);ctx.stroke();}
     }
     // Rail sleepers visibly travel left, so the train runs to the right.
-    const deck=$('#train-cars').getBoundingClientRect(),railY=deck.bottom-5;
+    const deck=worldRect($('#train-cars')),railY=deck.bottom-5;
     ctx.fillStyle='#222c2e';ctx.fillRect(0,railY,w,20);
     for(let x=-80-(t*V.motion.ground*motion)%65;x<w+80;x+=65){ctx.fillStyle='#766d57';ctx.fillRect(x,railY+2,22,25);ctx.fillStyle='#202d2c';ctx.fillRect(x+2,railY+3,17,4);}
     ctx.fillStyle='#b0ada0';ctx.fillRect(0,railY+1,w,3);ctx.fillStyle='#636e66';ctx.fillRect(0,railY+19,w,4);

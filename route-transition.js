@@ -8,9 +8,9 @@
   g.advanceStage=function(){if(travel||!this.state)return;A.cancelSelection();overlay.classList.remove('show');travel={run:this.state,phase:'exit',elapsed:0};this.mode='transition';this.sceneTransition={offset:0,boost:1};document.body.classList.add('route-travel');shake();this.playSound('engine');};
   g.update=function(dt){if(!travel)return update(dt);if(this.state!==travel.run){reset();return update(dt);}if(document.hidden)return;
     const low=matchMedia('(prefers-reduced-motion: reduce)').matches,tr=travel;tr.elapsed+=dt;
-    if(tr.phase==='exit'){const p=Math.min(1,tr.elapsed/B.transition.exitSeconds);this.sceneTransition.offset=low?0:innerWidth*p*p;this.sceneTransition.boost=1+B.transition.backdropBoost*p;
-      if(p===1){advance();tr.targetMode=this.mode;tr.overlay=overlay.classList.contains('show');overlay.classList.remove('show');this.mode='transition';tr.phase='enter';tr.elapsed=0;this.sceneTransition={offset:low?0:innerWidth,boost:1+B.transition.backdropBoost};}
-    }else{const p=Math.min(1,tr.elapsed/B.transition.enterSeconds);this.sceneTransition.offset=low?0:innerWidth*Math.pow(1-p,3);this.sceneTransition.boost=1+B.transition.backdropBoost*(1-p);
+    if(tr.phase==='exit'){const p=Math.min(1,tr.elapsed/B.transition.exitSeconds);this.sceneTransition.offset=low?0:MOVEMENT_CONFIG.width*p*p;this.sceneTransition.boost=1+B.transition.backdropBoost*p;
+      if(p===1){advance();tr.targetMode=this.mode;tr.overlay=overlay.classList.contains('show');overlay.classList.remove('show');this.mode='transition';tr.phase='enter';tr.elapsed=0;this.sceneTransition={offset:low?0:MOVEMENT_CONFIG.width,boost:1+B.transition.backdropBoost};}
+    }else{const p=Math.min(1,tr.elapsed/B.transition.enterSeconds);this.sceneTransition.offset=low?0:MOVEMENT_CONFIG.width*Math.pow(1-p,3);this.sceneTransition.boost=1+B.transition.backdropBoost*(1-p);
       if(p===1){this.mode=tr.targetMode;if(tr.overlay)overlay.classList.add('show');reset();shake();this.playSound('rail');this.renderAll();}}
   };
   g.showMainMenu=function(...args){reset();return menu(...args);};

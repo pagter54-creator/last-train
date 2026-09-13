@@ -40,7 +40,7 @@
 
   };
   g.updateSpawns=function(dt){const b=this.state.battle,r=b.rhythm;if(!r)return old.updateSpawns(dt);
-    if(b.elapsed>=b.duration){if(!r.routeEnded){r.routeEnded=true;r.queue=[];this.state.enemies=this.state.enemies.filter(e=>!e.dead&&this.enemyOnScreen(e));this.state.attackWindups=(this.state.attackWindups||[]).filter(w=>this.state.enemies.includes(w.owner));}b.spawnLeft=0;return;}
+    if((b.routeProgress??b.elapsed)>=b.duration){if(!r.routeEnded){r.routeEnded=true;r.queue=[];this.state.enemies=this.state.enemies.filter(e=>!e.dead&&this.enemyOnScreen(e));this.state.attackWindups=(this.state.attackWindups||[]).filter(w=>this.state.enemies.includes(w.owner));}b.spawnLeft=0;return;}
     const empty=!this.state.enemies.some(e=>!e.dead&&this.enemyOnScreen(e));r.clock+=dt*(empty?C.emptyFieldClock:1);
     if(r.clock>=r.phase.end&&r.index<r.phases.length-1)this.beginCombatPhase();
     // After the authored queue ends, only light patrols fill remaining route time.
@@ -66,7 +66,7 @@
       for(const item of batch){this.spawnEnemy(item.type);const enemy=this.state.enemies.at(-1);enemy.y=item.lane;enemy.entrySide=item.side;if(item.side==='left'){enemy.x=C.director.leftEntryDistance;enemy.entryStart=enemy.x;}enemy.spawnRole=item.role;r.spent+=item.cost;r.phases[item.phase].spent+=item.cost;r.queue.splice(r.queue.indexOf(item),1);}
       r.lastSpawnAt=r.clock;r.lastSpawnGap=r.phases[first.phase].duration/Math.max(1,r.phases[first.phase].budget/C.swarm.budgetMultiplier/D.ENEMIES.biker.threatCost)*C.swarm.intervalMin;break;
     }
-    b.spawnLeft=r.queue.length+(b.elapsed<b.duration?1:0);
+    b.spawnLeft=r.queue.length+((b.routeProgress??b.elapsed)<b.duration?1:0);
   };
 
   // Telegraph major attacks, then release their projectile only after the countdown.

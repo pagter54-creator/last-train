@@ -10,7 +10,7 @@
  g.checkpointEnabled=true;
  // Remove references to live combat entities before serializing (some form cycles).
  function stable(state){
-  const omit=new Set(['battle','enemies','projectiles','particles','impacts','interference','systemWindups','grabs','attackWindups','combatRecord','selectedEnemy','selectedCrew','selectedCar','targetMode']);
+  const omit=new Set(['battle','enemies','projectiles','particles','impacts','weaponZones','interference','systemWindups','grabs','attackWindups','combatRecord','selectedEnemy','selectedCrew','selectedCar','targetMode']);
   const source=Object.fromEntries(Object.entries(state).filter(([k])=>!omit.has(k)));
   source.orders=Object.fromEntries(Object.entries(state.orders||{}).map(([k,v])=>[k,{...v,target:null,active:0}]));
   source.crew=state.crew.map(c=>({...c,car:c.moving?.to??c.car,moving:null}));
@@ -37,8 +37,8 @@
    s.metaRun.apocalypse=Math.max(0,Math.min(10,Math.floor(number(s.metaRun.apocalypse))));
    for(const c of s.cars){
     if(!c||typeof c.id!=='string'||!finite(c.maxHp)||c.maxHp<=0||!Array.isArray(c.equipment))return null;
-    c.hp=Math.max(0,Math.min(c.maxHp,number(c.hp)));c.repair=Math.max(0,number(c.repair));c.power=Math.max(0,Math.min(3,Math.floor(number(c.power))));
-    for(const e of c.equipment){if(!e||!['turret','module'].includes(e.kind)||!(e.kind==='turret'?D.TURRETS:D.MODULES)[e.type]||typeof e.id!=='string')return null;e.level=Math.max(1,Math.floor(number(e.level,1)));e.heat=Math.max(0,number(e.heat));e.cooldown=Math.max(0,number(e.cooldown));}
+    c.hp=Math.max(0,Math.min(c.maxHp,number(c.hp)));c.repair=Math.max(0,number(c.repair));c.power=Math.max(0,Math.min(4,Math.floor(number(c.power))));
+    for(const e of c.equipment){if(!e||!['turret','module'].includes(e.kind)||!(e.kind==='turret'?D.TURRETS:D.MODULES)[e.type]||typeof e.id!=='string')return null;e.level=Math.max(1,Math.floor(number(e.level,1)));e.heat=Math.max(0,Math.min(D.BALANCE.heat.max,number(e.heat)));delete e.minimumCooling;if(e.kind==='turret'&&e.heat>=D.BALANCE.heat.max)e.overheated=true;e.cooldown=Math.max(0,number(e.cooldown));if(e.aux&&(e.kind!=='module'||e.level<3||e.aux.kind!=='module'||!D.MODULES[e.aux.type]||e.aux.aux||typeof e.aux.id!=='string'))return null;}
    }
    for(const c of s.crew){
     if(!c||typeof c.id!=='string'||!c.stats||!finite(c.maxHp)||c.maxHp<=0)return null;
@@ -55,6 +55,7 @@
    if(p.node.type==='station'){
     if(!p.shop||!Array.isArray(p.shop.gear)||!Array.isArray(p.shop.crew)||!Array.isArray(p.shop.bought))return null;
     if(p.shop.gear.some(e=>!['turret','module'].includes(e.kind)||!(e.kind==='turret'?D.TURRETS:D.MODULES)[e.id]||!e.d))return null;
+    for(const o of p.shop.gear){const e=o.equipment;if(!e)continue;if(e.kind!==o.kind||e.type!==o.id||typeof e.id!=='string'||e.aux)return null;e.level=Math.max(1,Math.min((e.kind==='turret'?D.TURRETS:D.MODULES)[e.type].maxLevel||1,Math.floor(number(e.level,1))));e.investedScrap=Math.max(0,number(e.investedScrap));e.weaponBranches=e.weaponBranches&&typeof e.weaponBranches==='object'?e.weaponBranches:{};for(const [tier,id]of Object.entries(e.weaponBranches))if(!window.WEAPON_UPGRADES?.tiers[tier]?.[id])delete e.weaponBranches[tier];}
    }
    p.state=stable(s);p.preferredSpeed=[1,2].includes(p.preferredSpeed)?p.preferredSpeed:1;
    return p;
@@ -82,7 +83,7 @@
    Object.assign(s,{runId:snapshot.runId,runSeed:snapshot.runSeed});
    pending={version:C.version,runId:s.runId,seed:s.runSeed,savedAt:Date.now(),node:{...clone(node),id:`${s.actId}:${s.stageIndex}:${node.type}`},state:snapshot,preferredSpeed:g.preferredSpeed||1};
    // Settle the old stage before event code takes its own transaction snapshot.
-   Object.assign(s,{battle:null,enemies:[],projectiles:[],particles:[],impacts:[],grabs:[],interference:[],systemWindups:[],orders:clone(snapshot.orders),selectedEnemy:null,selectedCrew:null,selectedCar:null,targetMode:null});
+   Object.assign(s,{battle:null,enemies:[],projectiles:[],particles:[],impacts:[],weaponZones:[],grabs:[],interference:[],systemWindups:[],orders:clone(snapshot.orders),selectedEnemy:null,selectedCrew:null,selectedCar:null,targetMode:null});
    s.crew.forEach(c=>{if(c.moving){c.car=c.moving.to;c.moving=null;}});
    g.restoreCheckpointEvent(null);
    if(node.type==='station'){g.stationOffers=null;g.stationStage=null;}
@@ -101,6 +102,7 @@
   try{
    restoring=true;this.showMainMenu();this.state=clone(p.state);this.restoreMetaRun();this.preferredSpeed=p.preferredSpeed;this.state.speed=p.preferredSpeed;
    this.restoreCheckpointEvent(p.event||null);this.stationOffers=p.shop?{...clone(p.shop),bought:new Set(p.shop.bought)}:null;this.stationStage=p.shop?this.state.stageIndex:null;
+   if(this.stationOffers&&!this.stationOffers.reformReady&&window.EQUIPMENT_REFORM){this.stationOffers.reformReady=true;for(const [i,o]of this.stationOffers.gear.entries())o.equipment??={id:`${p.runId}-legacy-offer-${i}`,kind:o.kind,type:o.id,level:1,heat:0,cooldown:0,weaponBranches:{},investedScrap:0};}
    current=`${p.runId}:${this.state.actId}:${this.state.stageIndex}`;pending=null;this.mode='run';this.closeOverlay();this.renderAll();
    if(p.node.type==='boss')this.startBoss(p.node.bossId);else this.resolveNode(p.node.type,p.node.data||{});
   }catch(error){console.warn('Run restore failed',error);this.showMainMenu();status('저장 데이터를 복원하지 못했습니다. 기존 저장은 유지됩니다.',true);}

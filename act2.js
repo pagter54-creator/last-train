@@ -14,7 +14,7 @@
   function telegraph(kind,owner,car,seconds){const s=g.state;if(!alive(owner)||s.systemWindups.some(w=>w.owner===owner)||!g.allowMajorThreat(owner))return false;s.systemWindups.push({kind,owner,car,left:seconds,total:seconds});g.playSound('alarm');return true;}
   g.effectiveCarPower=function(ci){const s=this.state,powers=s.cars.map(c=>c.power);
     const generation=s.cars.reduce((n,c)=>n+(c.hp>0&&c.power>0&&c.armor<=0?c.equipment.reduce((v,e)=>v+(e.kind==='module'?(this.moduleData(e).extraPower||0)*(e.model==='wide'?s.cars.length:1):0),0):0),0);
-    let available=B.train.enginePower.start+(s.cars.length-1)*B.train.baseCarPower+Math.floor(generation)-powers.slice(1).reduce((a,b)=>a+b,0);
+    let available=B.train.enginePower.start+(s.cars.length-1)*B.train.baseCarPower+Math.floor(generation+(this.auxGeneratedPower?.()||0))-powers.slice(1).reduce((a,b)=>a+b,0);
     for(let i=powers.length-1;i>0&&available<B.train.enginePower.min;i--){const loss=Math.min(Math.max(0,powers[i]-1),B.train.enginePower.min-available);powers[i]-=loss;available+=loss;}
     powers[0]=clamp(available,B.train.enginePower.min,B.train.enginePower.max);
     const power=powers[ci];return has('power',ci)?Math.max(Math.min(power,1),power-C.power.amount):power;};
@@ -23,6 +23,7 @@
   g.isCarGrabbed=ci=>active()&&(g.state.grabs||[]).some(x=>x.car===ci&&x.left>0&&alive(x.owner));
   function infiltrated(ci){return active()&&g.state.enemies.some(e=>alive(e)&&e.boarded&&e.targetCar===ci&&D.ENEMIES[e.type].behavior==='infiltrator');}
   function moduleFactor(ci){return (has('suppress',ci)?C.suppress.moduleMultiplier:1)*(infiltrated(ci)?C.infiltrator.moduleMultiplier:1);}
+  g.moduleInterferenceFactor=moduleFactor;
   g.moduleData=function(eq){const m=old.moduleData(eq),ci=this.state?.cars.findIndex(c=>c.equipment.includes(eq))??-1,factor=ci<0||allocationRead?1:moduleFactor(ci);for(const key of ['heatMult','coolingMult','stageHealMult','repairMult','ammoDamageMult'])if(key in m)m[key]=1+(m[key]-1)*factor;if('extraPower'in m)m.extraPower*=factor;return m;};
   g.moduleEffect=function(ci,effectName,key){return old.moduleEffect(ci,effectName,key)*(key==='repairMult'&&has('hook',ci)?C.hook.repairMultiplier:1);};
   g.turretStats=function(eq,ci,op){const stats=old.turretStats(eq,ci,op);stats.interval/=(has('suppress',ci)?C.suppress.rateMultiplier:1)*(infiltrated(ci)?C.infiltrator.rateMultiplier:1);return stats;};
@@ -49,14 +50,14 @@
       if(!alive(e)||!this.enemyOnScreen(e))continue;const behavior=D.ENEMIES[e.type].behavior;
       if(['shield','repair'].includes(behavior)&&e.x<=B.targeting.medium&&!e.majorActive&&this.allowMajorThreat(e))e.majorActive=true;
       if(behavior==='repair'&&e.majorActive)for(const target of this.state.enemies)if(alive(target)&&target!==e&&nearby(e,target,C.repair.radius))target.hp=Math.min(target.maxHp,target.hp+C.repair.hpPerSecond*dt);
-      if(behavior==='transport'&&!e.deployed&&e.x<=C.transport.range&&this.state.battle.elapsed<this.state.battle.duration&&this.allowMajorThreat(e)){
+      if(behavior==='transport'&&!e.deployed&&e.x<=C.transport.range&&(this.state.battle.routeProgress??this.state.battle.elapsed)<this.state.battle.duration&&this.allowMajorThreat(e)){
         const cap=window.COMBAT_CONFIG.tagCaps.BOARDING,room=Math.min(B.battle.maxAlive-this.state.enemies.filter(alive).length,cap-this.state.enemies.filter(x=>alive(x)&&D.ENEMIES[x.type].tags?.includes('BOARDING')).length),count=Math.min(C.transport.count,room);if(count<window.COMBAT_CONFIG.swarm.min)continue;
         for(let i=0;i<count;i++){const before=this.state.enemies.length;this.spawnEnemy('boarder');if(this.state.enemies.length>before){const child=this.state.enemies.at(-1);child.x=e.x;child.y=clamp(e.y+(i-(count-1)/2)*C.transport.laneSpacing,.25,.73);child.targetCar=e.targetCar;}}
         e.deployed=true;e.dead=true;this.playSound('boardingAlarm');
       }
     }
   };
-  function hullDamage(ci,amount){const car=g.state.cars[ci];if(car.hp<=0||car.armor>0)return;const before={car:car.hp,crew:g.state.crew.filter(c=>c.car===ci).map(c=>({id:c.id,hp:c.hp,dead:c.dead}))};car.hp=Math.max(0,car.hp-amount);car.hitFlash=B.feedback.carFlashSeconds;if(car.hp===0&&!car.destroyedLogged){car.destroyedLogged=true;g.log(`${car.name} 파괴! 장비가 정지합니다.`,'bad');for(const c of g.state.crew.filter(c=>!c.dead&&!c.moving&&c.car===ci&&c.hp<=0)){c.dead=true;g.log(`${c.name} 사망`,'bad');}}g.onHullImpact(ci,before);}
+  function hullDamage(ci,amount){const car=g.state.cars[ci];if(car.hp<=0||car.armor>0)return;const before={car:car.hp,crew:g.state.crew.filter(c=>c.car===ci).map(c=>({id:c.id,hp:c.hp,dead:c.dead}))};car.hp=Math.max(0,car.hp-(g.absorbHullDamage?.(ci,amount)??amount));car.hitFlash=B.feedback.carFlashSeconds;if(car.hp===0&&!car.destroyedLogged){car.destroyedLogged=true;g.log(`${car.name} 파괴! 장비가 정지합니다.`,'bad');for(const c of g.state.crew.filter(c=>!c.dead&&!c.moving&&c.car===ci&&c.hp<=0)){c.dead=true;g.log(`${c.name} 사망`,'bad');}}g.onHullImpact(ci,before);}
   function tickSystems(dt){const s=g.state;
     s.interference=(s.interference||[]).filter(e=>{e.left-=dt;return e.left>0&&alive(e.owner)&&('destroyed'in e.owner||s.enemies.includes(e.owner));});
     for(const w of s.systemWindups||[]){if(!alive(w.owner)||(!('destroyed'in w.owner)&&!s.enemies.includes(w.owner))){w.left=0;continue;}w.left-=dt;if(w.left>0)continue;

@@ -32,7 +32,7 @@
   let numbers=[],ricochets=[],clock=0,lastState=null,shot=null;
   const floatCanvas=document.createElement('canvas');floatCanvas.setAttribute('aria-hidden','true');floatCanvas.style.cssText='position:fixed;inset:0;pointer-events:none;z-index:18';document.body.append(floatCanvas);
   function carPoint(i){const p=A.getCarPosition(i);return p||{x:g.view.w/2,y:g.view.h*.7};}
-  function crewPoint(c){const el=$(`[data-crew="${c.id}"]`)||$(`.moving-sprite[data-id="${c.id}"]`);if(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top};}return carPoint(c.car);}
+  function crewPoint(c){const el=$(`[data-crew="${c.id}"]`)||$(`.moving-sprite[data-id="${c.id}"]`);if(el){const r=worldRect(el);return{x:r.left+r.width/2,y:r.top};}return carPoint(c.car);}
   function number(key,amount,p,color,positive=false){if(!(amount>0))return;let n=numbers.find(n=>n.key===key&&clock-n.born<W.numbers.mergeSeconds);if(n){n.amount+=amount;return;}numbers.push({key,amount,x:p.x/g.view.w,y:p.y/g.view.h,color,positive,born:clock});if(numbers.length>W.numbers.max)numbers.shift();}
   function snapshot(){const s=g.state;return s?{state:s,cars:s.cars.map(c=>c.hp),crew:s.crew.map(c=>({id:c.id,hp:c.hp}))}:null;}
   function changes(before,onlyHealing=false){const s=g.state;if(!before||s!==before.state)return;before.cars.forEach((hp,i)=>{const delta=s.cars[i].hp-hp;if(delta>0)number('carheal'+i,delta,carPoint(i),'#8dffa6',true);else if(delta<0&&!onlyHealing)number('carhit'+i,-delta,carPoint(i),'#ff6f6f');});for(const prev of before.crew){const c=s.crew.find(c=>c.id===prev.id);if(!c)continue;const delta=c.hp-prev.hp;if(delta>0)number('crewheal'+c.id,delta,crewPoint(c),'#8dffa6',true);else if(delta<0&&!onlyHealing)number('crewhit'+c.id,-delta,crewPoint(c),'#ff6f6f');}}

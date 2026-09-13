@@ -10,7 +10,8 @@
   const core=()=>g.state.battle.parts.find(p=>p.victory);
   const warn=text=>{g.state.battle.notice=text;g.state.battle.noticeLeft=C.noticeSeconds;g.playSound('alarm');};
   function release(p){p.grip=0;p.gripLeft=0;p.stun=C.armStun;p.rest=C.armRest;g.playSound('metal');}
-  function hull(ci,amount){const c=g.state.cars[ci];if(!c||c.hp<=0||c.armor>0)return;const before={car:c.hp,crew:g.state.crew.map(x=>({id:x.id,hp:x.hp,dead:x.dead}))};c.hp=Math.max(0,c.hp-amount);c.hitFlash=D.BALANCE.feedback.carFlashSeconds;g.onHullImpact(ci,before);g.playSound('hull');}
+  g.releaseBossGrip=release;
+  function hull(ci,amount){const c=g.state.cars[ci];if(!c||c.hp<=0||c.armor>0)return;const before={car:c.hp,crew:g.state.crew.map(x=>({id:x.id,hp:x.hp,dead:x.dead}))};c.hp=Math.max(0,c.hp-(g.absorbHullDamage?.(ci,amount)??amount));c.hitFlash=D.BALANCE.feedback.carFlashSeconds;g.onHullImpact(ci,before);g.playSound('hull');}
   g.startBoss=function(id){old.startBoss(id);const b=this.state.battle;Object.assign(b,{rework:true,sharedHp:D.BOSSES[id].sharedHp,maxSharedHp:D.BOSSES[id].sharedHp,coreTimer:C.core.interval,coreLeft:0,patternTimer:C.firstPattern,patternIndex:0,phase:1,slowLeft:0,noticeLeft:0});for(const p of b.parts)Object.assign(p,{bossPart:true,repairLeft:0,grip:0,rest:0,stun:0});};
   g.targetInRange=function(e,r){if(e.bossPart){if(!alive(e)||e.victory&&!g.state.battle.coreLeft)return false;if(e.grip>0)return r.min<=D.BALANCE.battle.boardDistance;}return old.targetInRange(e,r);};
   g.executeFocus=function(e){if(e.bossPart&&(!alive(e)||e.victory&&!this.state.battle.coreLeft)){this.toast('CORE가 닫혀 있습니다. 다른 부위를 조준하세요.');return;}return old.executeFocus(e);};
