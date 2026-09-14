@@ -86,14 +86,15 @@
     if(this.state.selectedCrew&&this.state.selectedCrew!==id)return this.swapCrew(this.state.selectedCrew,id);
     if(c.dead||c.hp<=0){this.toast(c.dead?'이 직원은 사망했습니다.':'전투불능 상태에서는 이동할 수 없습니다.');return;}
     if(c.moving){this.toast('직원이 이동 중입니다.');return;}
-    if(this.state.cars[c.car].armor>0){this.toast('비상 장갑이 해제된 후 이동할 수 있습니다.');return;}
     selectedEquipment=null;this.state.selectedCrew=id;this.state.targetMode=null;this.setTactical(true);this.inspectCrew(c);
     guide.textContent='열차 안의 빛나는 빈자리를 누르면 이동합니다. Esc로 선택을 취소할 수 있습니다.';this.renderCars();
   };
   game.moveCrew = function(id,to){
     const s=this.state,c=s?.crew.find(x=>x.id===id);if(!c||!s.cars[to])return;
-    if(c.dead||c.hp<=0||c.moving||s.cars[c.car].armor>0||s.cars[to].armor>0)return this.toast('지금은 이동할 수 없습니다.');
-    const reserved=s.crew.filter(x=>x.id!==id&&(x.moving?x.moving.to===to:x.car===to)).length;
+    if(c.dead||c.hp<=0||c.moving)return this.toast('지금은 이동할 수 없습니다.');
+    // A wreck or emergency-armored car is still a legal destination. KO crew reserve
+    // their slot, so the move only fails when no free slot remains.
+    const reserved=s.crew.filter(x=>x.id!==id&&!x.dead&&(x.moving?x.moving.to===to:x.car===to)).length;
     if(reserved>=this.crewCapacity(to))return this.toast('해당 객차에 빈자리가 없습니다.');
     if(to===c.car)return cancelSelection();
     original.moveCrew(id,to);cancelSelection();this.hint(`${c.name} → ${s.cars[to].name} 이동 중`);
@@ -113,8 +114,8 @@
   game.renderCars=function(){
     const s=this.state||menuPreview;if(!s)return;
     const html=s.cars.map((car,i)=>{
-      const crew=s.crew.filter(c=>c.car===i&&!c.moving), incoming=s.crew.filter(c=>c.moving?.to===i).length;
-      const available=!!s.selectedCrew&&car.armor<=0&&crew.length+incoming<this.crewCapacity(i);
+      const crew=s.crew.filter(c=>!c.dead&&c.car===i&&!c.moving), incoming=s.crew.filter(c=>!c.dead&&c.moving?.to===i).length;
+      const available=!!s.selectedCrew&&crew.length+incoming<this.crewCapacity(i);
       const art=car.equipment.map(eq=>`<button class="equipment-button ${eq.overheated?'overheated':''} ${selectedEquipment===eq.id?'targeted':''}" data-equipment="${eq.id}" aria-label="${(eq.kind==='turret'?D.TURRETS:D.MODULES)[eq.type].name} 정보">${equipmentArt(eq)}<span class="eq-label">${(eq.kind==='turret'?D.TURRETS:D.MODULES)[eq.type].name}</span>${eq.kind==='turret'?`<span class="equipment-heat"><i style="width:${clamp(eq.heat/B.heat.max*100,0,100)}%"></i></span>`:''}</button>`).join('');
       const blankEquipment=Array.from({length:Math.max(0,this.equipmentCapacity(i)-car.equipment.length)},()=>'<span class="empty-equipment" title="장비 슬롯">+</span>').join('');
       const people=crew.map(c=>`<button class="crew-sprite ${c.dead||c.hp<=0?'ko':''} ${s.selectedCrew===c.id?'selected':''}" data-crew="${c.id}" aria-label="직원 ${c.name} 선택 · HP ${Math.ceil(c.hp)}">${portrait(c)}<span class="crew-health"><i style="width:${c.hp/c.maxHp*100}%"></i></span><span class="crew-tag">${c.dead?'사망':c.hp<=0?'전투불능':c.name}</span></button>`).join('');

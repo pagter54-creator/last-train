@@ -59,13 +59,13 @@
   g.inspectCrew=function(c){this.inspectedEquipment=null;this.inspectedCrew=c.id;this.moduleRange=null;$('#inspector').innerHTML=this.crewHTML(c);};
   g.swapCrew=function(aId,bId,instant=false){
     const a=this.state.crew.find(c=>c.id===aId),b=this.state.crew.find(c=>c.id===bId);
-    if(!a||!b||a===b||a.dead||b.dead||a.hp<=0||b.hp<=0||a.moving||b.moving||this.state.cars[a.car].armor>0||this.state.cars[b.car].armor>0)return this.toast('지금은 두 직원의 자리를 교환할 수 없습니다.');
+    if(!a||!b||a===b||a.dead||b.dead||a.hp<=0||b.hp<=0||a.moving||b.moving)return this.toast('지금은 두 직원의 자리를 교환할 수 없습니다.');
     if(a.car===b.car){A.cancelSelection();return false;}
     const from=a.car,to=b.car,total=Math.abs(from-to)*B.train.moveSecondsPerCar;
     if(instant){a.car=to;b.car=from;}else{a.moving={from,to,left:total,total};b.moving={from:to,to:from,left:total,total};}
     A.cancelSelection();this.log(`${a.name} ↔ ${b.name} 자리 교환`);this.renderCars();return true;
   };
-  g.activateArmor=function(){if(!this.state||this.mode!=='battle'||$('#overlay').classList.contains('show')||this.state.armorCharge<B.armor.maxCharge)return;A.cancelSelection();this.state.targetMode='armor';this.setTactical(true);$('#inspector').innerHTML=`<h3>비상 장갑</h3><p>보호할 객차 한 량을 누르세요.</p><p>${this.armorDuration?.()??B.armor.duration}초 무적 · 해당 객차 사격/모듈/직원 이동 정지 · 냉각 ×${B.armor.coolingMultiplier}</p><p>해당 칸에 승선병이나 이동 중인 직원이 있으면 사용할 수 없습니다.</p>`;this.renderCars();};
+  g.activateArmor=function(){if(!this.state||this.mode!=='battle'||$('#overlay').classList.contains('show')||this.state.armorCharge<B.armor.maxCharge)return;A.cancelSelection();this.state.targetMode='armor';this.setTactical(true);$('#inspector').innerHTML=`<h3>비상 장갑</h3><p>보호할 객차 한 량을 누르세요.</p><p>${this.armorDuration?.()??B.armor.duration}초 무적 · 해당 객차 사격/모듈 정지 · 냉각 ×${B.armor.coolingMultiplier}</p><p>해당 칸에 승선병이나 이동 중인 직원이 있으면 사용할 수 없습니다.</p>`;this.renderCars();};
   g.executeArmor=function(ci){const s=this.state,c=s.cars[ci];if(s.targetMode!=='armor'||!c||s.armorCharge<B.armor.maxCharge)return;if(c.hp<=0||s.enemies.some(e=>!e.dead&&e.boarded&&e.targetCar===ci)||s.crew.some(x=>x.moving&&(x.moving.from===ci||x.moving.to===ci)))return this.toast('이 객차에는 지금 비상 장갑을 사용할 수 없습니다.');s.armorCharge=0;c.armor=B.armor.duration;s.crew.filter(x=>!x.dead&&x.hp>0&&!x.moving&&x.car===ci).forEach(x=>x.hp=Math.min(x.maxHp,x.hp+x.maxHp*B.armor.healRatio));A.cancelSelection();this.log(`${c.name} 비상 장갑 전개`,'hot');this.renderAll();};
   g.upgradeCost=eq=>eq.kind==='module'?(D.MODULES[eq.type].upgradeable===false?null:eq.model?null:(eq.level||1)>=3?0:B.moduleUpgrade.costs[(eq.level||1)-1]):eq.branch?null:eq.level===1?B.upgrade.level2Scrap:eq.level===2?B.upgrade.level3Scrap:B.upgrade.branchScrap;
   g.upgradeEquipment=function(id,model){const eq=this.findEquipment(id);if(!eq)return false;const cost=this.upgradeCost(eq);if(cost===null)return false;if(eq.kind==='module'&&(eq.level||1)>=2&&!B.moduleUpgrade.branches[model])return false;if(this.state.scrap<cost){this.toast('고철이 부족합니다.');return false;}this.state.scrap-=cost;eq.investedScrap=(eq.investedScrap||0)+cost;if(eq.kind==='module'){eq.level=Math.min(3,(eq.level||1)+1);if(eq.level===3)eq.model=model;}else if(eq.level<3)eq.level++;else eq.branch=true;this.rebalancePower();this.renderAll();return true;};
@@ -86,7 +86,7 @@
   g.showStation=function(){
     this.mode='station';this.setSpeed(0);this.inspectedEquipment=null;this.inspectedCrew=null;
     this.state.crew.forEach(c=>{if(c.moving){c.car=c.moving.to;c.moving=null;}});
-    if(this.stationStage!==this.state.stageIndex||!this.stationOffers){this.stationStage=this.state.stageIndex;const available=reg=>Object.entries(reg).filter(([,d])=>!d.unlockSpent||this.meta.spent>=d.unlockSpent).sort(()=>Math.random()-.5);this.stationOffers={gear:[...available(D.TURRETS).slice(0,B.station.turretOfferCount).map(([id,d])=>({id,d,kind:'turret'})),...available(D.MODULES).slice(0,B.station.moduleOfferCount).map(([id,d])=>({id,d,kind:'module'}))],crew:this.crewCandidateTemplates(B.station.crewOfferCount),bought:new Set()};}
+    if(this.stationStage!==this.state.stageIndex||!this.stationOffers){this.stationStage=this.state.stageIndex;const available=(kind,reg)=>Object.entries(reg).filter(([id])=>this.runContentUnlocked?.(kind,id)??true).sort(()=>Math.random()-.5);this.stationOffers={gear:[...available('turrets',D.TURRETS).slice(0,B.station.turretOfferCount).map(([id,d])=>({id,d,kind:'turret'})),...available('modules',D.MODULES).slice(0,B.station.moduleOfferCount).map(([id,d])=>({id,d,kind:'module'}))],crew:this.crewCandidateTemplates(B.station.crewOfferCount),bought:new Set()};}
     this.prepareActShop?.();
     this.checkpointStationReady?.();
     const modal=this.modalShell('정비 스테이션',`구간 ${this.globalStage()}`,'열차는 정차 중입니다. 구매·분기 강화·재배치·수리·출발에 시간이 들며, 일반 강화와 정보 확인에는 시간이 들지 않습니다.');

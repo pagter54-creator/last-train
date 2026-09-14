@@ -1,4 +1,4 @@
-/* LAST RAIL v0.7 asset manifest. Add future files here instead of scattering paths across systems. */
+/* LAST RAIL v0.8 asset manifest. Add future files here instead of scattering paths across systems. */
 (()=>{
  'use strict';
  const eventImages={
@@ -24,7 +24,7 @@
   required:true
  }));
  window.LAST_RAIL_ASSET_CONFIG={
-  gameVersion:'0.7.0',
+  gameVersion:'0.8.0',
   assetVersion:'0.7.2',
   initialGroups:['core','act1'],
   backgroundQueue:['boss1','act2','boss2','act3','boss3','titan','events1','events2'],

@@ -28,11 +28,11 @@
     const level=Math.min(P.crew.maxRecruitLevel,1+Math.floor((g.globalStage()-1)/P.crew.recruitStageStep),(P.stars.promotion[stars+1]||P.crew.maxLevel+1)-1);
     const c={...copy(base),id,stars,birthStars:stars,level,xp:0,pendingStats:0,traits:[],starTraits:[],eventTraits:[],training:{combat:0,operate:0,repair:0,recovery:0},past:base.background,maxHp:B.crew.maxHp,car:-1,moving:null,dead:false};
     for(let n=0;n<P.stars.statBonus[stars]+(level>1?level:0);n++){const k=pick(r,Object.keys(c.stats));c.stats[k]+=P.crew.statGain;c.training[k]+=P.crew.statGain;}
-    const talents=shuffled(r,Object.keys(D.TRAITS).filter(k=>D.TRAITS[k].canBeNormalSkill!==false&&(!D.TRAITS[k].unlockSpent||g.meta.spent>=D.TRAITS[k].unlockSpent)));c.starTraits=talents.slice(0,stars-1);c.traits=[...c.starTraits];c.hp=Math.round(c.maxHp*(C.survivorHp[0]+r()*(C.survivorHp[1]-C.survivorHp[0])));return c;
+    const talents=shuffled(r,Object.keys(D.TRAITS).filter(k=>D.TRAITS[k].canBeNormalSkill!==false&&(g.runContentUnlocked?.('skills',k)??true)));c.starTraits=talents.slice(0,stars-1);c.traits=[...c.starTraits];c.hp=Math.round(c.maxHp*(C.survivorHp[0]+r()*(C.survivorHp[1]-C.survivorHp[0])));return c;
   }
   function gear(r,id,kind='any'){
     const rare=kind==='rare'||kind==='rareModule',wanted=kind==='rareModule'?'module':kind;
-    let pool=['turret','module'].flatMap(k=>Object.entries(k==='turret'?D.TURRETS:D.MODULES).filter(([,d])=>!d.unlockSpent||g.meta.spent>=d.unlockSpent).map(([type,data])=>({kind:k,type,data})));
+    let pool=['turret','module'].flatMap(k=>Object.entries(k==='turret'?D.TURRETS:D.MODULES).filter(([id])=>g.runContentUnlocked?.(k==='turret'?'turrets':'modules',id)??true).map(([type,data])=>({kind:k,type,data})));
     if(['turret','module'].includes(wanted))pool=pool.filter(e=>e.kind===wanted);
     if(rare){pool.sort((a,b)=>b.data.price-a.data.price);pool=pool.slice(0,Math.max(1,Math.ceil(pool.length*C.shop.rarePoolFraction)));}
     const item=pick(r,pool),eq={id,kind:item.kind,type:item.type,level:rare&&item.data.upgradeable!==false?C.shop.rareLevel:1,branch:false,heat:0,overheated:false,cooldown:0};return g.randomizeMetaEquipment?.(eq,r)||eq;
@@ -51,8 +51,8 @@
     if(out.disableGear)out.disabledId=pick(r,g.state.cars.flatMap(c=>c.equipment.map(e=>e.id)));
     if(out.buff)out.effect=pick(r,Object.entries(C.buffs));
     if(out.debuff)out.effect=pick(r,Object.entries(C.debuffs));
-    if(out.skillReward){const pool=out.skillReward.pool==='normal'?Object.keys(D.TRAITS).filter(id=>D.TRAITS[id].canBeNormalSkill!==false):out.skillReward.pool;out.skillOrder=shuffled(r,pool.filter(id=>D.TRAITS[id]?.canBeEventSkill&&(!D.TRAITS[id].unlockSpent||g.meta.spent>=D.TRAITS[id].unlockSpent)));}
-    if(out.possibleTalent&&r()<C.talentChance)out.talentOrder=shuffled(r,C.combatTalents.filter(id=>!D.TRAITS[id]?.unlockSpent||g.meta.spent>=D.TRAITS[id].unlockSpent));
+    if(out.skillReward){const pool=out.skillReward.pool==='normal'?Object.keys(D.TRAITS).filter(id=>D.TRAITS[id].canBeNormalSkill!==false):out.skillReward.pool;out.skillOrder=shuffled(r,pool.filter(id=>D.TRAITS[id]?.canBeEventSkill&&(g.runContentUnlocked?.('skills',id)??true)));}
+    if(out.possibleTalent&&r()<C.talentChance)out.talentOrder=shuffled(r,C.combatTalents.filter(id=>g.runContentUnlocked?.('skills',id)??true));
     if(out.shop){
       if(out.shop==='exchange')out.offers=shuffled(r,C.exchanges).slice(0,C.shop.exchangeCount).map((x,i)=>({label:x.label,cost:x.cost,reward:prepareReward(x.reward,`${seed}-trade-${i}`)}));
       else out.offers=Array.from({length:C.shop.count},(_,i)=>{const equipment=gear(r,`${seed}-shop-${i}`,r()<(out.shop==='raider'?C.shop.raiderRareChance:C.shop.rareChance)?'rare':'any'),d=(equipment.kind==='turret'?D.TURRETS:D.MODULES)[equipment.type],price=out.shop==='relic'?integer(r,C.shop.relicPrice):Math.ceil(d.price*(C.shop.markup[0]+r()*(C.shop.markup[1]-C.shop.markup[0]))*(out.shopFactor||1));return{label:d.name,cost:out.freeItem&&i===0?{}:{[out.shop==='relic'?'relics':'money']:price},reward:{equipment}};});
@@ -145,7 +145,7 @@
   g.resolveEventChoice=function(choice){const c=session&&definition(choice.id);if(c)commit(c);};
   g.showEvent=function(){
     if(session){try{save();render();}catch{g.toast('브라우저 저장 공간을 확보한 뒤 다시 시도해 주세요.');}return;}A.cancelSelection();g.state.speed=0;g.mode='event';const seed=newSeed(),r=rng(seed),history=g.state.eventHistory||[];let act=g.state.actId==='act2'&&r()<C.act2Weight?2:1;
-    const eligible=C.events.filter(e=>(!e.unlockSpent||g.meta.spent>=e.unlockSpent)&&(e.crewGrowth||e.rareStation?e.act<=(g.state.actId==='act2'?2:1):e.act===act)&&(!e.rareStation||!g.state.unexpectedStationSeen)&&(!e.crewGrowth||staff().length)&&(!e.requiresCompanion||staff().length>=2)),growth=eligible.filter(e=>e.crewGrowth&&!history.slice(-CREW_SKILLS_CONFIG.history).includes(e.id)),normal=eligible.filter(e=>!e.crewGrowth),all=growth.length&&r()<CREW_SKILLS_CONFIG.eventWeight?growth:normal,fresh=all.filter(e=>!history.slice(-C.historyLength).includes(e.id)),pool=fresh.length?fresh:all,event=pool[weighted(r,pool.map(e=>e.weight||1))];
+    const eligible=C.events.filter(e=>(g.runContentUnlocked?.('events',e.id)??true)&&(e.crewGrowth||e.rareStation?e.act<=(g.state.actId==='act2'?2:1):e.act===act)&&(!e.rareStation||!g.state.unexpectedStationSeen)&&(!e.crewGrowth||staff().length)&&(!e.requiresCompanion||staff().length>=2)),growth=eligible.filter(e=>e.crewGrowth&&!history.slice(-CREW_SKILLS_CONFIG.history).includes(e.id)),normal=eligible.filter(e=>!e.crewGrowth),all=growth.length&&r()<CREW_SKILLS_CONFIG.eventWeight?growth:normal,fresh=all.filter(e=>!history.slice(-C.historyLength).includes(e.id)),pool=fresh.length?fresh:all,event=pool[weighted(r,pool.map(e=>e.weight||1))];
     if(event.rareStation)g.state.unexpectedStationSeen=true;
     session={seed,eventId:event.id,phase:'choices',prepared:{},logs:[],pending:[],before:copy(g.state)};
     for(const c of event.choices){const cr=rng(seed+c.id);session.prepared[c.id]={roll:cr(),weightedIndex:c.outcomes?weighted(cr,c.outcomes.map(o=>o.weight)):0,common:prepareReward(c.reward,`${seed}-${c.id}-common`),outcomes:(c.outcomes||[]).map((o,i)=>prepareReward(o.reward,`${seed}-${c.id}-${i}`))};}

@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#080b0c" />
   <meta name="description" content="직원을 이동시키고 전력을 재배분해 타이탄을 피해 달리는 장갑열차 로그라이트 프로토타입" />
   <title>LAST RAIL — 세기말 장갑열차</title>
@@ -18,6 +18,8 @@
   <link rel="stylesheet" href="./presentation.css" />
   <link rel="stylesheet" href="./combat-rhythm.css" />
   <link rel="stylesheet" href="./route-polish.css" />
+  <link rel="stylesheet" href="./update08-pc.css" />
+  <link rel="stylesheet" href="./update08-mobile.css" />
 </head>
 <body>
   <div id="asset-loading-screen" class="asset-loading-screen" role="status" aria-live="polite" aria-busy="true">
@@ -34,7 +36,7 @@
   </div>
   <div id="app">
     <header class="topbar">
-      <div class="brand"><span class="brand-mark">LR</span><div><b>LAST RAIL <span style="font-size:.75em;color:#bfcac7">ver 0.7</span></b><small>ARMORED TRAIN COMMAND</small></div></div>
+      <div class="brand"><span class="brand-mark">LR</span><div><b>LAST RAIL <span style="font-size:.75em;color:#bfcac7">ver 0.8</span></b><small>ARMORED TRAIN COMMAND</small></div></div>
       <div class="run-meta">
         <span>ACT <b id="act-label">I</b></span>
         <span>구간 <b id="stage-label">1 / 10</b></span>
@@ -161,5 +163,7 @@
   <script src="./save-manager.js"></script>
   <script src="./loading-integration.js"></script>
   <script src="./event-visuals.js"></script>
+  <script src="./update08-pc.js"></script>
+  <script src="./update08-mobile.js"></script>
 </body>
 </html>

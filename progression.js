@@ -12,7 +12,7 @@
   g.focusDamageBonus=()=>B.focus.damageBonus+level('focus')*P.upgrades.focus.damage;
   g.armorDuration=()=>B.armor.duration+level('armor')*P.upgrades.armor.duration;
   g.crewXpRequired=c=>(c.level||1)>=P.crew.maxLevel?Infinity:Math.ceil((P.crew.xpBase+((c.level||1)-1)*P.crew.xpPerLevel)*P.stars.xpMultiplier[c.stars||1]);
-  function addTalent(c,list,random=Math.random){const pool=Object.keys(D.TRAITS).filter(id=>D.TRAITS[id].canBeNormalSkill!==false&&!c.traits.includes(id)&&(!D.TRAITS[id].unlockSpent||g.meta.spent>=D.TRAITS[id].unlockSpent));if(!pool.length)return false;const id=pool[Math.floor(random()*pool.length)];list.push(id);c.traits.push(id);return true;}
+  function addTalent(c,list,random=Math.random){const pool=Object.keys(D.TRAITS).filter(id=>D.TRAITS[id].canBeNormalSkill!==false&&!c.traits.includes(id)&&(g.runContentUnlocked?.('skills',id)??true));if(!pool.length)return false;const id=pool[Math.floor(random()*pool.length)];list.push(id);c.traits.push(id);return true;}
   function promote(c,random){const target=c.level>=P.stars.promotion[3]?3:c.level>=P.stars.promotion[2]?2:1;while(c.stars<target){c.stars++;addTalent(c,c.starTraits,random);}}
   function invest(c,points){for(let n=0;n<points;n++){const stat=Object.keys(labels)[Math.floor(Math.random()*Object.keys(labels).length)];c.stats[stat]+=P.crew.statGain;c.training[stat]+=P.crew.statGain;}}
   g.rollCrewStars=function(){const t=Math.max(0,Math.min(1,(this.globalStage()-1)/(P.stars.progressStages-1))),weights=P.stars.initialWeights.map((v,i)=>v+(P.stars.finalWeights[i]-v)*t);let roll=Math.random();for(let i=0;i<weights.length;i++){roll-=weights[i];if(roll<0)return i+1;}return 3;};

@@ -1,0 +1,32 @@
+/* LAST RAIL v0.8 — desktop input/UI convenience */
+.orders-dock{left:25px;right:auto;flex-direction:row}
+.orders-dock .order:first-child,.orders-dock .order:nth-child(2),.orders-dock .order:nth-child(3){order:initial}
+.hint:empty{display:none}
+
+/* The master volume control now lives only inside the pause screen. */
+.volume-control{display:none!important;position:static!important;left:auto!important;right:auto!important;bottom:auto!important;z-index:auto!important;width:100%;box-sizing:border-box;background:#13262a;border-color:#607b75;padding:9px 11px}
+.pause-volume-wrap{display:grid;grid-template-columns:86px 1fr;align-items:center;gap:10px;margin:12px 0;padding:10px 12px;border:1px solid #ffffff18;background:#101d20}
+.pause-volume-wrap>b{color:#e4d19d;font-size:13px}
+.pause-volume-wrap .volume-control{display:flex!important;margin:0}
+.pause-volume-wrap .volume-control input{flex:1;width:auto;min-width:120px}
+
+.pc-control-guide{margin:0 0 12px;padding:13px 14px;border:1px solid #ffffff18;background:#111e21}
+.pc-guide-head{display:flex;justify-content:space-between;gap:12px;align-items:baseline;margin-bottom:10px}
+.pc-guide-head>b{color:#e4d19d}.pc-guide-head small{color:#9cafaa;font-size:11px}
+.pc-guide-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 14px;font-size:12px;color:#cdd6d2}
+.pc-guide-grid span{display:flex;align-items:center;gap:8px;min-height:25px}
+kbd{display:inline-flex;align-items:center;justify-content:center;min-width:27px;min-height:22px;padding:0 6px;border:1px solid #71847e;border-bottom-width:2px;border-radius:4px;background:#1a2b2e;color:#f1e3b6;font:11px/1 sans-serif;white-space:nowrap}
+
+/* Keyboard focus exists only while keyboard mode is active. */
+.keyboard-focus{outline:2px solid #ffe2a0!important;outline-offset:4px!important;filter:brightness(1.14) drop-shadow(0 0 5px #f1cc7a88)!important;z-index:20}
+.railcar.keyboard-focus{outline-offset:7px!important}
+
+.car-key-hint{position:absolute;top:-28px;left:50%;translate:-50% 0;z-index:12;display:grid;place-items:center;min-width:25px;height:24px;padding:0 4px;border:1px solid #e9d39a;border-radius:4px;background:#11252bea;color:#ffe6a9;font:bold 12px sans-serif;box-shadow:0 2px 8px #0008;pointer-events:none}
+.engine .car-key-hint{border-color:#8fc3b4;color:#c9f2e4}
+
+@media(max-width:700px){
+ .orders-dock{left:12px;right:12px}
+ .pc-guide-grid{grid-template-columns:1fr}
+ .pc-guide-head{display:block}.pc-guide-head small{display:block;margin-top:4px}
+ .pause-volume-wrap{grid-template-columns:1fr}.pause-volume-wrap .volume-control span{display:inline}
+}

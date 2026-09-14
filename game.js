@@ -697,7 +697,7 @@
     }
 
     giveRandomGear(type = null, kind = null) {
-      const options = kind === 'module' ? registries.modules.available(this.meta) : kind === 'turret' ? registries.turrets.available(this.meta) : [...registries.turrets.available(this.meta).map(x => ['turret',...x]), ...registries.modules.available(this.meta).map(x => ['module',...x])];
+      const unlocked=(key,reg)=>Object.entries(reg).filter(([id])=>this.runContentUnlocked?.(key,id)??true);const options = kind === 'module' ? unlocked('modules',D.MODULES) : kind === 'turret' ? unlocked('turrets',D.TURRETS) : [...unlocked('turrets',D.TURRETS).map(x => ['turret',...x]), ...unlocked('modules',D.MODULES).map(x => ['module',...x])];
       let selected;
       if (type && kind) selected = [kind, type, kind === 'turret' ? D.TURRETS[type] : D.MODULES[type]];
       else { const x = pick(options); selected = x.length === 3 ? x : [kind || 'turret', x[0], x[1]]; }
@@ -711,8 +711,8 @@
     showStation() {
       this.mode = 'station'; this.setSpeed(0);
       const crewOffers = D.CREW_TEMPLATES.filter(t => !this.state.crew.some(c => c.name === t.name)).slice(0, B.station.crewOfferCount);
-      const turretOffers = registries.turrets.available(this.meta).sort(() => Math.random() - .5).slice(0, B.station.turretOfferCount);
-      const moduleOffers = registries.modules.available(this.meta).sort(() => Math.random() - .5).slice(0, B.station.moduleOfferCount);
+      const turretOffers = Object.entries(D.TURRETS).filter(([id])=>this.runContentUnlocked?.('turrets',id)??true).sort(() => Math.random() - .5).slice(0, B.station.turretOfferCount);
+      const moduleOffers = Object.entries(D.MODULES).filter(([id])=>this.runContentUnlocked?.('modules',id)??true).sort(() => Math.random() - .5).slice(0, B.station.moduleOfferCount);
       const modal = this.modalShell('정비 스테이션', `구간 ${this.state.stageIndex + 1}`, '열차가 정차했습니다. 장비와 직원을 보강하고 손상을 복구하십시오.');
       modal.querySelector('.dialog-body').innerHTML = `<div class="tabs"><button class="active" data-tab="gear">장비</button><button data-tab="crew">직원</button><button data-tab="upgrade">강화</button></div><div id="shop-content"></div><div class="station-actions"><button id="repair-train">전 객차 수리</button><button class="depart" id="depart-station">정비 완료 →</button></div>`;
       const renderTab = (tab) => {
@@ -766,8 +766,10 @@
     }
     moveCrew(id,to) {
       const c=this.state.crew.find(x=>x.id===id);if(!c||c.dead||c.hp<=0)return;
-      const target=this.state.cars[to];if(target.armor>0)return this.toast('비상 장갑 가동 중에는 진입할 수 없습니다.');
-      const occupants=this.state.crew.filter(x=>!x.dead&&!x.moving&&x.car===to&&x.hp>0).length;
+      const target=this.state.cars[to];if(!target)return;
+      // Destroyed/armored cars remain valid destinations: crew must be able to enter
+      // wrecks to repair them. Incapacitated crew still occupy their slot.
+      const occupants=this.state.crew.filter(x=>x.id!==id&&!x.dead&&(x.moving?x.moving.to===to:x.car===to)).length;
       if(occupants>=this.crewCapacity(to))return this.toast('직원 슬롯이 가득 찼습니다.');
       const distance=Math.abs(c.car-to);if(!distance){this.state.selectedCrew=null;this.setTactical(false);return;}
       c.moving={from:c.car,to,left:distance*B.train.moveSecondsPerCar,total:distance*B.train.moveSecondsPerCar};
