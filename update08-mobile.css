@@ -209,3 +209,24 @@ body.mobile-portrait #overlay,
 body.mobile-portrait .orders-dock,
 body.mobile-portrait .tactical-panel,
 body.mobile-portrait .order-target-bar{visibility:hidden!important;pointer-events:none!important;}
+
+
+/* Mobile lobby notice: mobile/tablet players can continue, but PC is the recommended environment. */
+.mobile-pc-optimized-notice{display:none;}
+body.mobile-ui #modal.menu-modal .mobile-pc-optimized-notice{
+  display:block;
+  width:100%;
+  margin-top:auto;
+  padding-top:10px;
+  color:#aebbb6;
+  text-align:center;
+  font-size:clamp(10px,2.4vh,12px);
+  line-height:1.4;
+  letter-spacing:.02em;
+  opacity:.86;
+}
+body.mobile-landscape #modal.menu-modal .mobile-pc-optimized-notice{
+  margin-top:10px;
+  padding-top:8px;
+  border-top:1px solid #84938d30;
+}

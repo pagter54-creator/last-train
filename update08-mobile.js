@@ -28,6 +28,20 @@
   const menuButton = $('#menu-btn');
   menuButton?.before(speed);
 
+
+  function mountPcOptimizedNotice(){
+    const menu = document.querySelector('#modal.menu-modal .menu-content');
+    if (!menu) return;
+    let notice = menu.querySelector('.mobile-pc-optimized-notice');
+    if (!notice) {
+      notice = document.createElement('div');
+      notice.className = 'mobile-pc-optimized-notice';
+      notice.setAttribute('role', 'note');
+      notice.textContent = '이 게임은 PC 환경에 최적화되었습니다.';
+      menu.append(notice);
+    }
+  }
+
   function visiblePreferredSpeed(){
     if (!g.state) return 1;
     const tactical = document.body.classList.contains('is-tactical');
@@ -74,6 +88,7 @@
     document.body.classList.toggle('mobile-ui', mobile);
     document.body.classList.toggle('mobile-portrait', portrait);
     document.body.classList.toggle('mobile-landscape', landscape);
+    if (mobile && g.mode === 'menu') mountPcOptimizedNotice();
     if (portrait) pauseForPortrait(); else resumeFromPortrait();
     updateSpeedButton();
     // movement.js owns the battlefield transform; recalc after orientation/UI changes.
@@ -114,7 +129,10 @@
   const priorShowMainMenu = g.showMainMenu?.bind(g);
   if (priorShowMainMenu) g.showMainMenu = function(...args){
     const result = priorShowMainMenu(...args);
-    requestAnimationFrame(updateSpeedButton);
+    requestAnimationFrame(() => {
+      updateSpeedButton();
+      if (isCompactTouch()) mountPcOptimizedNotice();
+    });
     return result;
   };
 
