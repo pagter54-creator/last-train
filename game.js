@@ -349,15 +349,23 @@
         const car = s.cars[c.car];
         const workDt=this.crewWorkStep?this.crewWorkStep(c,dt):dt;
         const boarders = s.enemies.filter(e => !e.dead && e.boarded && e.targetCar === c.car);
-        const firingAtArm=this.bossCrewReturnFire?.(c,dt);
-        if (boarders.length && !firingAtArm) {
+        const repairPriorityRatio=window.SURVIVABILITY_CONFIG?.repairPriorityHpRatio??0.30;
+        const emergencyRepairPriority=car.hp<=0||(car.maxHp>0&&car.hp/car.maxHp<=repairPriorityRatio);
+
+        // Normally crew defend first and repair only after immediate threats are handled.
+        // At critical hull (<= configured ratio) or after destruction, everyone on that
+        // carriage switches to emergency repair even while enemies are present.
+        const firingAtArm=emergencyRepairPriority?false:this.bossCrewReturnFire?.(c,dt);
+        const engagedInDefense=!emergencyRepairPriority&&(boarders.length>0||!!firingAtArm);
+        if (!emergencyRepairPriority&&boarders.length && !firingAtArm) {
           const target = boarders[0];
           let combat = this.effectiveStat(c, 'combat');
           let damage = Math.max(0, combat) * B.crew.personalDpsPerCombat * workDt;
           if (c.traits.includes('marksman')) damage *= D.TRAITS.marksman.damageMult;
           damage*=this.crewWeaponMultiplier?.(c)??1;
           if(damage>0){if(this.crewAttack)this.crewAttack(c,target,damage*(this.crewFireRate?.(c)??1),1);else this.damageEnemy(target,damage,1);this.onCrewBoardShot?.(c,target);}
-        } else if(!firingAtArm)this.crewReturnFire?.(c,dt);
+        } else if(!emergencyRepairPriority&&!firingAtArm)this.crewReturnFire?.(c,dt);
+        if(engagedInDefense)continue;
         if (car.hp <= 0) {
           let repair = B.train.repairBasePerSecond + this.effectiveStat(c, 'repair') * B.train.repairStatScale;
           if (c.traits.includes('fixer')) repair *= D.TRAITS.fixer.repairMult;
@@ -368,7 +376,7 @@
             car.hp = car.maxHp * B.train.restoredHpRatio; car.repair = 0; car.destroyedLogged = false;
             this.log(`${car.name} 긴급 복구 완료`, 'hot');
           }
-        } else if (car.autoRepair && car.hp < car.maxHp*repairRules.repairStop) {
+        } else if ((emergencyRepairPriority || car.autoRepair) && car.hp < car.maxHp*repairRules.repairStop) {
           let repair=this.effectiveStat(c,'repair')*B.train.repairStatScale*this.moduleEffect(c.car,'repair','repairMult');
           if(c.traits.includes('fixer'))repair*=D.TRAITS.fixer.repairMult;
           car.hp = Math.min(car.maxHp*repairRules.repairStop, car.hp + repair * workDt);

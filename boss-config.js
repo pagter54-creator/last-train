@@ -2,7 +2,7 @@
 (() => {
   const D=window.GAME_DATA;
   const C=window.BOSS_REWORK={
-    core:{interval:40,seconds:8,damage:1.2},repairWarning:3,noticeSeconds:3,shotSeconds:.45,
+    core:{interval:40,seconds:4,forcedSeconds:8,repairSpeed:1.15,damage:1.2,repairPattern:{chance:.35,seconds:6,healPerSecond:.04,destroyedRepairMult:2.5}},arrivalSeconds:2,arrivalOffscreenWidths:1.1,arrivalExponent:3,defeatFadeSeconds:1.4,repairWarning:3,noticeSeconds:3,shotSeconds:.45,
     phases:[{above:.66,interval:1,repair:1,concurrent:1},{above:.33,interval:1,repair:1,concurrent:2},{above:0,interval:.82,repair:.85,concurrent:2}],
     firstPattern:4,patternGap:5,gripWindup:2.6,gripMax:100,gripDamagePerHp:.12,armStun:2,armRest:5,
     gripSeconds:18,suppressionCombatPerSecond:.75,engineChance:.2,
@@ -19,8 +19,8 @@
   };
   const part=(type,name,hp,x,y,regen,extra={})=>({type,name,hp,x,y,regen,armor:.12,...extra});
   Object.assign(D.BOSSES.behemoth,{sharedHp:C.behemoth.hp,engineSpeedMult:1,summon:null,parts:[
-    part('core','CORE',C.behemoth.hp,.59,.41,0,{victory:true,armor:0}),
-    part('cannon','MAIN CANNON',1000,.63,.27,30),
+    part('core','CORE',C.behemoth.hp,.54,.41,0,{victory:true,armor:0}),
+    part('cannon','MAIN CANNON',1000,.63,.34,30),
     part('bay','TROOP BAY',900,.35,.44,32),part('drive','DRIVE UNIT',950,.79,.53,27)
   ]});
   Object.assign(D.BOSSES.arachne,{sharedHp:C.arachne.hp,summon:null,parts:[

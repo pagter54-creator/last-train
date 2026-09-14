@@ -10,6 +10,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Gowun+Dodum&display=swap" rel="stylesheet">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23080b0c'/%3E%3Cpath d='M8 43h48v8H8zM14 25h30l10 18H10z' fill='%23e35235'/%3E%3Ccircle cx='20' cy='51' r='6' fill='%23f1c45a'/%3E%3Ccircle cx='46' cy='51' r='6' fill='%23f1c45a'/%3E%3Cpath d='M22 13h15v12H22z' fill='%23d6ded9'/%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="./loading.css" />
   <link rel="stylesheet" href="./styles.css" />
   <link rel="stylesheet" href="./scene.css" />
   <link rel="stylesheet" href="./scene-polish.css" />
@@ -19,9 +20,21 @@
   <link rel="stylesheet" href="./route-polish.css" />
 </head>
 <body>
+  <div id="asset-loading-screen" class="asset-loading-screen" role="status" aria-live="polite" aria-busy="true">
+    <section class="asset-loading-card">
+      <div class="asset-loading-logo"><span class="asset-loading-mark">LR</span><div id="asset-loading-title" class="asset-loading-title">LAST RAIL
+        <small>ARMORED TRAIN COMMAND</small>
+      </div></div>
+      <div class="asset-loading-track" aria-hidden="true"><div id="asset-loading-fill" class="asset-loading-fill"></div></div>
+      <div class="asset-loading-row"><span>필수 리소스 준비</span><strong id="asset-loading-percent" class="asset-loading-percent">0%</strong></div>
+      <p id="asset-loading-status" class="asset-loading-status">선로 상태 확인 중...</p>
+      <p id="asset-loading-error" class="asset-loading-error" hidden></p>
+      <button id="asset-loading-retry" class="asset-loading-retry" hidden>다시 시도</button>
+    </section>
+  </div>
   <div id="app">
     <header class="topbar">
-      <div class="brand"><span class="brand-mark">LR</span><div><b>LAST RAIL <span style="font-size:.75em;color:#bfcac7">ver 0.6</span></b><small>ARMORED TRAIN COMMAND</small></div></div>
+      <div class="brand"><span class="brand-mark">LR</span><div><b>LAST RAIL <span style="font-size:.75em;color:#bfcac7">ver 0.7</span></b><small>ARMORED TRAIN COMMAND</small></div></div>
       <div class="run-meta">
         <span>ACT <b id="act-label">I</b></span>
         <span>구간 <b id="stage-label">1 / 10</b></span>
@@ -95,12 +108,15 @@
   </div>
 
   <template id="choice-template"><button class="choice-card"><span class="choice-icon"></span><div><b></b><p></p><small></small></div></button></template>
+  <script src="./asset-config.js"></script>
+  <script src="./asset-loader.js"></script>
   <script src="./save-storage.js"></script>
   <script src="./config.js"></script>
   <script src="./combat-config.js"></script>
   <script src="./weapon-config.js"></script>
   <script src="./act2-config.js"></script>
   <script src="./progression-config.js"></script>
+  <script src="./survivability-config.js"></script>
   <script src="./movement-config.js"></script>
   <script src="./game.js"></script>
   <script src="./scene-config.js"></script>
@@ -138,9 +154,12 @@
   <script src="./station-motion.js"></script>
   <script src="./update06.js"></script>
   <script src="./crew-layout.js"></script>
+  <script src="./survivability.js"></script>
   <script src="./admin.js"></script>
   <script src="./progress-reset.js"></script>
   <script src="./save-format.js"></script>
   <script src="./save-manager.js"></script>
+  <script src="./loading-integration.js"></script>
+  <script src="./event-visuals.js"></script>
 </body>
 </html>

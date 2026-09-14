@@ -5,7 +5,7 @@
  */
 window.GAME_DATA = (() => {
   const BALANCE = {
-    version: '0.6.0',
+    version: '0.7.0',
     simulation: { tickRate: 30, maxDelta: 0.1, tacticalScale: 0.3, speedOptions: [0, 1, 2, 3], canvasWidth: 1440, canvasHeight: 700 },
     run: { startingMoney: 150, startingScrap: 20, startingRelics: 0, startingTitanDistance: 5, branchDistanceBonus: 0.35, maxTitanDistance: 8, clearRelicBonus: 5 },
     train: {
