@@ -1,6 +1,6 @@
 /* Loaded before the game reads storage: recover an interrupted import first. */
 (()=>{
- const keys=['lastRailMeta','lastRailMetaBeforeV2','lastRailCodexV2','lastRailCombatReports','lastRailEliteSeen','lastRailVolume','lastRailEventCheckpointV1','lastTrainRunCheckpoint','lastTrainSaveWarningAcknowledged'];
+ const keys=['lastRailMeta','lastRailMetaBeforeV2','lastRailCodexV2','lastRailCombatReports','lastRailEliteSeen','lastRailVolume','lastRailEventCheckpointV1','lastTrainRunCheckpoint','lastTrainSaveWarningAcknowledged','lastTrainSaveGuideV2Acknowledged'];
  const backupKey='lastTrainImportBackup',journalKey='lastTrainImportJournal';
  const snapshot=()=>Object.fromEntries(keys.map(k=>[k,localStorage.getItem(k)]));
  function restore(raw){for(const k of keys){if(raw[k]===null||raw[k]===undefined)localStorage.removeItem(k);else if(typeof raw[k]==='string')localStorage.setItem(k,raw[k]);else throw Error('잘못된 백업 데이터');}}
