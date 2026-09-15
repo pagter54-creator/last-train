@@ -30,3 +30,62 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:27px
  .pc-guide-head{display:block}.pc-guide-head small{display:block;margin-top:4px}
  .pause-volume-wrap{grid-template-columns:1fr}.pause-volume-wrap .volume-control span{display:inline}
 }
+
+/* v0.8 targeting guidance — skill buttons stay at lower-left.
+   During captain-skill targeting the guidance panel is a compact horizontal strip
+   aligned to the same bottom line as the skill buttons, so it never sits over railcars. */
+body:not(.mobile-landscape).is-order-targeting .tactical-panel{
+  left:auto!important;
+  right:25px!important;
+  top:auto!important;
+  bottom:18px!important;
+  width:clamp(280px,28vw,390px)!important;
+  max-height:88px!important;
+  padding:9px 12px!important;
+  overflow:hidden!important;
+}
+body:not(.mobile-landscape).is-order-targeting .tactical-head{
+  margin-bottom:4px!important;
+  font-size:10px!important;
+  line-height:1.15!important;
+}
+body:not(.mobile-landscape).is-order-targeting .tactical-head button{
+  font-size:18px!important;
+  line-height:1!important;
+  padding:0 2px!important;
+}
+body:not(.mobile-landscape).is-order-targeting .tactical-panel .inspector{
+  display:grid!important;
+  grid-template-columns:max-content minmax(0,1fr)!important;
+  align-items:center!important;
+  column-gap:12px!important;
+  font-size:11px!important;
+  line-height:1.35!important;
+}
+body:not(.mobile-landscape).is-order-targeting .tactical-panel .inspector h3{
+  margin:0!important;
+  font-size:18px!important;
+  line-height:1.1!important;
+  white-space:nowrap!important;
+}
+body:not(.mobile-landscape).is-order-targeting .tactical-panel .inspector p{
+  margin:0!important;
+  font-size:11px!important;
+  line-height:1.35!important;
+}
+/* Target selection only needs the immediate action prompt. Detailed skill rules remain
+   available outside targeting, but are hidden here to keep the battlefield unobstructed. */
+body:not(.mobile-landscape).is-order-targeting .tactical-panel .inspector p:nth-of-type(n+2){
+  display:none!important;
+}
+@media(max-height:650px) and (min-width:701px){
+  body:not(.mobile-landscape).is-order-targeting .tactical-panel{
+    right:18px!important;
+    bottom:10px!important;
+    width:clamp(270px,27vw,370px)!important;
+    max-height:80px!important;
+    padding:7px 10px!important;
+  }
+  body:not(.mobile-landscape).is-order-targeting .tactical-panel .inspector h3{font-size:16px!important}
+  body:not(.mobile-landscape).is-order-targeting .tactical-panel .inspector p{font-size:10px!important}
+}

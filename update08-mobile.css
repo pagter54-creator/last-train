@@ -230,3 +230,20 @@ body.mobile-landscape #modal.menu-modal .mobile-pc-optimized-notice{
   padding-top:8px;
   border-top:1px solid #84938d30;
 }
+
+/* v0.8 targeting guidance placement — on mobile landscape the compact target prompt
+   also sits at the lower-right, above the touch action bar instead of over the battlefield. */
+body.mobile-landscape.is-order-targeting .order-target-bar{
+  left:auto!important;
+  right:max(8px,env(safe-area-inset-right))!important;
+  transform:none!important;
+  bottom:72px!important;
+  width:min(430px,58vw)!important;
+  max-width:calc(100vw - max(16px,env(safe-area-inset-left)) - max(16px,env(safe-area-inset-right)))!important;
+}
+@media(max-height:380px){
+  body.mobile-landscape.is-order-targeting .order-target-bar{
+    bottom:62px!important;
+    width:min(390px,62vw)!important;
+  }
+}
