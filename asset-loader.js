@@ -30,9 +30,8 @@
  function timeout(promise,ms,label){return new Promise((resolve,reject)=>{const id=setTimeout(()=>reject(Error(`${label||'asset'} timeout`)),ms);promise.then(v=>{clearTimeout(id);resolve(v);},e=>{clearTimeout(id);reject(e);});});}
  async function rawLoad(entry){
   if(entry.type==='image'){
-   const img=new Image();img.decoding='async';
-   const p=new Promise((resolve,reject)=>{img.onload=()=>resolve(img);img.onerror=()=>reject(Error(`image load failed: ${entry.src}`));});
-   img.src=versioned(entry.src);return timeout(p,C.timeoutMs,entry.src);
+   const load=src=>{const img=new Image();img.decoding='async';const p=new Promise((resolve,reject)=>{img.onload=()=>resolve(img);img.onerror=()=>reject(Error(`image load failed: ${src}`));});img.src=versioned(src);return timeout(p,C.timeoutMs,src);};
+   try{return await load(entry.src);}catch(error){if(!entry.fallbackSrc)throw error;return load(entry.fallbackSrc);}
   }
   if(entry.type==='audio'){
    // Fetching the entire response primes the normal HTTP browser cache without trying to autoplay it.

@@ -1,0 +1,15 @@
+/* ACT III feedback uses world-space positions, including mobile scaling. */
+.act3-effects09{position:fixed;pointer-events:none;z-index:18}
+.electrical09{color:#a9e9f4;border-left:2px solid #6dbcca;padding-left:8px}
+.engine-isolate09{position:absolute;top:-25px;right:4px;z-index:6;padding:3px 7px;font:11px sans-serif;color:#c8f1f5;background:#19363e;border:1px solid #7bbecb;border-radius:4px;cursor:pointer}
+.engine-isolate09:disabled{opacity:.55;cursor:default}
+.module-ready09{box-shadow:0 0 14px #70f6c8!important;border-color:#8effd8!important}
+.titan-position09{position:fixed;top:105px;right:18px;z-index:45;max-width:430px;background:#11272be8;color:#e7d6b1;border:1px solid #ba9863;border-radius:9px;padding:12px}
+.titan-position09[hidden]{display:none}.titan-position09 p{color:#ffbb78;margin:7px 0}.titan-position09 button{padding:8px;background:#284347;color:#efdfbf;border:1px solid #6c8882;cursor:pointer}.titan-position09 button.active{background:#916737}.titan-position09 small{display:block;margin-top:8px}
+@media(max-width:700px){.titan-position09{top:75px;right:8px;max-width:300px;font-size:11px;padding:7px}.titan-position09 button{padding:6px;font-size:11px}}
+.station-summary{display:flex;align-items:center;gap:12px;min-height:36px;margin-bottom:10px;color:var(--positive)}
+.station-resources09{min-width:0;flex:1}
+.station-restock09{flex:0 0 auto;border:1px solid #596568;background:#1c2628;color:var(--text);padding:6px 10px;font-size:12px;line-height:1.2;cursor:pointer;white-space:nowrap}
+.station-restock09:hover:not(:disabled){border-color:var(--amber);color:var(--amber)}
+.station-restock09:disabled{opacity:.42;cursor:not-allowed}
+@media(max-width:700px){.station-summary{gap:7px;flex-wrap:wrap}.station-restock09{padding:5px 8px;font-size:11px}}

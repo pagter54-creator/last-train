@@ -16,7 +16,8 @@
   function finishRecord(outcome){const s=g.state,r=s?.combatRecord;if(!r||r.finished)return;r.finished=true;s.attackWindups=[];r.outcome=outcome;r.duration=s.battle?.elapsed||0;r.titanDelta=s.titanDistance-r.startTitan;r.unmetTargets=Object.entries(r.targets).filter(([k,v])=>r[k]<v).map(([k])=>k);s.combatHistory.push({...r});if(s.combatHistory.length>C.historyLimit)s.combatHistory.shift();g.lastCombatReport=r;try{localStorage.setItem('lastRailCombatReports',JSON.stringify(s.combatHistory));}catch{}}
   g.startBattle=function(...args){old.startBattle(...args);const b=this.state.battle,stage=this.globalStage(),index=Math.min(stage-1,C.budgets.length-1),elite=b.elite;
     const custom=C.stageOverrides[this.state.actId]?.[this.state.stageIndex+1]||{},plan=custom.phases||(elite?C.phases.elite:stage>=C.lateStage?C.phases.late:C.phases.normal),totalDuration=(custom.duration??C.durations[Math.min(index,C.durations.length-1)])*(elite?(custom.eliteDuration??C.eliteDuration):1),budget=(custom.budget??C.budgets[index])*(elite?C.eliteBudget:1)*C.swarm.budgetMultiplier;
-    b.rhythm={stage,budget,clock:0,spent:0,index:-1,queue:[],templates:[],phase:null,phases:plan.map(([kind,ratio,share])=>({kind,duration:clamp(totalDuration*ratio,...C.phaseBounds[kind]),budget:budget*share,spent:0}))};
+    const escalationBudget=budget*(this.escalationRules09?.().threat??1);
+    b.rhythm={stage,budget:escalationBudget,clock:0,spent:0,index:-1,queue:[],templates:[],phase:null,phases:plan.map(([kind,ratio,share])=>({kind,duration:clamp(totalDuration*ratio,...C.phaseBounds[kind]),budget:escalationBudget*share,spent:0}))};
     b.duration=b.rhythm.phases.reduce((n,p)=>n+p.duration,0);b.spawnLeft=1;startRecord();this.beginCombatPhase();
   };
   g.startBoss=function(...args){old.startBoss(...args);startRecord();};
@@ -59,7 +60,7 @@
       if(special&&r.phase.kind==='RECOVERY'){cancelWarning();continue;}
       const blocked=Object.entries(C.tagCaps).some(([tag,cap])=>alive.filter(e=>role(e.type).includes(tag)).length+batch.filter(e=>e.tags.includes(tag)).length>cap);
       if(blocked){cancelWarning();continue;}
-      if(special&&r.stage<=C.director.earlyStage&&new Set([...alive.filter(e=>major(e.type)).map(e=>e.type),...batch.filter(e=>major(e.type)).map(e=>e.type)]).size>C.director.earlySpecialTypes){cancelWarning();continue;}
+      if(special&&(this.escalationRules09?.().combo??0)<2&&r.stage<=C.director.earlyStage&&new Set([...alive.filter(e=>major(e.type)).map(e=>e.type),...batch.filter(e=>major(e.type)).map(e=>e.type)]).size>C.director.earlySpecialTypes){cancelWarning();continue;}
       if(batch.some(item=>item.side==='left')){
         if(first.warningAt===undefined){batch.forEach(item=>item.warningAt=b.elapsed);this.playSound('boardingAlarm');}
         if(b.elapsed-first.warningAt<window.PROGRESSION_CONFIG.leftWarning.seconds)break;

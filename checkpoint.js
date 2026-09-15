@@ -16,7 +16,7 @@
   source.crew=state.crew.map(c=>({...c,car:c.moving?.to??c.car,moving:null}));
   const s=clone(source);
   Object.assign(s,{battle:null,enemies:[],projectiles:[],particles:[],impacts:[],interference:[],systemWindups:[],grabs:[],selectedCrew:null,selectedEnemy:null,selectedCar:null,targetMode:null});
-  s.cars.forEach(c=>{c.armor=0;});
+  s.cars.forEach(c=>{c.armor=0;c.destroyed=c.hp<=0;c._lastHull09=c.hp;c.breakerBroken=false;c.breakerRepair=0;c.overchargeLeft=0;c.specialOvercharge=false;c.lightningLocked=false;c.manualOff09=false;for(const e of c.equipment){e.jam09=0;if(e.aux)e.aux.jam09=0;}});
   return s;
  }
  function valid(raw){
@@ -30,22 +30,31 @@
    if(p.node.type!=='boss'&&s.stageIndex>=a.stages.length)return null;
    if(!Array.isArray(s.cars)||!s.cars.length||!Array.isArray(s.crew)||!s.crew.length)return null;
    if(!finite(s.titanDistance)||s.titanDistance<=0)return null;
+   s.titanDistance=Math.min(D.BALANCE.run.maxTitanDistance,s.titanDistance);
+   s.rerollCount=Math.max(0,Math.min(Number.MAX_SAFE_INTEGER-1,Math.floor(number(s.rerollCount))));
+   s.loop09=Math.max(1,Math.min(Number.MAX_SAFE_INTEGER-1,Math.floor(number(s.loop09,1))));
    for(const k of ['money','scrap','relics'])s[k]=Math.max(0,number(s[k]));
+   s.powerCapacityBonus=Math.max(-20,Math.min(20,Math.floor(number(s.powerCapacityBonus))));
    if(!s.metaRun||!s.metaRun.upgrades||typeof s.metaRun.upgrades!=='object'||!Array.isArray(s.metaRun.mods))return null;
    s.orders=s.orders||{};
    for(const k of ['focus','command'])s.orders[k]={...(s.orders[k]||{}),cooldown:Math.max(0,number(s.orders[k]?.cooldown)),active:0,target:null};
    s.metaRun.apocalypse=Math.max(0,Math.min(10,Math.floor(number(s.metaRun.apocalypse))));
    if(s.metaRun.unlockSpent!==undefined)s.metaRun.unlockSpent=Math.max(0,number(s.metaRun.unlockSpent));
    if(s.metaRun.unlocks!==undefined){if(!s.metaRun.unlocks||typeof s.metaRun.unlocks!=='object'||Array.isArray(s.metaRun.unlocks))return null;for(const kind of ['turrets','modules','skills','events']){const list=s.metaRun.unlocks[kind];if(list!==undefined&&!Array.isArray(list))return null;if(Array.isArray(list))s.metaRun.unlocks[kind]=[...new Set(list.filter(id=>typeof id==='string'))];}}
+   if(Array.isArray(s.metaRun.unlocks?.events))s.metaRun.unlocks.events=[...new Set([...s.metaRun.unlocks.events,...EVENT_CONFIG.events.filter(e=>e.act===3).map(e=>e.id)])];
+   for(const[k,ids]of Object.entries({turrets:['interceptor','sludge','penetrator'],modules:['swiftWarp','makeshiftRepair','recoveryDrone']}))if(Array.isArray(s.metaRun.unlocks?.[k]))s.metaRun.unlocks[k]=[...new Set([...s.metaRun.unlocks[k],...ids])];
    for(const c of s.cars){
     if(!c||typeof c.id!=='string'||!finite(c.maxHp)||c.maxHp<=0||!Array.isArray(c.equipment))return null;
     c.hp=Math.max(0,Math.min(c.maxHp,number(c.hp)));c.repair=Math.max(0,number(c.repair));c.power=Math.max(0,Math.min(4,Math.floor(number(c.power))));
+    for(const host of c.equipment)for(const e of [host,host?.aux].filter(Boolean)){e.abilityCooldown09=Math.max(0,Math.min(1000,number(e.abilityCooldown09)));e.healTimer09=Math.max(0,Math.min(3,number(e.healTimer09,3)));}
     for(const e of c.equipment){if(!e||!['turret','module'].includes(e.kind)||!(e.kind==='turret'?D.TURRETS:D.MODULES)[e.type]||typeof e.id!=='string')return null;e.level=Math.max(1,Math.floor(number(e.level,1)));e.heat=Math.max(0,Math.min(D.BALANCE.heat.max,number(e.heat)));delete e.minimumCooling;if(e.kind==='turret'&&e.heat>=D.BALANCE.heat.max)e.overheated=true;e.cooldown=Math.max(0,number(e.cooldown));if(e.aux&&(e.kind!=='module'||e.level<3||e.aux.kind!=='module'||!D.MODULES[e.aux.type]||e.aux.aux||typeof e.aux.id!=='string'))return null;}
    }
    for(const c of s.crew){
     if(!c||typeof c.id!=='string'||!c.stats||!finite(c.maxHp)||c.maxHp<=0)return null;
     c.car=Math.max(0,Math.min(s.cars.length-1,Math.floor(number(c.car))));c.moving=null;c.hp=Math.max(0,Math.min(c.maxHp,number(c.hp)));
     for(const k of ['combat','operate','repair','recovery'])c.stats[k]=Math.max(0,number(c.stats[k]));
+    if(c.levelGrowth09!==undefined)c.levelGrowth09=Array.isArray(c.levelGrowth09)?c.levelGrowth09.filter(k=>['combat','operate','repair','recovery'].includes(k)).slice(-100):[];
+    c.training=Object.fromEntries(['combat','operate','repair','recovery'].map(k=>[k,Math.max(0,number(c.training?.[k]))]));
     if(!Array.isArray(c.traits))c.traits=[];
    }
    if(p.node.type==='event'){
@@ -56,6 +65,9 @@
    }
    if(p.node.type==='station'){
     if(!p.shop||!Array.isArray(p.shop.gear)||!Array.isArray(p.shop.crew)||!Array.isArray(p.shop.bought))return null;
+    for(const key of ['seenGear09','seenCrew09'])p.shop[key]=Array.isArray(p.shop[key])?[...new Set(p.shop[key].filter(n=>typeof n==='string'))]:[];
+    p.shop.seenGear09=[...new Set([...p.shop.seenGear09,...p.shop.gear.map(o=>(o.kind==='turret'?D.TURRETS:D.MODULES)[o.equipment?.type||o.id]?.name).filter(Boolean)])];
+    p.shop.seenCrew09=[...new Set([...p.shop.seenCrew09,...p.shop.crew.map(c=>c.name)])];p.shop.historyReady09=true;
     if(p.shop.gear.some(e=>!['turret','module'].includes(e.kind)||!(e.kind==='turret'?D.TURRETS:D.MODULES)[e.id]||!e.d))return null;
     for(const o of p.shop.gear){const e=o.equipment;if(!e)continue;if(e.kind!==o.kind||e.type!==o.id||typeof e.id!=='string'||e.aux)return null;e.level=Math.max(1,Math.min((e.kind==='turret'?D.TURRETS:D.MODULES)[e.type].maxLevel||1,Math.floor(number(e.level,1))));e.investedScrap=Math.max(0,number(e.investedScrap));e.weaponBranches=e.weaponBranches&&typeof e.weaponBranches==='object'?e.weaponBranches:{};for(const [tier,id]of Object.entries(e.weaponBranches))if(!window.WEAPON_UPGRADES?.tiers[tier]?.[id])delete e.weaponBranches[tier];}
    }
@@ -76,15 +88,15 @@
  }
  function begin(node){
   if(restoring||!g.state||g.mode==='battle')return;
-  const s=g.state,id=`${s.runId}:${s.actId}:${s.stageIndex}`;
-  if(current===id)return; // Opening station tabs or formation must never save purchases.
+  const s=g.state,id=`${s.runId}:${s.loop09||1}:${s.actId}:${s.stageIndex}`;
+  if(current===id)return; // A loop is part of the node identity; station transactions save separately.
   current=id;
   try{
    // This is called only at a resolved node boundary, never by the combat loop.
    g.resetTurretHeat?.();
    const snapshot=stable(s);snapshot.runId=s.runId||token();snapshot.runSeed=s.runSeed||token();
    Object.assign(s,{runId:snapshot.runId,runSeed:snapshot.runSeed});
-   pending={version:C.version,runId:s.runId,seed:s.runSeed,savedAt:Date.now(),node:{...clone(node),id:`${s.actId}:${s.stageIndex}:${node.type}`},state:snapshot,preferredSpeed:g.preferredSpeed||1};
+   pending={version:C.version,runId:s.runId,seed:s.runSeed,savedAt:Date.now(),node:{...clone(node),id:`${s.loop09||1}:${s.actId}:${s.stageIndex}:${node.type}`},state:snapshot,preferredSpeed:g.preferredSpeed||1};
    // Settle the old stage before event code takes its own transaction snapshot.
    Object.assign(s,{battle:null,enemies:[],projectiles:[],particles:[],impacts:[],weaponZones:[],grabs:[],interference:[],systemWindups:[],orders:clone(snapshot.orders),selectedEnemy:null,selectedCrew:null,selectedCar:null,targetMode:null});
    s.crew.forEach(c=>{if(c.moving){c.car=c.moving.to;c.moving=null;}});
@@ -97,6 +109,11 @@
  g.resetCheckpointBoundary=()=>{current=null;pending=null;};
  g.checkpointEventReady=()=>{if(pending?.node.type==='event'){pending.state.eventHistory=clone(g.state.eventHistory||[]);pending.state.unexpectedStationSeen=!!g.state.unexpectedStationSeen;commit({event:g.exportCheckpointEvent()});}};
  g.checkpointStationReady=()=>{if(pending?.node.type==='station')commit({shop:clone({...g.stationOffers,bought:[...g.stationOffers.bought]})});};
+ // Stations persist complete transactions, including stock/history and the run-wide cost counter.
+ g.saveStationCheckpoint09=function(){if(restoring||this.mode!=='station'||!this.stationOffers)return;const s=this.state;
+  const p={version:C.version,runId:s.runId,seed:s.runSeed,savedAt:Date.now(),preferredSpeed:this.preferredSpeed||1,node:{type:'station',data:{node:'station'},id:`${s.actId}:${s.stageIndex}:station`},state:stable(s),shop:clone({...this.stationOffers,bought:[...this.stationOffers.bought]})};
+  try{const checked=valid(p);if(!checked)throw Error('Invalid station checkpoint');localStorage.setItem(C.key,JSON.stringify(checked));current=`${s.runId}:${s.loop09||1}:${s.actId}:${s.stageIndex}`;pending=null;}catch(error){status('정비소 저장 실패 · 저장 공간을 확인하세요.',true);console.warn(error);}
+ };
  const initial=g.makeInitialState.bind(g);g.makeInitialState=function(){const s=initial();s.runId=token();s.runSeed=token();current=null;pending=null;return s;};
  const resolve=g.resolveNode.bind(g);g.resolveNode=function(type,node={}){begin({type,data:node});return resolve(type,node);};
  const boss=g.startBoss.bind(g);g.startBoss=function(id){begin({type:'boss',bossId:id});return boss(id);};
@@ -108,7 +125,7 @@
    restoring=true;this.showMainMenu();this.state=clone(p.state);this.restoreMetaRun();this.resetTurretHeat?.();this.preferredSpeed=p.preferredSpeed;this.state.speed=p.preferredSpeed;
    this.restoreCheckpointEvent(p.event||null);this.stationOffers=p.shop?{...clone(p.shop),bought:new Set(p.shop.bought)}:null;this.stationStage=p.shop?this.state.stageIndex:null;
    if(this.stationOffers&&!this.stationOffers.reformReady&&window.EQUIPMENT_REFORM){this.stationOffers.reformReady=true;for(const [i,o]of this.stationOffers.gear.entries())o.equipment??={id:`${p.runId}-legacy-offer-${i}`,kind:o.kind,type:o.id,level:1,heat:0,cooldown:0,weaponBranches:{},investedScrap:0};}
-   current=`${p.runId}:${this.state.actId}:${this.state.stageIndex}`;pending=null;this.mode='run';this.closeOverlay();this.renderAll();
+   current=`${p.runId}:${this.state.loop09||1}:${this.state.actId}:${this.state.stageIndex}`;pending=null;this.mode='run';this.closeOverlay();this.renderAll();
    if(p.node.type==='boss')this.startBoss(p.node.bossId);else this.resolveNode(p.node.type,p.node.data||{});
   }catch(error){console.warn('Run restore failed',error);this.showMainMenu();status('저장 데이터를 복원하지 못했습니다. 기존 저장은 유지됩니다.',true);}
   finally{restoring=false;}

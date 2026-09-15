@@ -16,8 +16,9 @@
   audioPanel.querySelector('input').oninput=e=>{volume=Number(e.target.value)/100;syncVolume();try{localStorage.setItem('lastRailVolume',String(volume));}catch{};g.playSound('ui');};syncVolume();
   function unlock(){try{if(!context){context=new (window.AudioContext||window.webkitAudioContext)();master=context.createGain();master.connect(context.destination);master.gain.value=volume;noiseBuffer=context.createBuffer(1,context.sampleRate*3,context.sampleRate);const data=noiseBuffer.getChannelData(0);for(let i=0;i<data.length;i++)data[i]=Math.random()*2-1;}if(context.state==='suspended')context.resume().catch(()=>{});}catch{}syncMusic();}
   function syncMusic(){const now=performance.now(),dt=Math.min(.1,(now-musicLast)/1000);musicLast=now;
-    const act=g.state?.actId==='act2'?'act2':'act1';
-    const desired=['menu','station','gameover','ending'].includes(g.mode)?'lobby':`${act}_${g.mode==='battle'&&g.state?.battle?.boss?'boss':'battle'}`;
+    const mode=g.mode,stationLike=mode==='station'||mode==='station-placement';
+    const act=['act1','act2','act3'].includes(g.state?.actId)?g.state.actId:'act1';
+    const desired=['menu','gameover','ending'].includes(mode)||stationLike?'lobby':mode==='battle'&&g.state?.battle?.bossId==='titan'?'titan_boss':`${act}_${mode==='battle'&&g.state?.battle?.boss?'boss':'battle'}`;
     for(const [key,track] of Object.entries(music)){
       if(document.hidden||volume===0){track.audio.pause();continue;}
       const target=key===desired?1:0;track.gain=clamp(track.gain+Math.sign(target-track.gain)*Math.min(Math.abs(target-track.gain),dt/B.audio.bgmFadeSeconds),0,1);

@@ -14,7 +14,7 @@
   function telegraph(kind,owner,car,seconds){const s=g.state;if(!alive(owner)||s.systemWindups.some(w=>w.owner===owner)||!g.allowMajorThreat(owner))return false;s.systemWindups.push({kind,owner,car,left:seconds,total:seconds});g.playSound('alarm');return true;}
   g.effectiveCarPower=function(ci){const s=this.state,powers=s.cars.map(c=>c.power);
     const generation=s.cars.reduce((n,c)=>n+(c.hp>0&&c.power>0&&c.armor<=0?c.equipment.reduce((v,e)=>v+(e.kind==='module'?(this.moduleData(e).extraPower||0)*(e.model==='wide'?s.cars.length:1):0),0):0),0);
-    let available=B.train.enginePower.start+(s.cars.length-1)*B.train.baseCarPower+Math.floor(generation+(this.auxGeneratedPower?.()||0))-powers.slice(1).reduce((a,b)=>a+b,0);
+    let available=B.train.enginePower.start+(s.powerCapacityBonus||0)+(s.cars.length-1)*B.train.baseCarPower+Math.floor(generation+(this.auxGeneratedPower?.()||0))-powers.slice(1).reduce((a,b)=>a+b,0);
     for(let i=powers.length-1;i>0&&available<B.train.enginePower.min;i--){const loss=Math.min(Math.max(0,powers[i]-1),B.train.enginePower.min-available);powers[i]-=loss;available+=loss;}
     powers[0]=clamp(available,B.train.enginePower.min,B.train.enginePower.max);
     const power=powers[ci];return has('power',ci)?Math.max(Math.min(power,1),power-C.power.amount):power;};

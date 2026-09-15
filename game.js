@@ -408,7 +408,7 @@
           eq.heat = clamp(eq.heat - cool * dt, 0, B.heat.max);
           if (eq.overheated && eq.heat <= B.heat.resumeAt && !eq.rageCooling) eq.overheated = false;
           this.updateRage?.(eq,dt);
-          if (car.hp <= 0 || car.power <= 0 || car.armor > 0 || (eq.overheated&&!eq.rageLeft) || eq.rageCooling || this.eventEquipmentDisabled?.(eq) || this.bossCarSealed?.(carIndex)) continue;
+          if (!this.equipmentActive(carIndex) || (eq.overheated&&!eq.rageLeft) || eq.rageCooling || this.eventEquipmentDisabled?.(eq) || this.bossCarSealed?.(carIndex)) continue;
           eq.cooldown -= dt;
           if (eq.cooldown > 0) continue;
           const target = this.pickTurretTarget(carIndex, t, eq);
@@ -439,7 +439,7 @@
         if (eq.kind !== 'module') return;
         if(this.bossCarSealed?.(i))return;
         const m = this.moduleData(eq);
-        if (m.effect === effect && Math.abs(i - carIndex) <= m.range && car.hp > 0 && car.power > 0 && car.armor <= 0) mult *= m[key] ?? 1;
+        if (m.effect === effect && Math.abs(i - carIndex) <= m.range && this.equipmentActive(i) && !this.eventEquipmentDisabled?.(eq)) mult *= m[key] ?? 1;
       }));
       return mult;
     }
@@ -576,7 +576,7 @@
       let money = B.rewards.battleMoneyBase + stage * B.rewards.battleMoneyPerStage;
       let scrap = B.rewards.battleScrapBase + stage * B.rewards.battleScrapPerStage;
       if (elite) { money = Math.round(money * B.rewards.eliteMultiplier); scrap = Math.round(scrap * B.rewards.eliteMultiplier); }
-      const relics = B.rewards.battleRelics + (elite ? B.rewards.eliteBonusRelics : 0);
+      const relics = this.rewardRelics09?.(B.rewards.battleRelics + (elite ? B.rewards.eliteBonusRelics : 0)) ?? (B.rewards.battleRelics + (elite ? B.rewards.eliteBonusRelics : 0));
       money=this.metaGain?.('money',money)??money;scrap=this.metaGain?.('scrap',scrap)??scrap;
       s.money += money; s.scrap += scrap; s.relics += relics;
       s.armorCharge = clamp(s.armorCharge + (elite ? B.armor.eliteCharge : B.armor.battleCharge), 0, B.armor.maxCharge);
@@ -620,13 +620,14 @@
         this.state.cars.forEach(c=>c.armor=0);
         this.state.orders.command.active=0;this.state.orders.command.car=null;
         this.state.orders.focus.active=0;this.state.orders.focus.target=null;
-        this.state.relics+=D.BOSSES[this.state.battle.bossId].rewardRelics;
-        this.showDialog('ACT I CLEAR','다음 노선 · '+D.ACTS[next].name,D.ACTS[next].intro,[{label:'ACT II 진입',text:'열차·직원·장비·자원을 유지합니다. 다리 파괴로 포획을 해제할 수 있습니다.',hint:`출발 거리 +${(this.departureDistance?.()??B.run.branchDistanceBonus)} km`,icon:'→'}],()=>{
+        this.state.relics+=this.rewardRelics09?.(D.BOSSES[this.state.battle.bossId].rewardRelics)??D.BOSSES[this.state.battle.bossId].rewardRelics;
+        this.showDialog(`ACT ${D.ACTS[this.state.actId].label} CLEAR`,'다음 노선 · '+D.ACTS[next].name,D.ACTS[next].intro,[{label:`ACT ${D.ACTS[next].label} 진입`,text:'열차·직원·장비·자원을 유지합니다.',hint:`출발 거리 +${(this.departureDistance?.()??B.run.branchDistanceBonus)} km`,icon:'→'}],()=>{
           this.closeOverlay();this.state.actId=next;this.state.stageIndex=-1;this.stationOffers=null;this.stationStage=null;this.advanceStage();
         });return;
       }
       this.mode = 'ending'; this.setSpeed(0);
-      const earned = this.metaRelicReward?.(this.state.relics + D.BOSSES[this.state.battle.bossId].rewardRelics + B.run.clearRelicBonus) ?? (this.state.relics + D.BOSSES[this.state.battle.bossId].rewardRelics + B.run.clearRelicBonus);
+      const endingReward=this.rewardRelics09?.(D.BOSSES[this.state.battle.bossId].rewardRelics)??D.BOSSES[this.state.battle.bossId].rewardRelics;
+      const earned = this.metaRelicReward?.(this.state.relics + endingReward + B.run.clearRelicBonus) ?? (this.state.relics + endingReward + B.run.clearRelicBonus);
       this.meta.relics += earned; this.meta.clears++; store.write(this.meta);
       this.state.clear = true;
       this.showEnding(earned);
@@ -676,7 +677,7 @@
 
     applyResult(r) {
       const s = this.state;
-      s.money += this.metaGain?.('money',r.money||0)??(r.money||0);s.scrap += this.metaGain?.('scrap',r.scrap||0)??(r.scrap||0);s.relics += r.relics || 0;
+      s.money += this.metaGain?.('money',r.money||0)??(r.money||0);s.scrap += this.metaGain?.('scrap',r.scrap||0)??(r.scrap||0);s.relics += this.metaGain?.('relics',r.relics||0)??(r.relics||0);
       s.titanDistance = clamp(s.titanDistance + (r.distance || 0), 0, B.run.maxTitanDistance);
       s.armorCharge = clamp(s.armorCharge + (r.armor || 0), 0, B.armor.maxCharge);
       s.runDamageMult *= 1 + (r.turretBuff || 0);
