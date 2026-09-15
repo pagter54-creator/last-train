@@ -86,14 +86,24 @@
     const from=this.state.cars.find(c=>c.equipment.some(e=>e.id===id));if(!from||from===this.state.cars[to]||this.state.cars[to].equipment.length>=this.equipmentCapacity(to))return false;const i=from.equipment.findIndex(e=>e.id===id);this.state.cars[to].equipment.push(from.equipment.splice(i,1)[0]);this.rebalancePower();return true;
   };
   function stationPlacementValid(ci){return !!g.state?.cars?.[ci]&&g.state.cars[ci].equipment.length<g.equipmentCapacity(ci);}
+  function stationAuxHostValid(host,equipment=stationPlacement?.equipment){
+    if(!host||equipment?.kind!=='module'||host.kind!=='module'||host.aux||g.auxHostFor?.(host))return false;
+    const data=D.MODULES[host.type],unlock=data?.auxSlotUnlockLevel??3;
+    return data?.upgradeable!==false&&(host.level||1)>=unlock;
+  }
+  function stationAuxHosts(equipment=stationPlacement?.equipment){
+    if(equipment?.kind!=='module')return [];
+    return (g.state?.cars||[]).flatMap((car,ci)=>car.equipment.filter(host=>stationAuxHostValid(host,equipment)).map(host=>({host,ci})));
+  }
   function stationEquipmentFromOffer(offer){
     if(offer?.equipment)return copy(offer.equipment);
     if(!offer)return null;
     return {id:crypto.randomUUID(),kind:offer.kind,type:offer.id,level:1,branch:false,heat:0,overheated:false,cooldown:0};
   }
   function clearStationPlacement(showStation=true){
-    $('#station-placement-panel')?.remove();document.body.classList.remove('station-placement');
+    $('#station-placement-panel')?.remove();document.body.classList.remove('station-placement','station-placement-module');
     document.querySelectorAll('#train-cars [data-station-slot]').forEach(el=>{delete el.dataset.stationSlot;el.classList.remove('station-slot');el.removeAttribute('role');el.removeAttribute('tabindex');});
+    document.querySelectorAll('#train-cars [data-station-aux-host]').forEach(el=>{delete el.dataset.stationAuxHost;el.classList.remove('station-slot','station-aux-slot');});
     document.querySelectorAll('#train-cars .placement-target').forEach(el=>el.classList.remove('placement-target'));
     stationPlacement=null;
     if(showStation&&g.state){g.mode='station';$('#overlay').classList.add('show');g.renderStation();}
@@ -102,13 +112,14 @@
     if(this.mode!=='station')return false;const offer=this.stationOffers?.gear?.[index];
     if(!offer||this.stationOffers.bought.has('gear'+index))return false;
     if(this.state.money<offer.d.price){this.toast('돈이 부족합니다.');return false;}
-    const valid=this.state.cars.map((_,i)=>i).filter(stationPlacementValid);
-    if(!valid.length){this.toast('빈 장비 슬롯이 필요합니다.');return false;}
-    stationPlacement={index,equipment:equipment?copy(equipment):stationEquipmentFromOffer(offer),price:offer.d.price};
-    this.mode='station-placement';this.setSpeed(0);$('#overlay').classList.remove('show');document.body.classList.add('station-placement');this.renderCars();
+    const pending=equipment?copy(equipment):stationEquipmentFromOffer(offer);
+    const valid=this.state.cars.map((_,i)=>i).filter(stationPlacementValid),aux=stationAuxHosts(pending);
+    if(!valid.length&&!aux.length){this.toast(pending?.kind==='module'?'빈 장비 슬롯 또는 비어 있는 보조 모듈 슬롯이 필요합니다.':'빈 장비 슬롯이 필요합니다.');return false;}
+    stationPlacement={index,equipment:pending,price:offer.d.price};
+    this.mode='station-placement';this.setSpeed(0);$('#overlay').classList.remove('show');document.body.classList.add('station-placement');if(pending.kind==='module')document.body.classList.add('station-placement-module');this.renderCars();
     const panel=document.createElement('section');panel.id='station-placement-panel';
     const data=(stationPlacement.equipment.kind==='turret'?D.TURRETS:D.MODULES)[stationPlacement.equipment.type];
-    panel.innerHTML=`<b>${esc(data.name)} 장착 위치 선택</b><p>강조된 빈 장비 슬롯을 클릭하세요. 전력 0 또는 파괴 상태의 객차에도 장착할 수 있습니다.</p><button type="button" data-cancel-station-placement>구매 취소 · 비용 없음</button>`;
+    panel.innerHTML=`<b>${esc(data.name)} 장착 위치 선택</b><p>${stationPlacement.equipment.kind==='module'?'강조된 빈 장비 슬롯 또는 비어 있는 보조 모듈 슬롯을 클릭하세요.':'강조된 빈 장비 슬롯을 클릭하세요.'} 전력 0 또는 파괴 상태의 객차에도 장착할 수 있습니다.</p><button type="button" data-cancel-station-placement>구매 취소 · 비용 없음</button>`;
     document.body.append(panel);panel.querySelector('[data-cancel-station-placement]').onclick=()=>clearStationPlacement(true);
     this.renderCars();return true;
   };
@@ -125,8 +136,21 @@
     if(this.spendTime(B.station.actionSeconds.buy)){$('#overlay').classList.add('show');this.renderStation();}
     return true;
   };
-  $('#train-cars').addEventListener('click',e=>{if(g.mode!=='station-placement')return;e.stopImmediatePropagation();const el=e.target.closest('[data-station-slot]');if(el)g.completeStationGearPlacement(Number(el.dataset.stationSlot));},true);
-  $('#train-cars').addEventListener('keydown',e=>{if(g.mode==='station-placement'&&['Enter',' '].includes(e.key)&&e.target.matches('[data-station-slot]')){e.preventDefault();g.completeStationGearPlacement(Number(e.target.dataset.stationSlot));}},true);
+  g.completeStationAuxPlacement=function(hostId){
+    if(this.mode!=='station-placement'||!stationPlacement||stationPlacement.equipment.kind!=='module')return false;
+    const host=this.findEquipment(hostId),offer=this.stationOffers?.gear?.[stationPlacement.index];
+    if(!stationAuxHostValid(host,stationPlacement.equipment)||!offer||this.stationOffers.bought.has('gear'+stationPlacement.index)){if(!offer)clearStationPlacement(true);return false;}
+    if(this.state.money<stationPlacement.price){this.toast('돈이 부족합니다.');clearStationPlacement(true);return false;}
+    host.aux=copy(stationPlacement.equipment);
+    this.state.money-=stationPlacement.price;this.stationOffers.bought.add('gear'+stationPlacement.index);this.rebalancePower();this.playSound('purchase');
+    const ci=this.equipmentLocation?.(host)??this.state.cars.findIndex(c=>c.equipment.includes(host)),name=D.MODULES[stationPlacement.equipment.type].name;
+    this.log(`${name} 구매 · ${this.state.cars[ci]?.name||'객차'} 보조 슬롯 장착`,'hot');
+    clearStationPlacement(false);this.mode='station';
+    if(this.spendTime(B.station.actionSeconds.buy)){$('#overlay').classList.add('show');this.renderStation();}
+    return true;
+  };
+  $('#train-cars').addEventListener('click',e=>{if(g.mode!=='station-placement')return;e.stopImmediatePropagation();const aux=e.target.closest('[data-station-aux-host]'),el=e.target.closest('[data-station-slot]');if(aux)g.completeStationAuxPlacement(aux.dataset.stationAuxHost);else if(el)g.completeStationGearPlacement(Number(el.dataset.stationSlot));},true);
+  $('#train-cars').addEventListener('keydown',e=>{if(g.mode!=='station-placement'||!['Enter',' '].includes(e.key))return;const aux=e.target.closest('[data-station-aux-host]'),el=e.target.closest('[data-station-slot]');if(aux||el){e.preventDefault();if(aux)g.completeStationAuxPlacement(aux.dataset.stationAuxHost);else g.completeStationGearPlacement(Number(el.dataset.stationSlot));}},true);
 
   g.showStation=function(){
     this.mode='station';this.setSpeed(0);this.inspectedEquipment=null;this.inspectedCrew=null;

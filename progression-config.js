@@ -6,7 +6,7 @@ window.PROGRESSION_CONFIG={
   returnFire:{range:.22,interval:1.5,damageBase:1,damagePerCombat:.7,hitBase:.4,hitPerCombat:.035,hitMin:.2,hitMax:.95,seconds:.16,missOffset:45},
   leftWarning:{seconds:2,width:62,height:100},
   upgrades:{
-    escape:{name:'가속 엔진',costs:[25,40,60,85,115],distance:.08,text:'스테이지 통과 시 확보 거리 +0.08 km'},
+    escape:{name:'가속 엔진',costs:[25,40,60,85,115,150,190,235],distance:.08,text:'스테이지 통과 시 확보 거리 +0.08 km'},
     movement:{name:'승무원 통로 개선',costs:[20,35,50,70,95],speed:.15,text:'직원 이동 속도 +15%'},
     armor:{name:'비상 장갑 강화',costs:[30,45,65,90,120],duration:1,charge:.15,text:'무적 지속 +1초 · 충전 획득량 +15%'},
     command:{name:'직접 지휘 강화',costs:[30,45,65,90,120],duration:2,stat:.5,cooldownRate:.12,text:'지속 +2초 · 능력 보너스 +0.5 · 재사용 회복 속도 +12%'},

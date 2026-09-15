@@ -9,15 +9,35 @@
  const shop=g.prepareActShop.bind(g);
  g.prepareActShop=function(){shop();const o=this.stationOffers;if(!o||o.historyReady09)return;
   const gear=new Set(o.seenGear09||[]),crew=new Set(o.seenCrew09||[]);
-  o.gear=o.gear.filter(e=>{const n=name(e);if(gear.has(n))return false;gear.add(n);return true;});
-  o.crew=o.crew.filter(c=>{if(crew.has(c.name))return false;crew.add(c.name);return true;});
+  if(this.restockPreparing09){
+   // A deliberate restock may reuse previously seen names after the finite unique pool
+   // has been exhausted. Keep the offers and simply extend the history.
+   for(const e of o.gear){const n=name(e);if(n)gear.add(n);}
+   for(const c of o.crew)if(c?.name)crew.add(c.name);
+  }else{
+   o.gear=o.gear.filter(e=>{const n=name(e);if(gear.has(n))return false;gear.add(n);return true;});
+   o.crew=o.crew.filter(c=>{if(crew.has(c.name))return false;crew.add(c.name);return true;});
+  }
   o.seenGear09=[...gear];o.seenCrew09=[...crew];o.historyReady09=true;
  };
- g.restockPool09=function(){const o=this.stationOffers,seen=new Set(o.seenGear09||[]),crew=new Set(o.seenCrew09||[]);return {
-  gear:['turret','module'].flatMap(kind=>Object.entries(kind==='turret'?D.TURRETS:D.MODULES).filter(([id,d])=>!seen.has(d.name)&&this.runContentUnlocked(kind==='turret'?'turrets':'modules',id)).map(([id,d])=>({id,kind,d}))),
-  crew:D.CREW_TEMPLATES.filter(c=>!crew.has(c.name)&&!this.state.crew.some(x=>x.name===c.name))};};
+ g.restockPool09=function(){
+  const o=this.stationOffers,seen=new Set(o.seenGear09||[]),crewSeen=new Set(o.seenCrew09||[]),currentGear=new Set((o.gear||[]).map(name).filter(Boolean)),currentCrew=new Set((o.crew||[]).map(c=>c.name));
+  const allGear=['turret','module'].flatMap(kind=>Object.entries(kind==='turret'?D.TURRETS:D.MODULES).filter(([id])=>this.runContentUnlocked(kind==='turret'?'turrets':'modules',id)).map(([id,d])=>({id,kind,d})));
+  const allCrew=D.CREW_TEMPLATES.filter(c=>!this.state.crew.some(x=>x.name===c.name));
+  // Prefer names not yet shown at this station. Once that finite pool is exhausted,
+  // reopen previously seen names (except the currently displayed offer) instead of
+  // letting the shop shrink to zero entries after several restocks.
+  const gear=allGear.filter(e=>!seen.has(e.d.name));
+  const crew=allCrew.filter(c=>!crewSeen.has(c.name));
+  const fallbackGear=allGear.filter(e=>!currentGear.has(e.d.name));
+  const fallbackCrew=allCrew.filter(c=>!currentCrew.has(c.name));
+  return {gear:gear.length?gear:fallbackGear,crew:crew.length?crew:fallbackCrew,allGear,allCrew};
+ };
  g.restockStation09=function(){if(this.mode!=='station')return false;const cost=this.restockCost09(),pool=this.restockPool09();if(!pool.gear.length&&!pool.crew.length)return false;if(this.state.money<cost){this.toast('재입고 비용이 부족합니다.');return false;}
-  const old=this.stationOffers,o={gear:['turret','module'].flatMap(kind=>shuffle(pool.gear.filter(e=>e.kind===kind)).slice(0,D.BALANCE.station[kind==='turret'?'turretOfferCount':'moduleOfferCount'])),crew:shuffle(pool.crew).slice(0,D.BALANCE.station.crewOfferCount),bought:new Set(),seenGear09:[...old.seenGear09],seenCrew09:[...old.seenCrew09],act2:true};
+  const old=this.stationOffers;
+  const pickGear=kind=>{const count=D.BALANCE.station[kind==='turret'?'turretOfferCount':'moduleOfferCount'];let candidates=pool.gear.filter(e=>e.kind===kind);if(candidates.length<count){const current=new Set((old.gear||[]).map(name).filter(Boolean));const fallback=pool.allGear.filter(e=>e.kind===kind&&!current.has(e.d.name)&&!candidates.some(x=>x.d.name===e.d.name));candidates=[...candidates,...fallback];}return shuffle(candidates).slice(0,count);};
+  let crewCandidates=[...pool.crew];if(crewCandidates.length<D.BALANCE.station.crewOfferCount){const current=new Set((old.crew||[]).map(c=>c.name));crewCandidates.push(...pool.allCrew.filter(c=>!current.has(c.name)&&!crewCandidates.some(x=>x.name===c.name)));}
+  const o={gear:['turret','module'].flatMap(pickGear),crew:shuffle(crewCandidates).slice(0,D.BALANCE.station.crewOfferCount),bought:new Set(),seenGear09:[...old.seenGear09],seenCrew09:[...old.seenCrew09],act2:true};
   this.stationOffers=o;
   // Prevent a meta variant from changing an unseen offer into an already displayed name.
   this.restockPreparing09=true;try{this.prepareActShop();}finally{this.restockPreparing09=false;}
@@ -28,7 +48,7 @@
  g.randomizeMetaEquipment=function(eq,...args){const original=copy(eq),result=randomize(eq,...args);if(this.restockPreparing09){const n=(eq.kind==='turret'?D.TURRETS:D.MODULES)[eq.type]?.name;if(this.stationOffers.seenGear09.includes(n)){for(const key of Object.keys(eq))delete eq[key];Object.assign(eq,original);}}return result;};
  const render=g.renderStation.bind(g);
  g.renderStation=function(...args){const r=render(...args);if(this.mode!=='station'||!this.stationOffers)return r;this.prepareActShop();
-  const summary=document.querySelector('.station-summary');if(summary){const cost=this.restockCost09(),pool=this.restockPool09();summary.innerHTML=`<span class="station-resources09">¤ ${Math.floor(this.state.money)} · ▰ ${Math.floor(this.state.scrap)} · 타이탄 ${this.state.titanDistance.toFixed(2)} km</span>`;const b=document.createElement('button');b.className='station-restock09';b.dataset.restock09='true';b.textContent=`재입고 · ¤ ${cost}`;b.disabled=this.state.money<cost||(!pool.gear.length&&!pool.crew.length);b.title=`판매 장비와 직원을 전부 갱신합니다. 이 정비소에서 본 이름은 다시 등장하지 않습니다. · 누적 ${this.state.rerollCount||0}회`;b.onclick=()=>this.restockStation09();summary.append(b);}
+  const summary=document.querySelector('.station-summary');if(summary){const cost=this.restockCost09(),pool=this.restockPool09();summary.innerHTML=`<span class="station-resources09">¤ ${Math.floor(this.state.money)} · ▰ ${Math.floor(this.state.scrap)} · 타이탄 ${this.state.titanDistance.toFixed(2)} km</span>`;const b=document.createElement('button');b.className='station-restock09';b.dataset.restock09='true';b.textContent=`재입고 · ¤ ${cost}`;b.disabled=this.state.money<cost||(!pool.gear.length&&!pool.crew.length);b.title=`판매 장비와 직원을 전부 갱신합니다. 새로운 항목을 우선 표시하며, 전체 후보를 모두 본 뒤에는 기존 후보를 다시 순환합니다. · 누적 ${this.state.rerollCount||0}회`;b.onclick=()=>this.restockStation09();summary.append(b);}
   if(this.state.actId==='titan'){const h=document.querySelector('#modal h2');if(h)h.textContent='최후의 정비 스테이션';const b=document.querySelector('[data-station-action="depart"]');if(b)b.textContent='정비 완료 → Titan 최종전';}
   this.saveStationCheckpoint09?.();return r;
  };

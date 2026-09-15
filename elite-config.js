@@ -8,7 +8,7 @@
 
  const make=(id,name,icon,hp,armor,speed,stage,behavior,settings,help)=>({id,name,icon,hp,armor,speed,elite:true,majorThreat:true,actMin:stage<16?1:2,eliteMinStage:stage,fromStage:999,rhythmMinStage:999,threatCost:30,tags:['ELITE'],behavior:'elite:'+behavior,attackPattern:behavior,specialBehavior:behavior,targetingRule:'ordinary',ranged:true,carDamage:0,crewDamage:0,interval:settings.interval||10,...settings,help});
  Object.assign(D.ENEMIES,{
-  siegeElite:make('siegeElite','공성함포차','◆',320,.6,.4,11,'siege',{hold:.72,windup:3,interval:13,carDamage:55,crewDamage:2},'먼 거리에서 포격합니다. 장거리 화력 또는 비상 장갑으로 대응하세요.'),
+  siegeElite:make('siegeElite','공성함포차','◆',320,.3,.4,11,'siege',{hold:.72,windup:3,interval:13,carDamage:55,crewDamage:2},'먼 거리에서 포격합니다. 장거리 화력 또는 비상 장갑으로 대응하세요.'),
   bulwarkElite:make('bulwarkElite','강습 방벽차','▣',420,.6,.55,7,'bulwark',{radius:.27,transfer:.7,escortMin:2,escortMax:4,carDamage:3,crewDamage:1,interval:4},'승선 적의 피해 70%를 대신 받습니다. 곡사·광역 공격은 보호를 우회합니다.'),
   sniperElite:make('sniperElite','인원 저격차','⌖',190,.22,.6,16,'sniper',{hold:.65,windup:2.8,interval:12,crewRatio:.27,lowHpWeight:1,operateWeight:.08,repairWeight:.5},'직원을 직접 저격합니다. 표시된 직원을 이동시키면 조준을 피할 수 있습니다.'),
   parasiteElite:make('parasiteElite','전력 기생차','ϟ',280,.3,.85,16,'parasite',{hold:.15,drainAfter:8,drainMax:2,armorPerPower:.12,maxArmor:.9},'추가 출력을 흡수합니다. 기본 출력 1은 보존됩니다.'),

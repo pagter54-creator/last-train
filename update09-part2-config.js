@@ -15,7 +15,7 @@
  B.run.maxTitanDistance=99.9;
  for(const[id,name,icon,damage,interval,range,heat,price,pierce]of [
   ['interceptor','요격 포탑','I',18,.7,'long',9,180,.05],
-  ['sludge','슬러지포','S',48,3.7,'long',55,220,.18],
+  ['sludge','슬러지포','S',48,3.7,'long',55,220,.30],
   ['penetrator','관통포','→',62,3.4,'long',60,240,1]]){
   const spec=E.turret[id]={...E.turret.cannon,highEffect:{damage:1.15},criticalEffect:{damage:1.3},cap:{name:'최종 화력',text:'피해 +40%',effect:{damage:1.4}}};
   D.TURRETS[id]={name,icon,role:name,damage,interval,range,heat,cool:6,price,ammo:true,armorPierce:pierce,power:REVISION_CONFIG.power.map(p=>({...p})),maxLevel:8,rangeType:range,heatGenerationRule:'shell',highHeatEffect:spec.highEffect,criticalHeatEffect:spec.criticalEffect,level8Capstone:spec.cap,baseStats:{damage,interval,heat,cool:6},intercepts:id==='interceptor'};

@@ -1,7 +1,7 @@
 /* 0.6.0 is the first external-save baseline. Add ordered steps; never replace them. */
 (()=>{
  const g=lastRail,D=GAME_DATA,C=META_CONFIG;
- const F=window.SAVE_FORMAT={gameVersion:'0.9.0',saveFormatVersion:1,maxBytes:8*1024*1024,migrations:[],idMaps:{turrets:{},modules:{},skills:{},upgrades:{},modifications:{}},retired:{turrets:{},modules:{},upgrades:{}},fallbackEquipmentRefund:{money:100,scrap:20}};
+ const F=window.SAVE_FORMAT={gameVersion:'0.9.1',saveFormatVersion:1,maxBytes:8*1024*1024,migrations:[],idMaps:{turrets:{},modules:{},skills:{},upgrades:{},modifications:{}},retired:{turrets:{},modules:{},upgrades:{}},fallbackEquipmentRefund:{money:100,scrap:20}};
  F.migrations.push({from:'0.6.0',fromFormat:1,to:'0.7.0',toFormat:1,migrate(){/* v0.7 asset loading does not alter save data. */}});
  F.migrations.push({from:'0.7.0',fromFormat:1,to:'0.8.0',toFormat:1,migrate(){/* v0.8 PC controls do not alter save data. */}});
  F.migrations.push({from:'0.8.0',fromFormat:1,to:'0.9.0',toFormat:1,migrate(save){
@@ -11,6 +11,16 @@
   const events=EVENT_CONFIG.events.filter(e=>e.act===3).map(e=>e.id);
   if(run.metaRun?.unlocks?.events)run.metaRun.unlocks.events=[...new Set([...run.metaRun.unlocks.events,...events])];
   for(const car of run.cars||[]){car.breakerBroken=false;car.breakerRepair=0;car.overchargeLeft=0;car.specialOvercharge=false;car.lightningLocked=false;car.manualOff09=false;car.destroyed=car.hp<=0;car._lastHull09=car.hp;}
+ }});
+ F.migrations.push({from:'0.9.0',fromFormat:1,to:'0.9.1',toFormat:1,migrate(save){
+  const run=save.currentRun?.state;if(!run)return;
+  const loop=Math.max(1,Math.floor(Number(run.loop09)||1));
+  const inferred=loop>=2?3:run.actId==='act3'?2:run.actId==='act2'?1:run.actId==='titan'?3:0;
+  run.engineBoosts091=Math.max(0,Math.min(3,Math.floor(Number(run.engineBoosts091) || inferred)));
+  if(!Number.isFinite(run.enginePowerBonus091)){
+   run.enginePowerBonus091=run.engineBoosts091;
+   run.powerCapacityBonus=(Number(run.powerCapacityBonus)||0)+run.enginePowerBonus091;
+  }
  }});
  window.SAVE_MIGRATIONS=F.migrations;
  const obj=v=>v&&typeof v==='object'&&!Array.isArray(v),copy=v=>JSON.parse(JSON.stringify(v)),arr=v=>Array.isArray(v)?v:[],n=(v,d=0)=>Number.isFinite(v)?v:d,clamp=(v,max,min=0)=>Math.max(min,Math.min(max,Math.floor(n(v,min))));

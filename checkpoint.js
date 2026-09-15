@@ -33,8 +33,13 @@
    s.titanDistance=Math.min(D.BALANCE.run.maxTitanDistance,s.titanDistance);
    s.rerollCount=Math.max(0,Math.min(Number.MAX_SAFE_INTEGER-1,Math.floor(number(s.rerollCount))));
    s.loop09=Math.max(1,Math.min(Number.MAX_SAFE_INTEGER-1,Math.floor(number(s.loop09,1))));
+   const inferredEngineBoost091=s.loop09>=2||s.actId==='titan'?3:s.actId==='act3'?2:s.actId==='act2'?1:0;
+   const legacyEngineProgress091=!finite(s.enginePowerBonus091);
+   s.engineBoosts091=Math.max(0,Math.min(3,Math.floor(number(s.engineBoosts091,inferredEngineBoost091))));
+   s.enginePowerBonus091=Math.max(0,Math.min(3,Math.floor(number(s.enginePowerBonus091,s.engineBoosts091))));
    for(const k of ['money','scrap','relics'])s[k]=Math.max(0,number(s[k]));
    s.powerCapacityBonus=Math.max(-20,Math.min(20,Math.floor(number(s.powerCapacityBonus))));
+   if(legacyEngineProgress091)s.powerCapacityBonus=Math.max(-20,Math.min(20,s.powerCapacityBonus+s.enginePowerBonus091));
    if(!s.metaRun||!s.metaRun.upgrades||typeof s.metaRun.upgrades!=='object'||!Array.isArray(s.metaRun.mods))return null;
    s.orders=s.orders||{};
    for(const k of ['focus','command'])s.orders[k]={...(s.orders[k]||{}),cooldown:Math.max(0,number(s.orders[k]?.cooldown)),active:0,target:null};
@@ -45,7 +50,7 @@
    for(const[k,ids]of Object.entries({turrets:['interceptor','sludge','penetrator'],modules:['swiftWarp','makeshiftRepair','recoveryDrone']}))if(Array.isArray(s.metaRun.unlocks?.[k]))s.metaRun.unlocks[k]=[...new Set([...s.metaRun.unlocks[k],...ids])];
    for(const c of s.cars){
     if(!c||typeof c.id!=='string'||!finite(c.maxHp)||c.maxHp<=0||!Array.isArray(c.equipment))return null;
-    c.hp=Math.max(0,Math.min(c.maxHp,number(c.hp)));c.repair=Math.max(0,number(c.repair));c.power=Math.max(0,Math.min(4,Math.floor(number(c.power))));
+    c.hp=Math.max(0,Math.min(c.maxHp,number(c.hp)));c.repair=Math.max(0,number(c.repair));c.power=Math.max(0,Math.min(6,Math.floor(number(c.power))));
     for(const host of c.equipment)for(const e of [host,host?.aux].filter(Boolean)){e.abilityCooldown09=Math.max(0,Math.min(1000,number(e.abilityCooldown09)));e.healTimer09=Math.max(0,Math.min(3,number(e.healTimer09,3)));}
     for(const e of c.equipment){if(!e||!['turret','module'].includes(e.kind)||!(e.kind==='turret'?D.TURRETS:D.MODULES)[e.type]||typeof e.id!=='string')return null;e.level=Math.max(1,Math.floor(number(e.level,1)));e.heat=Math.max(0,Math.min(D.BALANCE.heat.max,number(e.heat)));delete e.minimumCooling;if(e.kind==='turret'&&e.heat>=D.BALANCE.heat.max)e.overheated=true;e.cooldown=Math.max(0,number(e.cooldown));if(e.aux&&(e.kind!=='module'||e.level<3||e.aux.kind!=='module'||!D.MODULES[e.aux.type]||e.aux.aux||typeof e.aux.id!=='string'))return null;}
    }

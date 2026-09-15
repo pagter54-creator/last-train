@@ -5,7 +5,7 @@
  */
 window.GAME_DATA = (() => {
   const BALANCE = {
-    version: '0.9.0',
+    version: '0.9.1',
     simulation: { tickRate: 30, maxDelta: 0.1, tacticalScale: 0.3, speedOptions: [0, 1, 2, 3], canvasWidth: 1440, canvasHeight: 700 },
     run: { startingMoney: 150, startingScrap: 20, startingRelics: 0, startingTitanDistance: 5, branchDistanceBonus: 0.35, maxTitanDistance: 99.9, clearRelicBonus: 5 },
     train: {
@@ -49,6 +49,12 @@ window.GAME_DATA = (() => {
       ui: { frequency: 650, duration: 0.045 }, purchase: { frequency: 900, end: 1350, duration: 0.18 }, recruit: { frequency: 440, end: 880, duration: 0.24 },
       equip: { frequency: 260, end: 110, duration: 0.17 }, skill: { frequency: 320, end: 960, duration: 0.28 }, upgrade: { frequency: 500, end: 1500, duration: 0.24 },
       error: { frequency: 110, end: 70, duration: 0.18 }, enemyShot: { frequency: 190, duration: 0.1 }, mortarShot: { frequency: 90, duration: 0.25 }, explosion: { frequency: 55, duration: 0.3, noise: true },
+      gatlingShot: { frequency: 220, end: 170, duration: 0.04 }, cannonShot: { frequency: 118, end: 82, duration: 0.12 }, scatterShot: { frequency: 168, end: 95, duration: 0.085 },
+      teslaShot: { frequency: 760, end: 250, duration: 0.08 }, breakerShot: { frequency: 132, end: 92, duration: 0.11 }, phosphorusShot: { frequency: 145, end: 88, duration: 0.14 },
+      repulsorShot: { frequency: 410, end: 180, duration: 0.1 }, frostShot: { frequency: 520, end: 240, duration: 0.09 }, interceptorShot: { frequency: 300, end: 210, duration: 0.05 },
+      sludgeShot: { frequency: 96, end: 60, duration: 0.17 }, penetratorShot: { frequency: 180, end: 120, duration: 0.09 },
+      sparkHit: { frequency: 920, end: 420, duration: 0.08, gain: 0.55 }, blastHit: { frequency: 75, end: 38, duration: 0.24, noise: true, gain: 0.9 }, pulseHit: { frequency: 210, end: 900, duration: 0.18, gain: 0.62 },
+      frostHit: { frequency: 1240, end: 520, duration: 0.1, gain: 0.55 }, sludgeHit: { frequency: 130, end: 65, duration: 0.16, noise: true, gain: 0.65 }, flameHit: { frequency: 250, end: 90, duration: 0.14, noise: true, gain: 0.62 }, railHit: { frequency: 540, end: 1500, duration: 0.09, gain: 0.58 },
       titan: { frequency: 35, duration: 1.2, noise: true }, wind: { frequency: 400, duration: 3, noise: true, gain: 0.12 }, rail: { frequency: 95, duration: 0.12, noise: true, gain: 0.35 } },
     meta: { hullCost: 10, hullHpBonus: 0.05, engineCost: 15, engineSpeedBonus: 0.08, focusCost: 10, focusRangeBonus: 0.1 },
     unlocks: { traitSpent: 15, teslaSpent: 30, moduleSpent: 50 },
