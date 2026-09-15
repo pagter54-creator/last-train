@@ -7,7 +7,7 @@
  if(!g||!A)return;
  const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
  const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
- const NON_REPEAT=new Set(['z','x','c','f',' ','1','2','3','q','w','e','r','a','s','d']);
+ const NON_REPEAT=new Set(['z','x','c','f','t',' ','1','2','3','q','w','e','r','a','s','d']);
  const MOVE_KEYS={q:3,w:2,e:1,r:0,a:6,s:5,d:4};
  const CAR_HINTS={0:'R',1:'E',2:'W',3:'Q',4:'D',5:'S',6:'A'};
  const AUTO_CAR_ORDER=[0,1,2,3,4,5,6];
@@ -211,12 +211,26 @@
  const priorPause=g.openPause.bind(g);g.openPause=function(...args){
   const out=priorPause(...args);const body=$('#modal .dialog-body');if(!body||this.mode!=='battle')return out;
   if(!body.querySelector('.pc-control-guide')){
-   const guide=document.createElement('section');guide.className='pc-control-guide';guide.innerHTML=`<div class="pc-guide-head"><b>PC 키보드 조작</b><small>마우스를 클릭하면 키보드 선택 표시가 숨겨집니다.</small></div><div class="pc-guide-grid"><span><kbd>← ↑ ↓ →</kbd> 선택 이동</span><span><kbd>Z / ENTER</kbd> 확인 / 선택</span><span><kbd>X / ESC</kbd> 취소 / 닫기</span><span><kbd>C</kbd> 배속 변경</span><span><kbd>Q W E</kbd> 3 / 2 / 1번 객차</span><span><kbd>A S D</kbd> 6 / 5 / 4번 객차</span><span><kbd>R</kbd> 기관실 이동</span><span><kbd>1 2 3</kbd> 열차장 스킬</span><span><kbd>F</kbd> 현재 직원 배치 저장</span><span><kbd>SPACE</kbd> 저장된 배치 실행</span></div>`;
+   const guide=document.createElement('section');guide.className='pc-control-guide';guide.innerHTML=`<div class="pc-guide-head"><b>PC 키보드 조작</b><small>마우스를 클릭하면 키보드 선택 표시가 숨겨집니다.</small></div><div class="pc-guide-grid"><span><kbd>← ↑ ↓ →</kbd> 선택 이동</span><span><kbd>Z / ENTER</kbd> 확인 / 선택</span><span><kbd>X / ESC</kbd> 취소 / 닫기</span><span><kbd>C</kbd> 배속 변경</span><span><kbd>Q W E</kbd> 3 / 2 / 1번 객차</span><span><kbd>A S D</kbd> 6 / 5 / 4번 객차</span><span><kbd>R</kbd> 기관실 이동</span><span><kbd>T</kbd> 열차장 강화 UI</span><span><kbd>1 2 3</kbd> 열차장 스킬</span><span><kbd>F</kbd> 현재 직원 배치 저장</span><span><kbd>SPACE</kbd> 저장된 배치 실행</span></div>`;
    body.prepend(guide);
   }
   let volumeWrap=body.querySelector('.pause-volume-wrap');if(!volumeWrap){volumeWrap=document.createElement('div');volumeWrap.className='pause-volume-wrap';volumeWrap.innerHTML='<b>오디오</b>';body.insertBefore(volumeWrap,body.querySelector('.station-actions'));}
   if(audioControl)volumeWrap.append(audioControl);return out;
  };
+
+ function openCaptainUpgrade(){
+  if(g.mode!=='battle'||overlayOpen())return;
+  const captain=document.querySelector('[data-captain]');
+  if(!captain||!enabled(captain)){g.toast?.('열차장을 선택할 수 없습니다.');return;}
+  captain.click?.();
+  queueMicrotask(()=>{
+   if(!state.keyboardFocusVisible)return;
+   const ctx=contextInfo();
+   state.keyboardFocusedTarget=null;
+   const next=defaultElement(ctx);
+   if(next)focusElement(next);
+  });
+ }
 
  function afterSkillKey(key){
   const button={1:'#focus-order',2:'#command-order',3:'#armor-order'}[key],el=$(button);if(!el||el.disabled)return;el.click();
@@ -230,12 +244,13 @@
   const raw=e.key;
   const key=raw===' '?' ':raw==='Enter'?'z':raw==='Escape'?'x':raw.toLowerCase();
   const arrow={ArrowLeft:'left',ArrowRight:'right',ArrowUp:'up',ArrowDown:'down'}[raw];
-  const handled=!!arrow||['z','x','c','f',' ','1','2','3','q','w','e','r','a','s','d'].includes(key);
+  const handled=!!arrow||['z','x','c','f','t',' ','1','2','3','q','w','e','r','a','s','d'].includes(key);
   if(!handled)return;if(e.repeat&&NON_REPEAT.has(key))return;
   e.preventDefault();e.stopPropagation();markKeyboardMode();
   if(arrow){moveElementFocus(arrow);return;}
   if(key==='z'){activateFocused();return;}
   if(key==='x'){cancelCurrent();return;}
+  if(key==='t'){openCaptainUpgrade();return;}
   if(['1','2','3'].includes(key)){if(g.mode==='battle'&&!overlayOpen())afterSkillKey(key);return;}
   if(['q','w','e','r','a','s','d'].includes(key)){if(!targetCarWithShortcut(key))moveSelectedCrew(key);return;}
   if(key==='c'){cycleSpeed();return;}

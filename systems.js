@@ -7,6 +7,8 @@
   const num=v=>Number(v).toFixed(2).replace(/\.00$/,'');
   const pct=v=>`${num(v*100)}%`;
   const labels={combat:'전투',operate:'운용',repair:'수리',recovery:'회복'};
+  const copy=v=>JSON.parse(JSON.stringify(v));
+  let stationPlacement=null;
   const guide=(label,text)=>`<button type="button" class="guide-button" data-guide="${esc(text)}" data-guide-title="${esc(label)}">${esc(label)} ⓘ</button>`;
   // Native details open only on click/tap or keyboard activation, never hover.
   const old={};for(const k of ['update','renderCars','updateHUD','showMainMenu','showHowTo','newRun'])old[k]=g[k].bind(g);
@@ -52,7 +54,7 @@
   g.showEquipmentDetails=function(id){const eq=this.findEquipment(id);if(!eq)return;const ci=this.equipmentLocation?.(eq)??this.state.cars.findIndex(c=>c.equipment.includes(eq));const source=eq.kind==='module'&&ci>=0?this.moduleSources?.(ci)?.find(s=>s.eq.id===eq.id):null;this.inspectedEquipment=id;this.inspectedCrew=null;this.moduleRange=eq.kind==='module'&&ci>=0&&this.equipmentActive(ci)?{from:ci,range:source?.range??this.moduleData(eq).range}:null;$('#inspector').innerHTML=this.equipmentHTML(eq,ci);};
   g.crewHTML=function(c,live=true){
     const values=Object.values(c.stats),max=Math.max(...values),min=Math.min(...values);
-    const statText={combat:`능력 1당 승선병 대상 개인화기 DPS +${B.crew.personalDpsPerCombat}. 직원이 받는 피해 ${pct(B.crew.boarderDamageReductionPerCombat)} 감소 (최대 ${pct(B.crew.maxDamageReduction)}). 전투 수치 자체는 포탑 피해를 올리지 않으며 명사수 등의 특성이 별도 적용됩니다.`,operate:`객차에서 운용이 가장 높은 활동 직원 1명이 포탑을 담당합니다. 능력 1당 발열 ${pct(B.heat.operatorHeatReductionPerPoint)} 감소, 냉각 ${pct(B.heat.operatorCoolingBonusPerPoint)} 증가 (각 최대 ${pct(B.heat.maxOperatorModifier)}).`,repair:`파괴 객차 복구: 초당 ${B.train.repairBasePerSecond} + 수리 × ${B.train.repairStatScale}. 복구 진행 ${B.train.repairGoal} 도달 시 내구 ${pct(B.train.restoredHpRatio)}로 복원. 자동 수리 교리: 수리 ${B.battle.doctrineMinRepairStat} 이상, 내구 ${pct(B.battle.doctrineRepairThreshold)} 미만일 때 작동.`,recovery:`전투 종료 시 회복 1당 최대 HP의 ${pct(B.crew.stageHealPerRecovery)} 회복. 의료 모듈과 야전의무병 배율이 추가 적용됩니다.`};
+    const statText={combat:`능력 1당 승선병 대상 개인화기 DPS +${B.crew.personalDpsPerCombat}. 직원이 받는 피해 ${pct(B.crew.boarderDamageReductionPerCombat)} 감소 (최대 ${pct(B.crew.maxDamageReduction)}). 전투 수치 자체는 포탑 피해를 올리지 않으며 명사수 등의 특성이 별도 적용됩니다.`,operate:`객차에서 운용이 가장 높은 활동 직원 1명이 포탑을 담당합니다. 능력 1당 발열 ${pct(B.heat.operatorHeatReductionPerPoint)} 감소, 냉각 ${pct(B.heat.operatorCoolingBonusPerPoint)} 증가 (각 최대 ${pct(B.heat.maxOperatorModifier)}).`,repair:`파괴 객차 복구: 초당 ${B.train.repairBasePerSecond} + 수리 × ${B.train.repairStatScale}. 복구 진행 ${B.train.repairGoal} 도달 시 내구 ${pct(B.train.restoredHpRatio)}로 복원. 자동 수리 교리: 수리 ${B.battle.doctrineMinRepairStat} 이상, 내구 ${pct(B.battle.doctrineRepairThreshold)} 미만일 때 작동.`,recovery:`전투 종료 시 회복 1당 최대 HP의 ${pct(B.crew.stageHealPerRecovery)} 회복. 전투불능 상태라면 이 회복량으로 다시 일어납니다. 의료 모듈과 야전의무병 배율이 추가 적용됩니다.`};
     Object.assign(statText,this.crewStatGuides?.()||{});
     return `<h3>${esc(c.name)}</h3>${guide(c.background,`${c.background}: 직업은 인물의 배경을 나타냅니다. 별도 숨은 직업 보너스는 없으며 아래 능력치와 특성으로 효과가 결정됩니다.`)}<div class="trait-guides">${c.traits.map(t=>guide(D.TRAITS[t].name,D.TRAITS[t].text)).join('')}</div><div class="stat-grid">${Object.entries(c.stats).map(([k,v])=>`<div class="stat-cell ${max!==min&&v===max?'stat-best':''} ${max!==min&&v===min?'stat-worst':''}"><b>${live?this.effectiveStat(c,k):v}</b>${guide(labels[k],statText[k])}</div>`).join('')}</div><p class="fineprint">최고 기본 능력: 녹색 테두리 · 최저: 붉은 테두리 (동률 모두 표시). 숫자는 ${live?'현재 적용':'기본'} 능력입니다.</p>${live?`<p>HP ${Math.ceil(c.hp)} / ${c.maxHp} · ${this.state.cars[c.car].name}</p>`:''}`;
   };
@@ -83,13 +85,63 @@
     if(kind==='crew') {const c=this.state.crew.find(x=>x.id===id);if(!c||c.dead||c.moving||c.car===to)return false;const occupants=this.state.crew.filter(x=>!x.dead&&x.car===to);if(occupants.length>=this.crewCapacity(to))return false;c.car=to;return true;}
     const from=this.state.cars.find(c=>c.equipment.some(e=>e.id===id));if(!from||from===this.state.cars[to]||this.state.cars[to].equipment.length>=this.equipmentCapacity(to))return false;const i=from.equipment.findIndex(e=>e.id===id);this.state.cars[to].equipment.push(from.equipment.splice(i,1)[0]);this.rebalancePower();return true;
   };
+  function stationPlacementValid(ci){return !!g.state?.cars?.[ci]&&g.state.cars[ci].equipment.length<g.equipmentCapacity(ci);}
+  function stationEquipmentFromOffer(offer){
+    if(offer?.equipment)return copy(offer.equipment);
+    if(!offer)return null;
+    return {id:crypto.randomUUID(),kind:offer.kind,type:offer.id,level:1,branch:false,heat:0,overheated:false,cooldown:0};
+  }
+  function clearStationPlacement(showStation=true){
+    $('#station-placement-panel')?.remove();document.body.classList.remove('station-placement');
+    document.querySelectorAll('#train-cars [data-station-slot]').forEach(el=>{delete el.dataset.stationSlot;el.classList.remove('station-slot');el.removeAttribute('role');el.removeAttribute('tabindex');});
+    document.querySelectorAll('#train-cars .placement-target').forEach(el=>el.classList.remove('placement-target'));
+    stationPlacement=null;
+    if(showStation&&g.state){g.mode='station';$('#overlay').classList.add('show');g.renderStation();}
+  }
+  g.beginStationGearPlacement=function(index,equipment=null){
+    if(this.mode!=='station')return false;const offer=this.stationOffers?.gear?.[index];
+    if(!offer||this.stationOffers.bought.has('gear'+index))return false;
+    if(this.state.money<offer.d.price){this.toast('돈이 부족합니다.');return false;}
+    const valid=this.state.cars.map((_,i)=>i).filter(stationPlacementValid);
+    if(!valid.length){this.toast('빈 장비 슬롯이 필요합니다.');return false;}
+    stationPlacement={index,equipment:equipment?copy(equipment):stationEquipmentFromOffer(offer),price:offer.d.price};
+    this.mode='station-placement';this.setSpeed(0);$('#overlay').classList.remove('show');document.body.classList.add('station-placement');this.renderCars();
+    const panel=document.createElement('section');panel.id='station-placement-panel';
+    const data=(stationPlacement.equipment.kind==='turret'?D.TURRETS:D.MODULES)[stationPlacement.equipment.type];
+    panel.innerHTML=`<b>${esc(data.name)} 장착 위치 선택</b><p>강조된 빈 장비 슬롯을 클릭하세요. 전력 0 또는 파괴 상태의 객차에도 장착할 수 있습니다.</p><button type="button" data-cancel-station-placement>구매 취소 · 비용 없음</button>`;
+    document.body.append(panel);panel.querySelector('[data-cancel-station-placement]').onclick=()=>clearStationPlacement(true);
+    this.renderCars();return true;
+  };
+  g.completeStationGearPlacement=function(ci){
+    if(this.mode!=='station-placement'||!stationPlacement||!stationPlacementValid(ci))return false;
+    const offer=this.stationOffers?.gear?.[stationPlacement.index];
+    if(!offer||this.stationOffers.bought.has('gear'+stationPlacement.index)){clearStationPlacement(true);return false;}
+    if(this.state.money<stationPlacement.price){this.toast('돈이 부족합니다.');clearStationPlacement(true);return false;}
+    this.state.cars[ci].equipment.push(copy(stationPlacement.equipment));
+    this.state.money-=stationPlacement.price;this.stationOffers.bought.add('gear'+stationPlacement.index);this.rebalancePower();this.playSound('purchase');
+    const name=(stationPlacement.equipment.kind==='turret'?D.TURRETS:D.MODULES)[stationPlacement.equipment.type].name;
+    this.log(`${name} 구매 · ${this.state.cars[ci].name} 장착`,'hot');
+    clearStationPlacement(false);this.mode='station';
+    if(this.spendTime(B.station.actionSeconds.buy)){$('#overlay').classList.add('show');this.renderStation();}
+    return true;
+  };
+  $('#train-cars').addEventListener('click',e=>{if(g.mode!=='station-placement')return;e.stopImmediatePropagation();const el=e.target.closest('[data-station-slot]');if(el)g.completeStationGearPlacement(Number(el.dataset.stationSlot));},true);
+  $('#train-cars').addEventListener('keydown',e=>{if(g.mode==='station-placement'&&['Enter',' '].includes(e.key)&&e.target.matches('[data-station-slot]')){e.preventDefault();g.completeStationGearPlacement(Number(e.target.dataset.stationSlot));}},true);
+
   g.showStation=function(){
     this.mode='station';this.setSpeed(0);this.inspectedEquipment=null;this.inspectedCrew=null;
     this.state.crew.forEach(c=>{if(c.moving){c.car=c.moving.to;c.moving=null;}});
+    const healKey=`${this.state.actId}:${this.state.stageIndex}`;
+    if(this.state.stationCrewHealKey!==healKey){
+      this.state.stationCrewHealKey=healKey;const ratio=B.station.crewArrivalHealRatio??0.20;let healed=0;
+      this.state.crew.forEach(c=>{if(c.dead)return;const before=c.hp;c.hp=Math.min(c.maxHp,Math.max(0,c.hp)+c.maxHp*ratio);healed+=Math.max(0,c.hp-before);});
+      if(healed>0)this.log(`정비 스테이션 도착 · 직원 최대 HP의 ${Math.round(ratio*100)}% 회복`,'hot');
+    }
     if(this.stationStage!==this.state.stageIndex||!this.stationOffers){this.stationStage=this.state.stageIndex;const available=(kind,reg)=>Object.entries(reg).filter(([id])=>this.runContentUnlocked?.(kind,id)??true).sort(()=>Math.random()-.5);this.stationOffers={gear:[...available('turrets',D.TURRETS).slice(0,B.station.turretOfferCount).map(([id,d])=>({id,d,kind:'turret'})),...available('modules',D.MODULES).slice(0,B.station.moduleOfferCount).map(([id,d])=>({id,d,kind:'module'}))],crew:this.crewCandidateTemplates(B.station.crewOfferCount),bought:new Set()};}
     this.prepareActShop?.();
     this.checkpointStationReady?.();
-    const modal=this.modalShell('정비 스테이션',`구간 ${this.globalStage()}`,'열차는 정차 중입니다. 구매·분기 강화·재배치·수리·출발에 시간이 들며, 일반 강화와 정보 확인에는 시간이 들지 않습니다.');
+    const healPct=Math.round((B.station.crewArrivalHealRatio??0.20)*100);
+    const modal=this.modalShell('정비 스테이션',`구간 ${this.globalStage()}`,`도착 시 사망하지 않은 모든 직원이 최대 HP의 ${healPct}%를 회복합니다. 구매·분기 강화·재배치·수리·출발에는 시간이 듭니다.`);
     modal.querySelector('.dialog-body').innerHTML='<div class="station-summary"></div><div class="tabs station-tabs"></div><div id="shop-content"></div><div class="station-actions"></div>';
     this.stationTab=this.stationTab||'gear';this.renderStation();
     modal.onclick=e=>{
@@ -103,7 +155,7 @@
     $('.station-summary').innerHTML=`¤ ${Math.floor(s.money)} · ▰ ${Math.floor(s.scrap)} · 타이탄 ${s.titanDistance.toFixed(2)} km`;
     $('.station-tabs').innerHTML=[['gear','장비'],['crew','직원'],['formation','재정비'],['car','객차 구매'],['upgrade','강화']].map(([id,n])=>`<button data-station-tab="${id}" class="${id===this.stationTab?'active':''}">${n}</button>`).join('');
     let html='';
-if(this.stationTab==='gear')html=`<div class="shop-grid">${offers.gear.map((o,i)=>`<article class="shop-item"><h3>${o.d.name} · ¤ ${o.d.price}</h3><div class="shop-preview">${A.equipmentArt({kind:o.kind,type:o.id})}</div><details class="shop-detail"><summary>세부 스탯 보기</summary>${this.equipmentHTML({kind:o.kind,type:o.id})}</details>${this.timeHTML(seconds.buy)}<button data-station-action="buy" data-index="${i}" ${offers.bought.has('gear'+i)?'disabled':''}>${offers.bought.has('gear'+i)?'구매 완료':'구매 및 빈 슬롯 배치'}</button></article>`).join('')}</div>`;
+if(this.stationTab==='gear')html=`<div class="shop-grid">${offers.gear.map((o,i)=>`<article class="shop-item"><h3>${o.d.name} · ¤ ${o.d.price}</h3><div class="shop-preview">${A.equipmentArt({kind:o.kind,type:o.id})}</div><details class="shop-detail"><summary>세부 스탯 보기</summary>${this.equipmentHTML({kind:o.kind,type:o.id})}</details>${this.timeHTML(seconds.buy)}<button data-station-action="buy" data-index="${i}" ${offers.bought.has('gear'+i)?'disabled':''}>${offers.bought.has('gear'+i)?'구매 완료':'구매 후 장착 위치 선택'}</button></article>`).join('')}</div>`;
     if(this.stationTab==='crew')html=`<div class="shop-grid">${offers.crew.map((c,i)=>`<article class="shop-item">${this.crewHTML(c,false)}<b>¤ ${this.stationCrewPrice?.(i)??B.station.crewPrices[Math.min(i,B.station.crewPrices.length-1)]}</b>${this.timeHTML(seconds.recruit)}<button data-station-action="recruit" data-index="${i}" ${s.crew.some(x=>x.name===c.name)?'disabled':''}>영입</button></article>`).join('')}</div>`;
     if(this.stationTab==='upgrade')html=`<p>일반 강화는 시간 소모 없음 · 분기 강화에만 시간이 소모됩니다.</p>${this.upgradeHTML()}`;
     if(this.stationTab==='car'){const index=s.cars.length-B.train.startingCars,price=B.station.carPrices[index];html=s.cars.length>=B.train.maxCars?'<p class="positive">모든 객차를 연결했습니다.</p>':`<article class="shop-item"><h3>${s.cars.length+1}번 · ${B.train.carNames[s.cars.length]}</h3><p>빈 객차 · 장비 ${B.train.equipmentSlots}칸 / 직원 ${B.train.crewSlots}명 / 기본 전력 ${B.train.baseCarPower}</p><b>¤ ${price}</b>${this.timeHTML(seconds.car)}<button data-station-action="car">객차 구매·연결</button></article>`;}
@@ -119,7 +171,7 @@ if(this.stationTab==='gear')html=`<div class="shop-grid">${offers.gear.map((o,i)
   };
   g.stationAction=function(button){
     if(this.mode!=='station')return;const s=this.state,act=button.dataset.stationAction,t=B.station.actionSeconds;let ok=false,seconds=t.rearrange;
-    if(act==='buy'){const i=Number(button.dataset.index),o=this.stationOffers.gear[i];if(this.stationOffers.bought.has('gear'+i))return;if(s.money>=o.d.price&&this.giveRandomGear(o.id,o.kind)){s.money-=o.d.price;this.stationOffers.bought.add('gear'+i);ok=true;}seconds=t.buy;}
+    if(act==='buy'){const i=Number(button.dataset.index),o=this.stationOffers.gear[i];if(!o||this.stationOffers.bought.has('gear'+i))return;if(s.money<o.d.price){this.toast('돈이 부족합니다.');return;}this.beginStationGearPlacement(i,o.equipment||null);return;}
     if(act==='recruit'){const i=Number(button.dataset.index),c=this.stationOffers.crew[i],price=this.stationCrewPrice?.(i)??B.station.crewPrices[Math.min(i,B.station.crewPrices.length-1)];if(s.crew.some(x=>x.name===c.name))return;if(s.money>=price&&this.recruitCrew(c)){s.money-=price;ok=true;}seconds=t.recruit;}
     if(act==='car'){ok=this.buyCar();seconds=t.car;}
     if(act==='repair'){const cost=this.repairCost();if(cost>0&&s.money>=cost){s.money-=cost;s.cars.forEach(c=>{c.hp=c.maxHp;c.repair=0;c.destroyedLogged=false;});ok=true;}seconds=t.repair;}
@@ -140,6 +192,7 @@ if(this.stationTab==='gear')html=`<div class="shop-grid">${offers.gear.map((o,i)
     const car=$(`[data-car-index="${captainCar}"] .car-window`);
     if(car&&!car.querySelector('[data-captain]')){const el=document.createElement('button');el.className='crew-sprite captain';el.dataset.captain='true';el.setAttribute('aria-label','열차장 · 즉시 포탑 강화');el.innerHTML=`${A.portrait({name:'열차장'})}<span class="crew-tag">열차장</span>`;car.append(el);}
     document.querySelectorAll('[data-car-index]').forEach(el=>{const i=Number(el.dataset.carIndex),c=s.cars[i];el.classList.toggle('module-affected',!!this.moduleRange&&Math.abs(i-this.moduleRange.from)<=this.moduleRange.range);el.classList.toggle('car-hit',c.hitFlash>0);el.classList.toggle('power-off',c.power===0);el.classList.toggle('armor-target',s.targetMode==='armor');el.classList.toggle('commanded',s.orders.command.active>0&&s.orders.command.car===i);});
+    if(stationPlacement&&this.mode==='station-placement')this.state.cars.forEach((_,ci)=>{if(!stationPlacementValid(ci))return;const car=$(`[data-car-index="${ci}"]`);car?.classList.add('placement-target');car?.querySelectorAll('.empty-equipment').forEach(el=>{el.classList.add('station-slot');el.setAttribute('role','button');el.tabIndex=0;el.dataset.stationSlot=ci;});});
   };
   g.update=function(dt){
     const s=this.state;if(s){if(this.mode==='run'&&s.launchElapsed<B.launch.seconds){s.launchElapsed=Math.min(B.launch.seconds,s.launchElapsed+dt);const p=s.launchElapsed/B.launch.seconds;s.titanDistance=B.launch.startDistance+(B.run.startingTitanDistance-B.launch.startDistance)*p*p;}
@@ -153,8 +206,8 @@ if(this.stationTab==='gear')html=`<div class="shop-grid">${offers.gear.map((o,i)
     // Preserve open help panels while the live crew numbers update.
     if(this.inspectedCrew&&document.body.classList.contains('is-tactical')){const c=this.state.crew.find(x=>x.id===this.inspectedCrew);if(c)$('#inspector').querySelectorAll('.stat-cell>b').forEach((el,i)=>el.textContent=this.effectiveStat(c,Object.keys(labels)[i]));}
   };
-  g.newRun=function(){this.stationOffers=null;this.stationTab='gear';this.stationStage=null;this.eventPending=false;old.newRun();};
-  g.showMainMenu=function(){this.inspectedEquipment=null;this.inspectedCrew=null;this.moduleRange=null;old.showMainMenu();};
+  g.newRun=function(){clearStationPlacement(false);this.stationOffers=null;this.stationTab='gear';this.stationStage=null;this.eventPending=false;old.newRun();};
+  g.showMainMenu=function(){clearStationPlacement(false);this.inspectedEquipment=null;this.inspectedCrew=null;this.moduleRange=null;old.showMainMenu();};
   g.showHowTo=function(){old.showHowTo();$('.dialog-body').insertAdjacentHTML('beforeend','<p>추가 조작: 직원 → 다른 직원으로 자리 교환 · 비상 장갑 → 객차 한 량 지정 · 열차장 클릭 → 고철 즉시 강화 · 전력 0 → 포탑과 모듈 정지 · 정비소 편성 탭에서 장비/직원 재배치. ⓘ 항목은 마우스를 올리거나 클릭하면 설명을 볼 수 있습니다.</p>');};
   g.renderCars();
 })();

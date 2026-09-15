@@ -34,7 +34,7 @@ window.GAME_DATA = (() => {
     focus: { duration: 4, cooldown: 20, damageBonus: 0.2, rangeBonus: 0.25 },
     directCommand: { duration: 10, cooldown: 75 },
     targeting: { close: 0.28, medium: 0.62, long: 1, mortarMin: 0.28 },
-    station: { repairMoneyPerHp: 0.55, crewPrices: [70, 110, 170], crewOfferCount: 2, turretOfferCount: 3, moduleOfferCount: 2, carPrices: [120, 180], actionSeconds: { buy: 8, recruit: 10, upgrade: 6, repair: 15, rearrange: 3, car: 20, depart: 5 } },
+    station: { repairMoneyPerHp: 0.55, crewArrivalHealRatio: 0.20, crewPrices: [70, 110, 170], crewOfferCount: 2, turretOfferCount: 3, moduleOfferCount: 2, carPrices: [120, 180], actionSeconds: { buy: 8, recruit: 10, upgrade: 6, repair: 15, rearrange: 3, car: 20, depart: 5 } },
     event: { choiceSeconds: 15 },
     arsenal: { damageMultiplier: 1.35, intervalMultiplier: 0.9, heatMultiplier: 0.92, coolingMultiplier: 1.08 },
     projectile: { directSeconds: 0.2, enemySeconds: 0.45, arcSeconds: 0.85, arcHeight: 0.23, splashRadiusScale: 0.3, laneSpan: 0.48, impactSeconds: 0.65, muzzleSeconds: 0.13, areaSegments: 48 },

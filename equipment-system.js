@@ -122,6 +122,6 @@
    offer.equipment=this.randomizeMetaEquipment(eq);offer.id=offer.equipment.type;offer.d={...(offer.kind==='turret'?D.TURRETS:D.MODULES)[offer.id],price:Math.ceil((offer.d.price+eq.investedScrap*C.shop.moneyPerScrap)*(eq.level>1?C.shop.premium:1))};
   }
  };
- const action=g.stationAction.bind(g);g.stationAction=function(button){if(button.dataset.stationAction!=='buy')return action(button);if(this.mode!=='station')return;const i=Number(button.dataset.index),offer=this.stationOffers.gear[i];if(!offer||this.stationOffers.bought.has('gear'+i))return;if(!offer.equipment)return action(button);const car=this.state.cars.find((c,ci)=>c.equipment.length<this.equipmentCapacity(ci));if(!car||this.state.money<offer.d.price){this.toast(!car?'빈 장비 슬롯이 필요합니다.':'돈이 부족합니다.');return;}car.equipment.push(copy(offer.equipment));this.state.money-=offer.d.price;this.stationOffers.bought.add('gear'+i);this.rebalancePower();this.playSound('purchase');if(this.spendTime(B.station.actionSeconds.buy))this.renderStation();};
+ const action=g.stationAction.bind(g);g.stationAction=function(button){return action(button);};
  g.equipmentSaleQuote=function(eq){const all=[eq,...(eq.aux?[eq.aux]:[])];return{money:all.reduce((n,e)=>n+Math.floor((e.kind==='turret'?D.TURRETS:D.MODULES)[e.type].price*B.sale.moneyRatio),0),scrap:all.reduce((n,e)=>n+(e.kind==='turret'?Math.floor((e.investedScrap??Object.entries(W.costs).filter(([l])=>Number(l)<=e.level).reduce((n,[,v])=>n+v,0))*B.sale.turretScrapRatio):0),0)};};
 })();

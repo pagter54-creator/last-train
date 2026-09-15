@@ -4,3 +4,13 @@
 @media(max-height:650px) and (min-width:701px){.tactical-panel{max-height:calc(100vh - 300px)}.sound-toggle{bottom:20px}.train-cars:has(.railcar:nth-child(3):last-child){left:37%}}
 .tactical-panel .guide[open]>p,.tactical-panel .guide:hover>p{color:#f0ede2}.battle-note{color:#f0ede2}.captain .crew-tag{white-space:nowrap}.car-window:has(.captain){padding-right:30px}
 @media(max-width:700px){.car-window:has(.captain){padding-right:18px}}
+
+
+/* Event/station equipment placement remains interactive even when carriage power is 0. */
+.railcar.power-off.placement-target .equipment-row{filter:none!important;opacity:1!important}
+.placement-target .empty-equipment.event-slot,.placement-target .empty-equipment.station-slot{border-color:#efe0a2!important;background:#b2d1a51f!important;color:#ffe8a1!important;cursor:pointer!important;pointer-events:auto!important;box-shadow:0 0 0 1px #e7cf8b55,0 0 12px #e7cf8b33;animation:slot-glow 1.4s infinite}
+#station-placement-panel{position:fixed;left:50%;bottom:22px;translate:-50% 0;z-index:19;min-width:min(560px,calc(100vw - 32px));max-width:calc(100vw - 32px);padding:13px 16px;border:1px solid #d7c68a80;border-radius:7px;background:#10262deF;box-shadow:0 10px 36px #0008;text-align:center;color:#e9eadb}
+#station-placement-panel b{display:block;color:#f0d998;font-size:15px}
+#station-placement-panel p{margin:5px 0 9px;color:#c6d1ca;font-size:12px}
+#station-placement-panel button{border:1px solid #728b82;background:#1a3438;color:#e8eee8;padding:7px 12px;cursor:pointer}
+@media(max-width:700px){#station-placement-panel{bottom:calc(8px + env(safe-area-inset-bottom));padding:9px 11px}#station-placement-panel p{font-size:11px}}

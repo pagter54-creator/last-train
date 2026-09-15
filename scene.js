@@ -269,7 +269,7 @@ modal.querySelector('.dialog-body').innerHTML=`<div class="choices"><div class="
     let pace=inMenu?V.motion.idle:this.mode==='battle'?(overlay?0:this.state.speed):V.motion.idle;
     if(this.mode==='run'&&this.state?.launchElapsed<B.launch.seconds)pace=this.state.launchElapsed<B.launch.impactAt ? .2 : 1+B.launch.visualSpeed*clamp((this.state.launchElapsed-B.launch.impactAt)/(B.launch.seconds-B.launch.impactAt),0,1);
     if(this.sceneTransition)pace=this.sceneTransition.boost;
-    if(!this.sceneTransition&&['station','event','event-placement'].includes(this.mode))pace=0;
+    if(!this.sceneTransition&&['station','station-placement','event','event-placement'].includes(this.mode))pace=0;
     if(this.arrivalPace!==undefined&&!this.sceneTransition)pace=this.arrivalPace;
     pace*=((this.state?.currentTrainSpeed||B.train.speedByPower[B.train.enginePower.start])/B.train.speedByPower[B.train.enginePower.start]);
     visualClock+=dt*pace;

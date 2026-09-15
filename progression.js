@@ -45,7 +45,7 @@
     combat:`전투 1당 승선 적 대상 개인화기 DPS +${B.crew.personalDpsPerCombat}, 직원 피격 피해 ${B.crew.boarderDamageReductionPerCombat*100}% 감소 (최대 ${B.crew.maxDamageReduction*100}%). 승선 적과 싸우지 않을 때 초근거리 대응사격: ${P.returnFire.interval}초마다 피해 ${P.returnFire.damageBase}+전투×${P.returnFire.damagePerCombat}, 명중률 ${P.returnFire.hitBase*100}%+전투×${P.returnFire.hitPerCombat*100}%p (최대 ${P.returnFire.hitMax*100}%).`,
     operate:`같은 객차의 활동 직원 운용을 모두 합산합니다. 합계 1당 포탑 피해 +${P.crew.operateDamagePerPoint*100}% (최대 ${P.crew.maxOperateDamage*100}%), 발열 −${B.heat.operatorHeatReductionPerPoint*100}%, 냉각 +${B.heat.operatorCoolingBonusPerPoint*100}% (발열·냉각 최대 각 ${B.heat.maxOperatorModifier*100}%). 직원 특성도 전원 적용됩니다. 이동·전투불능·사망 중에는 제외됩니다.`,
     repair:`모든 활동 직원은 객차 HP ${P.crew.repairStart*100}% 이하에서 자동 수리를 시작하고 ${P.crew.repairStop*100}%까지 수리합니다. 직원마다 초당 수리 × ${B.train.repairStatScale} HP, 모듈·응급수리공 배율 적용. 파괴 객차는 초당 ${B.train.repairBasePerSecond}+수리 × ${B.train.repairStatScale} 복구 진행, ${B.train.repairGoal} 도달 시 HP ${B.train.restoredHpRatio*100}%로 복원합니다.`,
-    recovery:`전투 후 회복 1당 최대 HP의 ${B.crew.stageHealPerRecovery*100}% 회복. 의료 모듈과 야전의무병 배율이 추가 적용됩니다.`
+    recovery:`전투 종료 시 회복 1당 최대 HP의 ${B.crew.stageHealPerRecovery*100}% 회복. 전투불능 상태라면 이 회복량으로 다시 일어납니다. 의료 모듈과 야전의무병 배율이 추가 적용됩니다.`
   };};
   g.crewGrowthText=function(c){return `${'★'.repeat(c.stars||1)} · Lv.${c.level||1} · ${c.level>=P.crew.maxLevel?'최대 레벨':`경험치 ${Number((c.xp||0).toFixed(2))}/${this.crewXpRequired(c)}`}`;};
   g.crewHTML=function(c,...args){return old.crewHTML(c,...args)+`<p class="crew-growth">${this.crewGrowthText(c)}${c.pendingStats?` · <strong class="positive">능력 선택 ${c.pendingStats}회 대기 !</strong>`:''}</p><p>성급 재능 ${c.starTraits?.length||0}/2 · 이벤트 재능 ${c.eventTraits?.length||0}/${P.stars.eventTalentSlots}</p>`;};

@@ -589,10 +589,14 @@
 
     healAfterStage() {
       this.state.crew.forEach(c => {
-        if (c.dead || c.hp <= 0) return;
+        if (c.dead) return;
         let mult = this.moduleEffect(c.car, 'medical', 'stageHealMult');
         if (this.state.crew.some(x=>!x.dead&&x.hp>0&&!x.moving&&x.car===c.car&&x.traits.includes('medic'))) mult *= D.TRAITS.medic.healMult;
-        c.hp = Math.min(c.maxHp, c.hp + c.maxHp * this.effectiveStat(c,'recovery') * B.crew.stageHealPerRecovery * mult);
+        const amount = c.maxHp * this.effectiveStat(c,'recovery') * B.crew.stageHealPerRecovery * mult;
+        if (amount <= 0) return;
+        const wasKO = c.hp <= 0;
+        c.hp = Math.min(c.maxHp, Math.max(0,c.hp) + amount);
+        if (wasKO && c.hp > 0) this.log(`${c.name} 전투불능 회복 · HP ${Math.ceil(c.hp)}`, 'hot');
       });
     }
 
@@ -609,6 +613,7 @@
     bossClear() {
       if (this.mode !== 'battle') return;
       const next=D.ACTS[this.state.actId].nextAct;
+      this.healAfterStage();
       if(next){
         this.mode='result';this.setSpeed(0);
         this.state.crew.forEach(c=>{if(c.moving){c.car=c.moving.to;c.moving=null;}});
@@ -616,7 +621,6 @@
         this.state.orders.command.active=0;this.state.orders.command.car=null;
         this.state.orders.focus.active=0;this.state.orders.focus.target=null;
         this.state.relics+=D.BOSSES[this.state.battle.bossId].rewardRelics;
-        this.healAfterStage();
         this.showDialog('ACT I CLEAR','다음 노선 · '+D.ACTS[next].name,D.ACTS[next].intro,[{label:'ACT II 진입',text:'열차·직원·장비·자원을 유지합니다. 다리 파괴로 포획을 해제할 수 있습니다.',hint:`출발 거리 +${(this.departureDistance?.()??B.run.branchDistanceBonus)} km`,icon:'→'}],()=>{
           this.closeOverlay();this.state.actId=next;this.state.stageIndex=-1;this.stationOffers=null;this.stationStage=null;this.advanceStage();
         });return;
