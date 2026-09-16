@@ -271,7 +271,15 @@ modal.querySelector('.dialog-body').innerHTML=`<div class="choices"><div class="
     if(this.sceneTransition)pace=this.sceneTransition.boost;
     if(!this.sceneTransition&&['station','station-placement','event','event-placement'].includes(this.mode))pace=0;
     if(this.arrivalPace!==undefined&&!this.sceneTransition)pace=this.arrivalPace;
-    pace*=((this.state?.currentTrainSpeed||B.train.speedByPower[B.train.enginePower.start])/B.train.speedByPower[B.train.enginePower.start]);
+    const titanPace=this.mode==='battle'&&this.state?.battle?.bossId==='titan'?Number(this.state?.titanWorldPace10):NaN;
+    if(Number.isFinite(titanPace)){
+      // TITAN owns a signed visual pace: negative during the FINAL reverse approach,
+      // zero during the deliberate stop/zoom, positive from launch through the whole battle.
+      // This bypasses legacy currentTrainSpeed rewrites that previously froze the scenery.
+      pace=(overlay||this.state?.speed===0)?0:titanPace;
+    }else{
+      pace*=((this.state?.currentTrainSpeed||B.train.speedByPower[B.train.enginePower.start])/B.train.speedByPower[B.train.enginePower.start]);
+    }
     visualClock+=dt*pace;
     const t=visualClock,horizon=h*V.horizon,palette=V.actPalettes?.[this.state?.actId]||V.palette;
     ctx.clearRect(0,0,w,h);
@@ -301,10 +309,11 @@ modal.querySelector('.dialog-body').innerHTML=`<div class="choices"><div class="
     for(let x=-80-(t*V.motion.ground*motion)%65;x<w+80;x+=65){ctx.fillStyle='#766d57';ctx.fillRect(x,railY+2,22,25);ctx.fillStyle='#202d2c';ctx.fillRect(x+2,railY+3,17,4);}
     ctx.fillStyle='#b0ada0';ctx.fillRect(0,railY+1,w,3);ctx.fillStyle='#636e66';ctx.fillRect(0,railY+19,w,4);
     // Subtle long peripheral wind streaks rather than a full-screen blur.
-    if(pace>0&&!lowMotion){ctx.strokeStyle='#e4ddba25';ctx.lineWidth=1;for(let i=0;i<V.motion.streaks;i++){const phase=(t*1.7+i*.317)%1,side=i%2,x=side?w-phase*80:phase*80,y=h*(.32+(i*.173)% .46),length=40+phase*120;ctx.globalAlpha=(1-phase)*.5;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+(side?-length:length),y);ctx.stroke();}ctx.globalAlpha=1;}
+    // Signed pace also renders them during the reverse FINAL approach.
+    if(pace!==0&&!lowMotion){ctx.strokeStyle='#e4ddba25';ctx.lineWidth=1;for(let i=0;i<V.motion.streaks;i++){const phase=((Math.abs(t)*1.7+i*.317)%1+1)%1,side=i%2,x=side?w-phase*80:phase*80,y=h*(.32+(i*.173)% .46),length=40+phase*120,dir=pace<0?-1:1;ctx.globalAlpha=(1-phase)*.5;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+dir*(side?-length:length),y);ctx.stroke();}ctx.globalAlpha=1;}
     if(this.state){this.drawTacticalRanges?.(ctx,w,h);this.drawImpactAreas?.(ctx,w,h);if(this.state.battle?.boss)this.drawBoss(ctx,w,h);this.drawEnemies(ctx,w,h,t);this.drawProjectiles(ctx,w,h);this.drawParticles(ctx,w,h);this.renderMovingCrew(this.state);}
     if(now-lastUI>V.refreshMs){lastUI=now;this.updateHUD();this.renderCars();if(this.state)this.renderOrders();}
-    const wheelDuration=pace===0?'paused':'running';document.querySelectorAll('.wheel').forEach(el=>{el.style.animationPlayState=wheelDuration;el.style.animationDuration=`${.22/Math.max(.2,pace)}s`;});
+    const wheelDuration=pace===0?'paused':'running';document.querySelectorAll('.wheel').forEach(el=>{el.style.animationPlayState=wheelDuration;el.style.animationDirection=pace<0?'reverse':'normal';el.style.animationDuration=`${.22/Math.max(.2,Math.abs(pace))}s`;});
   };
   game.drawEnemies=function(ctx,w,h,t){
     for(const e of [...this.state.enemies].sort((a,b)=>b.x-a.x)){

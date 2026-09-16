@@ -1,7 +1,7 @@
 /* 0.6.0 is the first external-save baseline. Add ordered steps; never replace them. */
 (()=>{
  const g=lastRail,D=GAME_DATA,C=META_CONFIG;
- const F=window.SAVE_FORMAT={gameVersion:'0.9.1',saveFormatVersion:1,maxBytes:8*1024*1024,migrations:[],idMaps:{turrets:{},modules:{},skills:{},upgrades:{},modifications:{}},retired:{turrets:{},modules:{},upgrades:{}},fallbackEquipmentRefund:{money:100,scrap:20}};
+ const F=window.SAVE_FORMAT={gameVersion:'1.0',saveFormatVersion:2,maxBytes:8*1024*1024,migrations:[],idMaps:{turrets:{},modules:{},skills:{},upgrades:{},modifications:{}},retired:{turrets:{},modules:{},upgrades:{}},fallbackEquipmentRefund:{money:100,scrap:20}};
  F.migrations.push({from:'0.6.0',fromFormat:1,to:'0.7.0',toFormat:1,migrate(){/* v0.7 asset loading does not alter save data. */}});
  F.migrations.push({from:'0.7.0',fromFormat:1,to:'0.8.0',toFormat:1,migrate(){/* v0.8 PC controls do not alter save data. */}});
  F.migrations.push({from:'0.8.0',fromFormat:1,to:'0.9.0',toFormat:1,migrate(save){
@@ -22,6 +22,33 @@
    run.powerCapacityBonus=(Number(run.powerCapacityBonus)||0)+run.enginePowerBonus091;
   }
  }});
+ F.migrations.push({from:'0.9.1',fromFormat:1,to:'1.0',toFormat:2,migrate(save,notes){
+  // 1.0 keeps all permanent progression while adding FINAL/TITAN, revised Apocalypse rules and lore records.
+  save.records=save.records&&typeof save.records==='object'&&!Array.isArray(save.records)?save.records:{};
+  save.records.codex=save.records.codex&&typeof save.records.codex==='object'&&!Array.isArray(save.records.codex)?save.records.codex:{};
+  const book=save.records.codex;
+  for(const key of ['gear','enemies','crew','skills','events'])if(!Array.isArray(book[key]))book[key]=[];
+  if(!Array.isArray(book.loreRead))book.loreRead=[];
+  if(!book.results||typeof book.results!=='object'||Array.isArray(book.results))book.results={};
+
+  const meta=save.metaProgress||{};
+  meta.apocalypseUnlocked=Math.max(0,Math.min(10,Math.floor(Number(meta.apocalypseUnlocked)||0)));
+  meta.apocalypseCleared=Math.max(-1,Math.min(10,Math.floor(Number.isFinite(Number(meta.apocalypseCleared))?Number(meta.apocalypseCleared):-1)));
+  meta.apocalypseSelected=Math.max(0,Math.min(meta.apocalypseUnlocked,Math.floor(Number(meta.apocalypseSelected)||0)));
+
+  // Old node checkpoints remain valid. Only transient TITAN presentation state is discarded;
+  // FINAL combat reconstructs it when the boss actually starts.
+  const run=save.currentRun?.state;
+  if(run){
+   delete run.titanEnginePower09;
+   delete run.titanWorldPace10;
+   run.loop09=Math.max(1,Math.floor(Number(run.loop09)||1));
+   if(run.metaRun){
+    run.metaRun.apocalypse=Math.max(0,Math.min(10,Math.floor(Number(run.metaRun.apocalypse)||0)));
+   }
+  }
+  notes?.push('1.0 정식 출시 데이터 구조로 변환: 종말 진행도·기록 보관소·FINAL ACT 호환 정보를 정리했습니다.');
+ }});
  window.SAVE_MIGRATIONS=F.migrations;
  const obj=v=>v&&typeof v==='object'&&!Array.isArray(v),copy=v=>JSON.parse(JSON.stringify(v)),arr=v=>Array.isArray(v)?v:[],n=(v,d=0)=>Number.isFinite(v)?v:d,clamp=(v,max,min=0)=>Math.max(min,Math.min(max,Math.floor(n(v,min))));
  const version=v=>{if(typeof v!=='string'||!/^\d+\.\d+(\.\d+)?$/.test(v))throw Error('게임 버전 정보가 올바르지 않습니다.');return v.split('.').map(Number).concat([0]).slice(0,3);};
@@ -41,7 +68,7 @@
   const m=s.metaProgress;for(const k of ['relics','spent','totalEarned','clears','act2Clears','maxPoints'])m[k]=Math.max(0,n(m[k]));m.schema=C.version;m.upgrades=levels({...s.upgrades,...(s.captainUpgrades||{})},notes,m);m.discovered=obj(m.discovered)?m.discovered:{turrets:[],enemies:[]};
   const doom=obj(s.apocalypse)?s.apocalypse:{};m.apocalypseUnlocked=clamp(doom.unlocked??m.apocalypseUnlocked,C.apocalypse.length-1);m.apocalypseCleared=clamp(doom.highestClear??m.apocalypseCleared,C.apocalypse.length-1,-1);m.apocalypseSelected=clamp(doom.selected??m.apocalypseSelected,m.apocalypseUnlocked);
   const mods=obj(s.trainModifications)?s.trainModifications:{};m.modifications=Object.fromEntries(Object.entries(mods.unlocked||m.modifications||{}).map(([id,v])=>[map('modifications',id),!!v]).filter(([id])=>C.modifications[id]));let points=m.act2Clears>0?C.points.filter(([at])=>at<=m.spent).at(-1)?.[1]||0:0;m.enabledMods=[...new Set(arr(mods.enabled||m.enabledMods).map(id=>map('modifications',id)))].filter(id=>{const d=C.modifications[id];if(!d||!m.modifications[id]||points<d.points)return false;points-=d.points;return true;});
-  s.records=obj(s.records)?s.records:{};const book=obj(s.records.codex)?s.records.codex:{};for(const k of ['gear','enemies','crew','skills','events'])book[k]=arr(book[k]).filter(v=>typeof v==='string');book.results=obj(book.results)?book.results:{};s.records.codex=book;
+  s.records=obj(s.records)?s.records:{};const book=obj(s.records.codex)?s.records.codex:{};for(const k of ['gear','enemies','crew','skills','events'])book[k]=arr(book[k]).filter(v=>typeof v==='string');book.results=obj(book.results)?book.results:{};book.loreRead=arr(book.loreRead).filter(v=>typeof v==='string');s.records.codex=book;
   m.contentUnlocks={...(m.contentUnlocks||{}),...(s.unlocks||{})};m.contentUnlocks=F.unlocked(m,book);s.unlocks=m.contentUnlocks;
   if(s.currentRun){try{const p=s.currentRun,run=p.state;if(!obj(run)||!Array.isArray(run.cars)||!Array.isArray(run.crew))throw Error();for(const k of ['money','scrap','relics'])run[k]=Math.max(0,n(run[k]));run.metaRun??={upgrades:{},mods:[],apocalypse:0};run.metaRun.upgrades=levels(run.metaRun.upgrades,notes,{relics:0});run.metaRun.mods=arr(run.metaRun.mods).filter(id=>C.modifications[id]);run.metaRun.apocalypse=clamp(run.metaRun.apocalypse,C.apocalypse.length-1);if(run.metaRun.unlockSpent!==undefined)run.metaRun.unlockSpent=Math.max(0,n(run.metaRun.unlockSpent));if(obj(run.metaRun.unlocks)){for(const[k,reg]of Object.entries(registry))run.metaRun.unlocks[k]=[...new Set(arr(run.metaRun.unlocks[k]).filter(id=>reg[id]))];}
    if(run.cars.length>5+(run.metaRun.upgrades.extraCar?1:0))throw Error();

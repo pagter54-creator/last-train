@@ -2,6 +2,14 @@
 (()=>{
  'use strict';
  const g=lastRail,D=GAME_DATA,C=UPDATE09_PART2,copy=x=>JSON.parse(JSON.stringify(x));
+ const finalPrep=()=>g.state?.actId==='titan'&&g.mode!=='battle';
+ // FINAL station is a protected preparation zone: station actions consume resources, never chase distance.
+ const spendTime=g.spendTime.bind(g);
+ g.spendTime=function(seconds){if(finalPrep()){this.updateHUD();return true;}return spendTime(seconds);};
+ const timePreview=g.timePreview.bind(g);
+ g.timePreview=function(seconds,dist=0,departure=false){if(finalPrep()){const before=this.state.titanDistance;return{seconds,delta:0,after:before,finalPrep:true};}return timePreview(seconds,dist,departure);};
+ const timeHTML=g.timeHTML.bind(g);
+ g.timeHTML=function(seconds,dist=0,departure=false){if(finalPrep())return '<span class="time-cost positive">최후의 정비 · 타이탄 추격 정지</span>';return timeHTML(seconds,dist,departure);};
  const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
  const initial=g.makeInitialState.bind(g);g.makeInitialState=function(...args){const s=initial(...args);s.rerollCount=0;return s;};
  g.restockCost09=function(){return C.restock.baseCost+Math.max(0,Math.floor(this.state.rerollCount||0))*C.restock.increment;};
@@ -48,29 +56,37 @@
  g.randomizeMetaEquipment=function(eq,...args){const original=copy(eq),result=randomize(eq,...args);if(this.restockPreparing09){const n=(eq.kind==='turret'?D.TURRETS:D.MODULES)[eq.type]?.name;if(this.stationOffers.seenGear09.includes(n)){for(const key of Object.keys(eq))delete eq[key];Object.assign(eq,original);}}return result;};
  const render=g.renderStation.bind(g);
  g.renderStation=function(...args){const r=render(...args);if(this.mode!=='station'||!this.stationOffers)return r;this.prepareActShop();
-  const summary=document.querySelector('.station-summary');if(summary){const cost=this.restockCost09(),pool=this.restockPool09();summary.innerHTML=`<span class="station-resources09">¤ ${Math.floor(this.state.money)} · ▰ ${Math.floor(this.state.scrap)} · 타이탄 ${this.state.titanDistance.toFixed(2)} km</span>`;const b=document.createElement('button');b.className='station-restock09';b.dataset.restock09='true';b.textContent=`재입고 · ¤ ${cost}`;b.disabled=this.state.money<cost||(!pool.gear.length&&!pool.crew.length);b.title=`판매 장비와 직원을 전부 갱신합니다. 새로운 항목을 우선 표시하며, 전체 후보를 모두 본 뒤에는 기존 후보를 다시 순환합니다. · 누적 ${this.state.rerollCount||0}회`;b.onclick=()=>this.restockStation09();summary.append(b);}
-  if(this.state.actId==='titan'){const h=document.querySelector('#modal h2');if(h)h.textContent='최후의 정비 스테이션';const b=document.querySelector('[data-station-action="depart"]');if(b)b.textContent='정비 완료 → Titan 최종전';}
+  const summary=document.querySelector('.station-summary');if(summary){const cost=this.restockCost09(),pool=this.restockPool09(),final=this.state.actId==='titan';summary.innerHTML=`<span class="station-resources09">¤ ${Math.floor(this.state.money)} · ▰ ${Math.floor(this.state.scrap)} · ${final?'타이탄 추격 정지 · 최종전 준비 중':`타이탄 ${this.state.titanDistance.toFixed(2)} km`}</span>`;const b=document.createElement('button');b.className='station-restock09';b.dataset.restock09='true';b.textContent=`재입고 · ¤ ${cost}`;b.disabled=this.state.money<cost||(!pool.gear.length&&!pool.crew.length);b.title=`판매 장비와 직원을 전부 갱신합니다. 새로운 항목을 우선 표시하며, 전체 후보를 모두 본 뒤에는 기존 후보를 다시 순환합니다. · 누적 ${this.state.rerollCount||0}회`;b.onclick=()=>this.restockStation09();summary.append(b);}
+  if(this.state.actId==='titan'){
+   const h=document.querySelector('#modal h2');if(h)h.textContent='최후의 정비 스테이션';
+   const b=document.querySelector('[data-station-action="depart"],#depart-station');
+   if(b){b.textContent='정비 완료 → TITAN 최종전';b.onclick=e=>{e.preventDefault();e.stopPropagation();if(this.mode!=='station')return;if(this.beginTitanFinalBattle10)this.beginTitanFinalBattle10();else{this.closeOverlay();this.startBoss('titan');}};}
+  }
   this.saveStationCheckpoint09?.();return r;
  };
  const clear=g.bossClear.bind(g);
  g.bossClear=function(...args){const s=this.state,b=s?.battle;if(this.mode==='battle'&&b&&!b.rewardPaid09&&s.actId!=='titan'){b.rewardPaid09=true;const reward=Math.round((D.BALANCE.rewards.battleScrapBase+this.globalStage()*D.BALANCE.rewards.battleScrapPerStage)*C.bossRewardMultiplier);s.scrap+=this.metaGain?.('scrap',reward)??reward;this.log(`보스 격파 · 고철 +${reward} · 고대 잔해 +${D.BOSSES[b.bossId].rewardRelics}`,'hot');}return clear(...args);};
- g.deferTitanBattle09=function(){
-  if(!this.state||this.state.actId!=='act3')return;
-  const cleared=Math.max(0,Number(this.state.metaRun?.apocalypse)||0),beforeRelics=Number(this.meta?.relics)||0;
-  // Reuse the normal clear pipeline so rewards, clear counts, checkpoint cleanup, and
-  // apocalypse progression remain identical to a completed run. Titan combat itself
-  // stays disabled until the 1.0 implementation is ready.
-  this.completeAct();
-  const earned=Math.max(0,(Number(this.meta?.relics)||0)-beforeRelics),unlocked=Math.max(0,Number(this.meta?.apocalypseUnlocked)||0);
-  const unlockText=unlocked>cleared?`종말 단계 ${unlocked}이(가) 해금되었습니다.`:`현재 해금 가능한 최고 종말 단계까지 도달했습니다.`;
-  return this.showDialog('TITAN BATTLE','0.9 · 최종전 준비 중',`타이탄 전투는 아직 준비되지 않았습니다.<br><b>완성된 타이탄 최종전은 LAST RAIL 1.0에서 공개됩니다.</b><br><br>이번 원정은 <b>종말 단계 ${cleared} 클리어</b>로 정상 처리되었습니다.<br>${unlockText}<br>획득한 고대 잔해 ◆ ${earned}`,[
-   {label:'메인 메뉴로',text:'이번 런을 종료하고 해금된 진행도를 저장합니다.',icon:'✓'}
-  ],()=>this.returnMenu());
+ g.enterTitanFinalAct10=function(){
+  const s=this.state;if(!s||s.actId!=='act3'||this.mode!=='result')return false;
+  s.actId='titan';s.stageIndex=0;s.battle=null;s.enemies=[];s.projectiles=[];s.particles=[];s.impacts=[];
+  s.selectedEnemy=null;s.selectedCrew=null;s.selectedCar=null;s.targetMode=null;
+  this.stationOffers=null;this.stationStage=null;this.eventPending=false;
+  this.clearCombatPresentation?.();this.restoreCheckpointEvent?.(null);this.resetCheckpointBoundary?.();
+  this.closeOverlay();this.mode='run';this.enterNode();return true;
+ };
+ // Backward-compatible name: 0.9 deferred TITAN; 1.0 enters the final station immediately.
+ g.deferTitanBattle09=function(){return this.enterTitanFinalAct10();};
+ const showStation=g.showStation.bind(g);
+ g.showStation=function(...args){
+  const r=showStation(...args);if(this.state?.actId!=='titan'||this.mode!=='station')return r;
+  const title=document.querySelector('#modal h2');if(title)title.textContent='최후의 정비 스테이션';
+  const depart=document.querySelector('[data-station-action="depart"],#depart-station');if(depart){depart.textContent='정비 완료 → TITAN 최종전';depart.onclick=e=>{e.preventDefault();e.stopPropagation();if(this.mode!=='station')return;if(this.beginTitanFinalBattle10)this.beginTitanFinalBattle10();else{this.closeOverlay();this.startBoss('titan');}};}
+  return r;
  };
  const dialog=g.showDialog.bind(g);
  g.showDialog=function(title,sub,text,choices,callback,...rest){if(this.state?.actId==='act3'&&this.mode==='result'&&title==='ACT III CLEAR'){
-   return dialog(title,'JANUS 격파 · 마지막 결단','계속 달려 다음 회차로 진입하거나, 도망을 멈추고 타이탄에 맞설 수 있습니다.',[
-    {label:'더 이상 도망치지 않는다.',text:'Titan에 맞선다. ※ 0.9에서는 최종전 대신 현재 종말 단계 클리어로 처리됩니다.',icon:'⚔'},
-    {label:'더 멀리 달린다.',text:'직원·장비·자원·재입고 횟수를 유지하고 다음 회차 ACT I 진입. 더 높은 성장과 파밍을 위해 위험을 누적합니다.',icon:'→'}],(choice,index)=>{if(index===1||choice.label==='더 멀리 달린다.')this.nextEscalation09();else this.deferTitanBattle09();});
+   return dialog(title,'JANUS 격파 · 마지막 결단','계속 달려 다음 회차로 진입하거나, 최후의 정비를 마친 뒤 TITAN에 맞설 수 있습니다.',[
+    {label:'더 이상 도망치지 않는다.',text:'FINAL ACT로 진입해 최후의 정비 후 TITAN과 전투합니다.',icon:'⚔'},
+    {label:'더 멀리 달린다.',text:'직원·장비·자원·재입고 횟수를 유지하고 다음 회차 ACT I 진입. 더 높은 성장과 파밍을 위해 위험을 누적합니다.',icon:'→'}],(choice,index)=>{if(index===1||choice.label==='더 멀리 달린다.')this.nextEscalation09();else this.enterTitanFinalAct10();});
   }return dialog(title,sub,text,choices,callback,...rest);};
 })();

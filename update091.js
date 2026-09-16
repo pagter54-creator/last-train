@@ -97,18 +97,41 @@
   }
   return modal;
  };
- const titanNow=g.titanSpeedNow?.bind(g);
- if(titanNow)g.titanSpeedNow=function(){const n=titanNow();return loopOf()>=2?Math.min(3,n):n;};
+ // 1.0 chase curve. ACT III has a deliberate acceleration arc, while endless can keep
+ // escalating for one more full loop before reaching the 4.0 km/min hard cap.
+ const TITAN_SPEED={act3Start:2.5,act3End:3.0,endlessCap:4.0,act3FirstStage:31,act3LastStage:45};
+ function titanChaseSpeed(){
+  const s=g.state;if(!s)return B.titan.speedBase;
+  const loop=loopOf(),stage=Math.max(1,Math.min(45,g.globalStage?.()||1));
+  if(loop>=2){
+   // Loop 2: 3.0 -> 4.0 over its 45 stages. Loop 3+ stays at the 4.0 cap.
+   const endlessIndex=(loop-2)*45+(stage-1);
+   const progress=clamp(endlessIndex/44,0,1);
+   return TITAN_SPEED.act3End+(TITAN_SPEED.endlessCap-TITAN_SPEED.act3End)*progress;
+  }
+  if(stage>=TITAN_SPEED.act3FirstStage){
+   const progress=clamp((stage-TITAN_SPEED.act3FirstStage)/(TITAN_SPEED.act3LastStage-TITAN_SPEED.act3FirstStage),0,1);
+   return TITAN_SPEED.act3Start+(TITAN_SPEED.act3End-TITAN_SPEED.act3Start)*progress;
+  }
+  // Keep ACT I-II monotonic into the new ACT III entry point instead of letting the
+  // old curve briefly exceed 2.5 and then drop when ACT III begins. Stage 30 reaches 2.5.
+  const preProgress=clamp((stage-1)/(TITAN_SPEED.act3FirstStage-2),0,1);
+  return B.titan.speedBase+(TITAN_SPEED.act3Start-B.titan.speedBase)*preProgress;
+ }
+ g.titanSpeedNow=function(){return titanChaseSpeed();};
  const updateTitan=g.updateTitan.bind(g);
  g.updateTitan=function(dt){
   const s=this.state;if(!s)return updateTitan(dt);
   const result=updateTitan(dt);
-  if(s.actId!=='titan'&&loopOf()>=2&&s.currentTitanSpeed>3){
-   const excess=s.currentTitanSpeed-3;
-   if(dt>0)s.titanDistance=clamp(s.titanDistance+excess*dt/60,0,B.run.maxTitanDistance);
-   s.currentTitanSpeed=3;
-   if(window.MOVEMENT_CONFIG)s.titanSpeed=3*MOVEMENT_CONFIG.unitsPerKm/MOVEMENT_CONFIG.secondsPerMinute;
-  }
+  // The FINAL TITAN fight owns its own synchronized chase speed. Do not override it here.
+  if(s.actId==='titan')return result;
+  const oldSpeed=Number(s.currentTitanSpeed)||0,desired=titanChaseSpeed();
+  // The wrapped update already applied distance using oldSpeed. Correct only that delta so
+  // travel, station previews and live chase all agree on the same speed curve.
+  if(dt>0&&Number.isFinite(oldSpeed))s.titanDistance=clamp(s.titanDistance+(oldSpeed-desired)*dt/60,0,B.run.maxTitanDistance);
+  s.currentTitanSpeed=desired;
+  if(window.MOVEMENT_CONFIG)s.titanSpeed=desired*MOVEMENT_CONFIG.unitsPerKm/MOVEMENT_CONFIG.secondsPerMinute;
+  else s.titanSpeed=desired*1000/60;
   return result;
  };
  applyCurve();

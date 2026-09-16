@@ -9,8 +9,26 @@
   warp:{cooldown:24,specialized:8,wide:65,levelReduction:1},
   recoveryDrone:{cooldown:100,levelReduction:4,hpRatio:.35},medical:{interval:3,hp:2},
   makeshift:{restoreRatio:.5},
-  titan:{travelSpring:8,travelDamping:5,nearLimit:-.3,farLimit:.3,warning:[2.8,2.5,1.8],interval:[4,3.4,1.5],
-   damage:[{near:115,center:26,far:105},{near:135,center:32,far:125},{near:120,center:24,far:115}],crewDamage:4}
+  titan:{
+   travelSpring:8,travelDamping:5,rearSafe:.28,frontSafe:-.28,reverseSafe:.42,
+   interval:[3.4,3.0,2.8],
+   telegraph:{
+    missile:2.7,stomp:3.0,debris:1.8,walk:2.2,
+    arm:2.8,laser:3.0,railCrush:7.5,trackDebris:1.8,droneApproach:3.4,droneCut:4.0,
+    guidedTrack:3.0,guidedLock:1.8,exhaust:2.6,predictiveMissile:3.0
+   },
+   damage:{
+    missile:{type:'current',rate:.37,min:.10,splash:.040},
+    stomp:{type:'current',rate:.44,min:.11,edge:.040},debris:{type:'max',rate:.035},
+    arm:{type:'current',rate:.42,min:.11},laser:{type:'current',rate:.40,min:.10},
+    railCrush:{type:'current',rate:.60,min:.15},trackDebris:{type:'max',rate:.033},
+    exhaust:{type:'current',rate:.39,min:.10},predictiveMissile:{type:'current',rate:.36,min:.09},
+    guidedCharge:{type:'current',rate:.55,min:.13}
+   },
+   drone:{hp:150,armor:.18,facilityRate:.025,crewDamage:5,approach:3.4,cut:4.0,count:2},
+   switch:{minHp:360,dpsSeconds:2.15,hpCap:1900},
+   core:{openSeconds:5.5,finaleRatio:.22}
+  }
  };
  B.run.maxTitanDistance=99.9;
  for(const[id,name,icon,damage,interval,range,heat,price,pierce]of [
@@ -33,10 +51,11 @@
  D.ACTS.act3.nextAct='titan';
  D.ACTS.titan={id:'titan',label:'FINAL',name:'최후의 정비',finalAct:true,stageOffset:45,boss:'titan',intro:'도망의 끝. 마지막 정비를 마치고 Titan에 도전합니다.',stages:[{node:'station',title:'최후의 정비 스테이션'}]};
  const part=(id,name,hp,armor,x,y,phase,weapon=false)=>({id,name,hp,armor,x,y,type:id,phase,weapon,victory:false});
- D.BOSSES.titan={name:'TITAN',title:'TITAN · 더 이상 도망치지 않는다',duration:300,attack:{interval:4},sharedHp:21000,rewardRelics:12,parts:[
-  part('titanLegL','왼쪽 다리',2800,.45,.2,.5,1),part('titanLegR','오른쪽 다리',2800,.45,.3,.5,1),
-  part('titanBody','상체 동력부',6500,.55,.25,.35,2),part('titanMortar','거대 곡사포',1500,.3,.15,.25,2,true),part('titanGun','제압 기관포',1400,.25,.36,.3,2,true),
-  part('titanHead','비행 머리',6000,.3,.27,.27,3)]};
+ D.ENEMIES.titanAssaultDrone={...D.ENEMIES.boarder,name:'TITAN 강습 드론',icon:'◆',hp:C.titan.drone.hp,armor:C.titan.drone.armor,speed:0,carDamage:0,crewDamage:C.titan.drone.crewDamage,interval:2.2,boards:true,special:true,fromStage:999,rhythmMinStage:999,threatCost:0,tags:['BOARDING','SPECIAL']};
+ D.BOSSES.titan={name:'TITAN',title:'TITAN · 더 이상 도망치지 않는다',duration:420,attack:{interval:4},sharedHp:23000,rewardRelics:12,parts:[
+  part('titanLegL','왼쪽 다리',3000,.45,.17,.45,1),part('titanLegR','오른쪽 다리',3000,.45,.31,.45,1),
+  part('titanBody','무한궤도 동력부',7200,.52,.24,.34,2),part('titanArm','강습 팔',1800,.34,.14,.31,2,true),part('titanHeadGun','머리 레이저',1700,.30,.34,.26,2,true),
+  part('titanCore','로켓 추진 코어',6300,.28,.23,.28,3)]};
  for(const[id,b]of Object.entries(D.BOSSES))if(id!=='titan')b.rewardRelics=Math.round(B.rewards.battleRelics*C.bossRewardMultiplier);
  const schedule=window.configureStationSchedule;
  window.configureStationSchedule=function(level){schedule(level);D.ACTS.titan.stages=[{node:'station',title:'최후의 정비 스테이션'}];};

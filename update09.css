@@ -4,12 +4,103 @@
 .engine-isolate09{position:absolute;top:-25px;right:4px;z-index:6;padding:3px 7px;font:11px sans-serif;color:#c8f1f5;background:#19363e;border:1px solid #7bbecb;border-radius:4px;cursor:pointer}
 .engine-isolate09:disabled{opacity:.55;cursor:default}
 .module-ready09{box-shadow:0 0 14px #70f6c8!important;border-color:#8effd8!important}
-.titan-position09{position:fixed;top:105px;right:18px;z-index:45;max-width:430px;background:#11272be8;color:#e7d6b1;border:1px solid #ba9863;border-radius:9px;padding:12px}
-.titan-position09[hidden]{display:none}.titan-position09 p{color:#ffbb78;margin:7px 0}.titan-position09 button{padding:8px;background:#284347;color:#efdfbf;border:1px solid #6c8882;cursor:pointer}.titan-position09 button.active{background:#916737}.titan-position09 small{display:block;margin-top:8px}
-@media(max-width:700px){.titan-position09{top:75px;right:8px;max-width:300px;font-size:11px;padding:7px}.titan-position09 button{padding:6px;font-size:11px}}
+.titan-position09{position:fixed;top:122px;right:18px;z-index:45;width:min(420px,calc(100vw - 92px));background:linear-gradient(180deg,#102328f2,#0d181bdc);color:#ead8b6;border:1px solid #8a6b44;border-radius:14px;padding:14px 15px;box-shadow:0 18px 45px #0007,0 0 0 1px #1f3138 inset;backdrop-filter:blur(7px)}
+.titan-position09[hidden],.titan-sideplate09[hidden]{display:none}
+.titan-ui09-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:10px}
+.titan-ui09-head small{display:block;color:#87a6aa;font:11px/1.2 sans-serif;letter-spacing:.18em}
+.titan-ui09-head b{display:block;font:28px/1 "Black Han Sans";letter-spacing:.1em;color:#f0dfbe}
+.titan-ui09-phase{display:inline-flex;align-items:center;justify-content:center;min-width:86px;padding:6px 10px;border-radius:999px;background:#4d3c27;color:#f2e0b6;border:1px solid #b28e5f;font:bold 12px/1 sans-serif;letter-spacing:.14em}
+.titan-ui09-zone{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border-radius:10px;background:#13262a;border:1px solid #2e5057;margin-bottom:8px}
+.titan-zone-kicker{font:11px/1 sans-serif;letter-spacing:.14em;color:#7ca1a6}
+.titan-ui09-zone strong{font:16px/1.25 "Black Han Sans";letter-spacing:.04em;color:#f0e5cc}
+.titan-ui09-attack{margin:0 0 10px;color:#ffbf78;font:14px/1.4 sans-serif}
+.titan-ui09-buttons{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.titan-ui09-buttons button{padding:9px 8px 10px;background:linear-gradient(180deg,#1f353b,#132328);color:#efdfbf;border:1px solid #5b797a;border-radius:10px;cursor:pointer;text-align:left;transition:.15s}
+.titan-ui09-buttons button span{display:block;font:11px/1 sans-serif;color:#9eb6b0;letter-spacing:.08em}
+.titan-ui09-buttons button b{display:block;margin-top:6px;font-size:18px}
+.titan-ui09-buttons button.active{background:linear-gradient(180deg,#8f6738,#6c4e29);border-color:#e5b16b;color:#fff1d1;box-shadow:0 0 0 1px #e0b06a44 inset,0 0 18px #cf8f2833}
+.titan-ui09-buttons button:hover:not(.active){border-color:#d2a96a;color:#fff1d0}
+.titan-ui09-legend{display:grid;grid-template-columns:1fr;gap:4px;margin-top:10px;padding-top:10px;border-top:1px solid #294349;font-size:11px;color:#93a8a8}
+.titan-sideplate09{position:fixed;left:22px;top:165px;z-index:44;width:76px;height:330px;background:linear-gradient(180deg,#0e1e25,#14242a 58%,#463a2b 58%,#6d5a43);border:1px solid #8a6c45;border-left:4px solid #c38a5c;border-radius:16px;box-shadow:0 18px 40px #0007;overflow:hidden}
+.titan-sideplate09:before{content:"";position:absolute;left:12px;right:12px;bottom:20px;height:62px;border-top:2px solid #97b1b4;border-left:2px solid #97b1b4;transform:skewY(18deg);opacity:.55}
+.titan-sideplate09-inner{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:14px 8px 18px;color:#f2ead7}
+.titan-sideplate09 small{font:10px/1 sans-serif;letter-spacing:.14em;color:#86a0a7;margin-bottom:14px;text-align:center}
+.titan-sideplate09 b{writing-mode:vertical-rl;text-orientation:upright;font:36px/1 "Black Han Sans";letter-spacing:.04em;color:#f6f2e7;text-shadow:0 0 14px #000a}
+.titan-sideplate09-phase{margin-top:auto;padding:7px 8px;border-radius:999px;background:#14272d;border:1px solid #527274;color:#e6d3a8;font:11px/1 sans-serif;letter-spacing:.12em;transform:rotate(-90deg)}
+body.titan-final09 .threat-strip{height:88px;background:linear-gradient(180deg,#102227,#0d171b);border-bottom-color:#294044;box-shadow:0 8px 28px #0006 inset}
+body.titan-final09 .threat-copy strong{font-size:22px;color:#efe2c2}
+body.titan-final09 .threat-track{height:10px;background:#223033;border:1px solid #405355}
+body.titan-final09 .threat-fill{background:linear-gradient(90deg,#56746d,#d4aa6d,#f1d2a0)}
+body.titan-final09 .threat-track i{top:-26px}
+body.titan-final09 .train-pin{color:#f1e2bd;font-size:17px}
+body.titan-final09 .titan-pin{color:#df8f66;font-size:20px;transform:none}
+body.titan-final09 .battle-clock{border-left-color:#d19962;background:#081113df;box-shadow:0 0 0 1px #324449 inset}
+body.titan-final09 .battle-clock b{font-size:18px;line-height:1.25;color:#efe1c2}
+body.titan-final09 .speed-controls button.active{background:#d0a264;border-color:#d0a264;color:#101111}
+body.titan-final09 .canvas-wrap{background:linear-gradient(180deg,#161a1a,#101516)}
+body.titan-final09 #train-cars{background:none;border-top:0;box-shadow:none}
+body.titan-final09.titan-phase-1 .titan-ui09-phase,body.titan-final09.titan-phase-1 .titan-sideplate09-phase{background:#4a3d2c;border-color:#b58e62}
+body.titan-final09.titan-phase-2 .titan-ui09-phase,body.titan-final09.titan-phase-2 .titan-sideplate09-phase{background:#5a462c;border-color:#c6a06b}
+body.titan-final09.titan-phase-3 .titan-ui09-phase,body.titan-final09.titan-phase-3 .titan-sideplate09-phase{background:#66442c;border-color:#e1aa67}
+@media(max-width:1000px){
+  .titan-position09{right:12px;width:min(360px,calc(100vw - 84px))}
+  .titan-sideplate09{left:12px;top:176px;width:64px;height:286px}
+  .titan-sideplate09 b{font-size:30px}
+}
+@media(max-width:700px){
+  .titan-position09{top:82px;right:8px;left:78px;width:auto;padding:10px 11px;border-radius:12px}
+  .titan-ui09-head b{font-size:20px}.titan-ui09-phase{min-width:70px;padding:5px 8px;font-size:11px}
+  .titan-ui09-zone{padding:8px 9px}.titan-ui09-zone strong{font-size:13px}.titan-ui09-attack{font-size:12px}
+  .titan-ui09-buttons{grid-template-columns:repeat(3,1fr);gap:6px}.titan-ui09-buttons button{padding:7px 6px 8px}.titan-ui09-buttons button b{font-size:15px}
+  .titan-ui09-legend{font-size:10px;gap:3px}
+  .titan-sideplate09{left:8px;top:122px;width:58px;height:232px;border-radius:12px}.titan-sideplate09 small{font-size:9px;margin-bottom:10px}.titan-sideplate09 b{font-size:26px}.titan-sideplate09-phase{font-size:10px;padding:6px 7px}
+}
 .station-summary{display:flex;align-items:center;gap:12px;min-height:36px;margin-bottom:10px;color:var(--positive)}
 .station-resources09{min-width:0;flex:1}
 .station-restock09{flex:0 0 auto;border:1px solid #596568;background:#1c2628;color:var(--text);padding:6px 10px;font-size:12px;line-height:1.2;cursor:pointer;white-space:nowrap}
 .station-restock09:hover:not(:disabled){border-color:var(--amber);color:var(--amber)}
 .station-restock09:disabled{opacity:.42;cursor:not-allowed}
 @media(max-width:700px){.station-summary{gap:7px;flex-wrap:wrap}.station-restock09{padding:5px 8px;font-size:11px}}
+
+/* LAST RAIL 1.0 TITAN chase foreground */
+.titan-output10{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px;padding-top:10px;border-top:1px solid #294349}.titan-output10>span{font:10px/1 sans-serif;letter-spacing:.14em;color:#7fa2a6;white-space:nowrap}.titan-output10>div{display:grid;grid-template-columns:repeat(6,32px);gap:4px}.titan-output10 button{width:32px;height:30px;padding:0!important;text-align:center!important;border-radius:7px!important;background:#172b30!important;color:#b6c7c2!important;border:1px solid #45636a!important;font:bold 12px sans-serif!important}.titan-output10 button.active{background:#916737!important;color:#fff0cf!important;border-color:#e2b46d!important;box-shadow:0 0 14px #d8983d55}.titan-output10 button:disabled{opacity:.28;cursor:not-allowed}.titan-ui09-legend{font-size:11px;line-height:1.5;color:#879c9e}.titan-final09 .titan-position09{pointer-events:auto}.titan-final09 #train-cars{transform:none!important;transform-origin:center bottom!important}.titan-final09 .canvas-wrap:after{content:"CHASE FOREGROUND";position:absolute;left:50%;top:9px;transform:translateX(-50%);font:9px/1 sans-serif;letter-spacing:.24em;color:#8aa0a255;pointer-events:none}.titan-final09 .battle-note{opacity:.45}.titan-final09 .threat-copy strong{font-size:17px}.titan-final09 .threat-track .train-pin{left:50%;right:auto}.titan-final09 .threat-track .titan-pin{left:0;right:auto}.titan-final09 .titan-ui09-attack{min-height:20px}
+@media(max-width:900px){.titan-output10{align-items:flex-start;flex-direction:column}.titan-output10>div{grid-template-columns:repeat(6,28px)}.titan-output10 button{width:28px;height:27px}.titan-position09{width:min(350px,calc(100vw - 86px))}}
+@media(max-width:700px){.titan-output10>span{font-size:9px}.titan-output10>div{grid-template-columns:repeat(6,25px);gap:3px}.titan-output10 button{width:25px;height:25px;font-size:10px!important}.titan-ui09-legend{display:none}.titan-position09{left:68px;right:7px;width:auto}}
+.titan-drone-target10{outline:2px dashed #e8785f!important;outline-offset:3px;animation:titan-drone-target10 .75s ease-in-out infinite alternate}.titan-drone-target10:after{content:"DRONE";position:absolute;right:8px;top:-23px;padding:3px 6px;background:#5b261fcc;border:1px solid #e8785f;color:#ffd3c5;font:bold 9px sans-serif;letter-spacing:.1em}@keyframes titan-drone-target10{from{filter:drop-shadow(0 0 2px #e8785f55)}to{filter:drop-shadow(0 0 10px #e8785faa)}}
+@media(prefers-reduced-motion:reduce){.titan-drone-target10{animation:none}}
+
+/* 1.0 TITAN HOTFIX 02: cinematic chase presentation and lower-train-only power control. */
+.titan-position09,.titan-sideplate09{display:none!important}
+body.titan-final09 .canvas-wrap{transition:transform 1.05s cubic-bezier(.2,.75,.2,1),filter .55s ease;transform-origin:50% 48%}
+body.titan-final09.titan-intro-prezoom10 .canvas-wrap{transform:scale(1.075)}
+body.titan-final09.titan-intro-zoom10 .canvas-wrap{transform:scale(1)}
+body.titan-final09 .threat-strip{transition:height .45s ease,min-height .45s ease,padding .45s ease,opacity .45s ease,transform .45s ease}body.titan-final09 .battle-clock{transition:opacity .75s ease,transform .75s ease}
+body.titan-final09.titan-intro10 .threat-strip{opacity:1!important;pointer-events:none;transform:translateY(0)!important;height:88px!important;min-height:88px!important;padding:12px 24px!important;border-bottom:1px solid var(--line)!important;overflow:visible}
+body.titan-final09.titan-intro10:not(.titan-intro-ui10) .battle-clock{opacity:0;pointer-events:none;transform:translateY(-8px)}
+body.titan-final09.titan-intro-ui10 .battle-clock{opacity:1;transform:translateY(0)}
+body.titan-final09:not(.titan-intro10) .threat-strip{height:0!important;min-height:0!important;padding-top:0!important;padding-bottom:0!important;margin:0!important;border:0!important;opacity:0!important;overflow:hidden!important;pointer-events:none!important}
+body.titan-final09 .canvas-wrap:after{display:none!important}
+body.titan-final09 .wheel{animation-play-state:running}
+body.titan-phase-shift10 .threat-strip{opacity:.72}
+@media(prefers-reduced-motion:reduce){body.titan-final09 .canvas-wrap,body.titan-final09 .threat-strip,body.titan-final09 .battle-clock{transition:none}}
+
+/* 1.0 TITAN HOTFIX 03: use the real player train for the FINAL approach cinematic. */
+body.titan-final09.titan-intro10 #train-cars{pointer-events:none;transition:scale 1.05s cubic-bezier(.2,.75,.2,1)}
+body.titan-final09.titan-intro-prezoom10 #train-cars{scale:1.075}
+body.titan-final09.titan-intro-zoom10 #train-cars{scale:1}
+body.titan-final09.titan-intro-reverse10 .wheel{animation-direction:reverse!important;animation-play-state:running!important}
+body.titan-final09.titan-intro10 .orders-dock,body.titan-final09.titan-intro10 .hint{opacity:0;pointer-events:none;transition:opacity .35s ease}
+body.titan-final09:not(.titan-intro10) .orders-dock,body.titan-final09:not(.titan-intro10) .hint{opacity:1;transition:opacity .35s ease}
+#world-stage .station-backdrop.titan-station-departing10{will-change:translate,opacity;z-index:4}
+@media(prefers-reduced-motion:reduce){body.titan-final09.titan-intro10 #train-cars{transition:none}}
+
+/* 1.0 TITAN HOTFIX 05: keep the real player train visually identical to normal battles. */
+body.titan-final09 #train-cars{background:none!important;border:0!important;box-shadow:none!important}
+
+/* 1.0 TITAN HOTFIX 08: phase HP readout and vertically centered chase foreground. */
+.titan-health10{position:absolute;z-index:7;left:50%;top:34px;transform:translateX(-50%);width:min(520px,52vw);padding:9px 12px 8px;background:#071012dc;border:1px solid #7b684d;border-radius:9px;box-shadow:0 7px 22px #0008;pointer-events:none;color:#eadfc7;backdrop-filter:blur(4px)}
+.titan-health10[hidden]{display:none}
+.titan-health10-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:6px}.titan-health10-name{font:bold 12px/1 sans-serif;letter-spacing:.16em;color:#f0d7a6}.titan-health10-value{font:12px/1 sans-serif;color:#fff0cf}
+.titan-health10-track{height:9px;background:#1d2728;border:1px solid #465352;overflow:hidden}.titan-health10-track i{display:block;height:100%;width:100%;background:linear-gradient(90deg,#b76048,#df9c57,#e9c37d);transition:width .18s linear}
+.titan-health10-parts{display:block;margin-top:5px;text-align:center;font:10px/1.25 sans-serif;color:#9faaa6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media(max-width:700px){.titan-health10{top:26px;width:min(430px,70vw);padding:7px 9px 6px}.titan-health10-name,.titan-health10-value{font-size:10px}.titan-health10-parts{font-size:9px}}

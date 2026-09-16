@@ -17,18 +17,21 @@
  // Preserve the opening baseline. HP growth rises slightly each ACT while Threat growth stays unchanged.
  const firstHp=D.STAGE_CURVE[0].hp,firstBudget=C.stageOverrides.act1[1].budget;
  const hpStepByAct=[.028,.032,.036];
+ // 1.0 difficulty pass: ACT III was too soft relative to the player's accumulated build.
+ // Raise only enemy durability, not enemy damage, so the pressure comes from kill time / target backlog.
+ const ACT3_HP_MULTIPLIER=1.35;
  D.STAGE_CURVE.length=0;
  let hp=firstHp;
  for(let i=0;i<45;i++){
   const actIndex=Math.floor(i/15),act='act'+(actIndex+1),local=i%15+1,duration=75+i*1.25;
   if(i>0)hp+=hpStepByAct[actIndex];
-  D.STAGE_CURVE.push({stage:i+1,targetPI:65+i*3,hp,damage:.7+i*.018,count:1+i*.008,duration});
+  const stageHp=actIndex===2?hp*ACT3_HP_MULTIPLIER:hp;
+  D.STAGE_CURVE.push({stage:i+1,targetPI:65+i*3,hp:stageHp,damage:.7+i*.018,count:1+i*.008,duration});
   C.stageOverrides[act]??={};C.stageOverrides[act][local]={budget:firstBudget+i*5,duration,eliteDuration:1};
  }
  C.eliteBudget=1.3;R.elite.hp=1.12;R.elite.damage=1.18;
  D.BALANCE.battle.eliteHp=1;D.BALANCE.battle.eliteDamage=1;
- META_CONFIG.apocalypse[1].enemyHp=.03;META_CONFIG.apocalypse[2].budget=.06;META_CONFIG.apocalypse[5].enemyHp=.06;
- META_CONFIG.apocalypseText[1]='적·정예·보스 HP +3%, 피해 +5%';META_CONFIG.apocalypseText[2]='위협 예산 +6%';META_CONFIG.apocalypseText[5]='적·정예·보스 HP 추가 +6%, 피해 추가 +10%';
+ // 1.0 apocalypse tiers are defined authoritatively in meta-config.js.
  PROGRESSION_CONFIG.stars.progressStages=45;ELITE_CONFIG.fireCaps.act3=ELITE_CONFIG.fireCaps.act2;
  const add=(id,base,stats,cost,tags)=>{D.ENEMIES[id]={...D.ENEMIES[base],...stats,fromStage:31,rhythmMinStage:31,threatCost:cost,tags};C.roles[id]={cost,tags,min:31};};
  add('connectorBlocker','biker',{name:'차단병',hp:90,armor:.15,carDamage:2,crewDamage:1,behavior:'connectorBlocker'},18,['DISRUPTION']);
