@@ -273,3 +273,19 @@
  [['focus-order','1'],['command-order','2'],['armor-order','3']].forEach(([id,key])=>{const el=document.getElementById(id);if(el)el.querySelector('.order-key').textContent=key;});
  renderCarKeyHints();
 })();
+
+
+/* 1.0.1 PC mouse: suppress the browser context menu and map right-click to Escape. */
+(()=>{
+  'use strict';
+  if(window.__lastRailRightClickEscape)return;
+  window.__lastRailRightClickEscape=true;
+  document.addEventListener('contextmenu',e=>{
+    e.preventDefault();
+    // A genuine mouse right-click behaves exactly like the keyboard Escape key.
+    if(e.button===2){
+      const esc=new KeyboardEvent('keydown',{key:'Escape',code:'Escape',bubbles:true,cancelable:true});
+      document.dispatchEvent(esc);
+    }
+  },{capture:true});
+})();
