@@ -45,12 +45,15 @@
   const one=id==='makeshiftRepair';D.MODULES[id]={name,icon,price,description,effect:id,range:0,upgradeable:!one,maxLevel:one?1:5,auxSlotUnlockLevel:one?null:3,auxEfficiency:E.auxEfficiency,level5Capstone:one?'강화 불가':'재사용 시간 감소'};
   E.modules[id]={cap:D.MODULES[id].level5Capstone};
  }
+ // Extend the ancient-equipment category to late-game recovered hardware.
+ const ancientFlavor=window.LAST_RAIL_ANCIENT_GEAR_FLAVOR||{};
+ for(const id of ['interceptor','penetrator','swiftWarp','makeshiftRepair','recoveryDrone']){const d=D.TURRETS[id]||D.MODULES[id];if(d){d.ancient=true;d.flavor=ancientFlavor[id]||d.flavor;}}
  delete D.MODULES.medical.stageHealMult;
  D.MODULES.medical.description='전투 중 범위 내 살아 있는 직원을 3초마다 지속 회복 (전투불능 복귀는 회복 드론).';
  E.modules.medical.cap='Lv5: 전투 중 회복량 +50%';D.MODULES.medical.level5Capstone=E.modules.medical.cap;
  D.ACTS.act3.nextAct='titan';
  D.ACTS.titan={id:'titan',label:'FINAL',name:'최후의 정비',finalAct:true,stageOffset:45,boss:'titan',intro:'도망의 끝. 마지막 정비를 마치고 Titan에 도전합니다.',stages:[{node:'station',title:'최후의 정비 스테이션'}]};
- const part=(id,name,hp,armor,x,y,phase,weapon=false)=>({id,name,hp,armor,x,y,type:id,phase,weapon,victory:false});
+ const part=(id,name,hp,armor,x,y,phase,weapon=false)=>({id,name,hp,armor:.35,x,y,type:id,phase,weapon,victory:false});
  D.ENEMIES.titanAssaultDrone={...D.ENEMIES.boarder,name:'TITAN 강습 드론',icon:'◆',hp:C.titan.drone.hp,armor:C.titan.drone.armor,speed:0,carDamage:0,crewDamage:C.titan.drone.crewDamage,interval:2.2,boards:true,special:true,fromStage:999,rhythmMinStage:999,threatCost:0,tags:['BOARDING','SPECIAL']};
  D.BOSSES.titan={name:'TITAN',title:'TITAN · 더 이상 도망치지 않는다',duration:420,attack:{interval:4},sharedHp:23000,rewardRelics:12,parts:[
   part('titanLegL','왼쪽 다리',3000,.45,.17,.45,1),part('titanLegR','오른쪽 다리',3000,.45,.31,.45,1),

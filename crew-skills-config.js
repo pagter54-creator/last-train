@@ -1,6 +1,6 @@
 /* Shared skill definitions. New numbers are provisional tuning values. */
 (()=>{
- const D=GAME_DATA,C=window.CREW_SKILLS_CONFIG={eventWeight:.18,history:3,stanceSeconds:8,closeRange:.22,lowHull:.3,lastHull:.2,firstAidHp:.25,firstAidHeal:.25,toughHp:.3,toughRemain:1,maxSupport:.5,maxStatBonus:1,maxDamageReduction:.75,maxWeaponBonus:1,trainingTime:.45,rareTime:.7,failureHp:12,highFailureHp:25,baseChance:.7,highChance:.55,ancientTypes:['tesla'],fireReductionCap:.85};
+ const D=GAME_DATA,C=window.CREW_SKILLS_CONFIG={eventWeight:.18,history:3,stanceSeconds:8,closeRange:.22,lowHull:.3,lastHull:.2,firstAidHp:.25,firstAidHeal:.25,toughHp:.3,toughRemain:1,maxSupport:.5,maxStatBonus:1,maxDamageReduction:.75,maxWeaponBonus:1,trainingTime:.45,rareTime:.7,failureHp:12,highFailureHp:25,baseChance:.7,highChance:.55,ancientTypes:['tesla','repulsor','frost','interceptor','penetrator','overdrive','swiftWarp','makeshiftRepair','recoveryDrone','cooling'],fireReductionCap:.85};
  const add=(id,name,category,text,effect,exclusive=false)=>{D.TRAITS[id]={...D.TRAITS[id],id,name,category,text,description:text,effect,canBeNormalSkill:!exclusive,canBeEventSkill:true,eventExclusive:exclusive};};
  for(const[id,t]of Object.entries(D.TRAITS))Object.assign(t,{id,category:'legacy',description:t.text,effect:{},canBeNormalSkill:true,canBeEventSkill:true,eventExclusive:false});
  add('marksman','명사수','combat','기존 개인화기·포탑 피해 +15% 유지 · 개인화기 사거리 +25%',{range:.25});
@@ -42,7 +42,23 @@
  add('wastelandHunter','황무지의 사냥꾼','story','정예 대상 개인화기 피해 +45% · 정예가 살아 있는 동안 이동속도 +30%',{eliteDamage:.45,eliteMove:.3},true);
  window.CREW_SKILLS=D.TRAITS;
  for(const [id,e]of Object.entries(D.ENEMIES)){e.mechanical??=!e.boards&&e.behavior!=='infiltrator';if(/drone/i.test(id)||e.specialBehavior==='stealth')e.family='drone';}
- const event=(id,title,pool,skill=null,extra={})=>({id,act:1,crewGrowth:true,title,text:'직원 한 명을 선택해 훈련이나 임무를 맡깁니다. 습득한 스킬은 이벤트 슬롯에 저장됩니다.',choices:[{id:'pass',label:'통과한다',time:0,reward:{}},{id:'train',label:'직원을 파견한다',dispatch:true,time:extra.time??C.trainingTime,reward:{},...(skill?{skill,chance:extra.chance??C.baseChance,outcomes:[{weight:1,title:'임무 성공',text:'새로운 경험을 얻었다.',reward:{skillReward:{pool,count:extra.count??Math.min(3,pool.length||3)}}},{weight:1,title:'부상 후 귀환',text:'훈련을 마치지 못했다.',reward:{actorDamage:extra.damage??C.failureHp}}]}:{reward:{skillReward:{pool,count:extra.count??3}}})}]});
+ const eventTexts={
+  skill_abandonedSchool:'무너진 교실과 운동장 사이로 오래된 훈련 표식이 남아 있다. 먼지 쌓인 교재와 장비 중에는 아직 배울 만한 것이 있어 보인다.',
+  skill_firingRange:'모래에 반쯤 묻힌 군용 사격장이 선로 옆에 나타났다. 표적판은 녹슬었지만 사선과 훈련 장비는 아직 쓸 수 있을 듯하다.',
+  skill_fieldWorkshop:'문이 반쯤 열린 야전 정비소 안에 공구와 용접 장비가 어지럽게 남아 있다. 벽에는 오래된 응급수리 절차가 손글씨로 덧붙여져 있다.',
+  skill_railAcademy:'폐쇄된 철도 운용 교육소의 제어실에 낡은 시뮬레이터가 켜져 있다. 전력 배분과 포탑 운용 기록이 아직 단말기에 남아 있다.',
+  skill_survivorCamp:'작은 생존자 캠프에서 여러 사람이 돌아가며 경계와 치료, 화재 진압을 맡고 있다. 며칠만 함께 지내도 그들의 요령을 배울 수 있을 것 같다.',
+  skill_militaryBase:'폐군사기지의 훈련장은 곳곳이 무너졌지만 실전용 장애물과 사격 구역은 남아 있다. 위험해 보이지만 평범한 훈련보다 훨씬 많은 것을 배울 수 있을 것이다.',
+  skill_rescue:'붕괴한 객차와 잔해 사이에서 구조 훈련용 표식과 장비를 발견했다. 실제 사고 현장처럼 복잡한 통로가 그대로 남아 있다.',
+  skill_instructor:'홀로 선로를 걷던 노련한 여행자가 우리 열차를 유심히 바라본다. "한 명쯤은 내가 아는 걸 가르쳐 줄 수 있겠군."',
+  skill_fireRescue:'불길에 휩싸인 잔해 안에서 구조 요청이 들려온다. 연기 사이로 누군가가 손전등을 흔들고 있다.',
+  skill_lastDefense:'무너져 가는 방어 객차 안에 아직 사람들이 남아 있다. 철판 너머로 적의 사격이 이어지고, 방어선은 오래 버티지 못할 듯하다.',
+  skill_neuralLink:'고대 장치의 의자와 신경 접속 단자가 아직 살아 있다. 화면에는 해독할 수 없는 파형이 반복되고 있다.',
+  skill_engineDefense:'추격자들의 흔적이 기관차 쪽 선로에 집중되어 있다. 누군가는 엔진 가까이에서 끝까지 자리를 지켜야 한다.',
+  skill_lifeRescue:'앞서 나간 동료의 무전이 갑자기 끊겼다. 마지막으로 확인된 위치에는 적의 흔적과 급하게 남긴 구조 신호만 보인다.',
+  skill_eliteHunt:'거대한 궤적과 부서진 기계 잔해가 황무지 쪽으로 이어진다. 보통 적보다 훨씬 위험한 무언가가 가까이 지나간 흔적이다.'
+ };
+ const event=(id,title,pool,skill=null,extra={})=>({id,act:1,crewGrowth:true,title,text:eventTexts[id]||'황무지에서 새로운 훈련 기회를 발견했다.',choices:[{id:'pass',label:'통과한다',time:0,reward:{}},{id:'train',label:'직원을 파견한다',dispatch:true,time:extra.time??C.trainingTime,reward:{},...(skill?{skill,chance:extra.chance??C.baseChance,outcomes:[{weight:1,title:'임무 성공',text:'새로운 경험을 얻었다.',reward:{skillReward:{pool,count:extra.count??Math.min(3,pool.length||3)}}},{weight:1,title:'부상 후 귀환',text:'훈련을 마치지 못했다.',reward:{actorDamage:extra.damage??C.failureHp}}]}:{reward:{skillReward:{pool,count:extra.count??3}}})}]});
  const combat=['marksman','armorAmmo','antiAir','closeTraining','eliteHunter','steadyStance'];
  EVENT_CONFIG.events.push(
   event('skill_abandonedSchool','폐훈련소','normal',null,{count:1}),event('skill_firingRange','군용 사격장',combat,'combat'),
@@ -56,6 +72,5 @@
   event('skill_neuralLink','고대 신경 접속 장치',['ancientWhisper'],'operate'),event('skill_engineDefense','철로를 지키는 맹세',['railOath'],'repair'),
   {...event('skill_lifeRescue','동료 구조 작전',['lifeDebt'],'recovery'),requiresCompanion:true},event('skill_eliteHunt','정예 추적 사냥',['wastelandHunter'],'combat',{chance:C.highChance})
  );
- const stories={skill_fireRescue:'불길에 갇힌 생존자가 구조를 요청합니다. 직원을 보내 위험을 감수하고 구조하면 불길 속에서 살아남는 법을 배웁니다.',skill_lastDefense:'붕괴 직전의 방어 객차에 사람들이 남았습니다. 마지막까지 방어선을 지킬 직원을 고르세요.',skill_neuralLink:'고대 신경 접속 장치가 작동합니다. 직원 한 명이 접속을 시도하면 고대 장비의 신호를 이해할 수 있습니다.',skill_engineDefense:'추격자들이 기관차를 노립니다. 철로와 엔진을 지킬 직원을 선택하세요.',skill_lifeRescue:'동료 한 명이 위험에 처했습니다. 구조에 나설 직원을 선택하세요. 성공하면 함께 싸우는 동료에게 힘을 얻습니다.',skill_eliteHunt:'정예 기계의 흔적을 발견했습니다. 추적과 사냥에 성공한 직원은 황무지의 사냥꾼이 됩니다.'};
- for(const e of EVENT_CONFIG.events)if(stories[e.id])e.text=stories[e.id];
+
 })();

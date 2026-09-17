@@ -3,7 +3,7 @@
  'use strict';
  const D=GAME_DATA,C=COMBAT_CONFIG,R=REVISION_CONFIG;
  window.UPDATE09={
-  lightning:{interval:30,warning:3.5,repairSeconds:5,repairPerStat:.08,overcharge:10,rodSeconds:12,rodPerLevel:2},
+  lightning:{interval:30,warning:5.0,repairSeconds:12,repairPerStat:.08,overcharge:10,rodSeconds:12,rodPerLevel:2},
   enemies:{droneRepair:.65,droneMove:.65,airdropSeconds:3,airdropCount:3,jamSeconds:5,jamInterval:12,forwardInterval:13},
   janus:{wallHp:160,wallDpsPerCombat:1.2,wallRetaliation:1,wallVisual:.25,reposition:6,swapAfter:25,swapSeconds:1.2,mergeAfter:50,wallDeployDelay:2.4,splitSeconds:28,mergeSeconds:14,splitAttackDelay:3.2,mergeAttackDelay:2.4,attackInterval:5.2,mergeAttackInterval:5.5,warning:1.8,heavyWarning:2.2,multiWarning:1.8,heatWarning:1.5,droneWarning:2,heavyCurrentHpRatio:.10,multiMaxHpRatio:.055,multiTargets:3,crewDamage:1,heatShot:50,heatDroneHp:30,heatDroneCoolingMult:.55,verdictDelay:5.5,verdictWarning:3,verdictFlipAt:1.2,verdictFlipRatio:.34,verdictCurrentHpRatio:.08,verdictHeat:45,verdictCoolingDebuff:4,verdictCoolingMult:.65,vulnerableSeconds:3.5,vulnerableDamageMult:1.25},
   events:{generatorBase:.60,generatorPerRepair:.025,generatorGreat:.15,engineerDemand:.4,engineerScrap:100,memoryBase:.65,memoryPerRecovery:.025,memoryWaitBase:.85,memoryGreat:.2}
@@ -49,17 +49,17 @@
  D.BOSSES.janus={name:'JANUS',duration:420,rewardRelics:22,sharedHp:7200,attack:{interval:4,carDamage:23,crewDamage:1},parts:[
   {type:'janusCrusher',name:'JANUS · 파괴형',hp:3600,armor:.18,x:.68,y:.35},
   {type:'janusHeater',name:'JANUS · 과열형',hp:3600,armor:.18,x:.92,y:.58}]};
- const ch=(id,label,reward={},extra={})=>({id,label,time:0,reward,...extra});
+ const ch=(id,label,reward={},extra={})=>({id,label,time:extra.time??0,reward,...extra});
  const ev=(id,title,text,choices,extra={})=>({id,act:3,title,text,choices,...extra});
  const pass=()=>ch('pass','지나간다');
  EVENT_CONFIG.events.push(
-  ev('relic_converter','고대 잔해 변환기','왕복 교환에는 손실이 발생합니다. 한 가지 교환을 선택하세요.',[
-   ch('money','잔해 5 → 돈 150',{money:150},{cost:{relics:5}}),ch('scrap','잔해 5 → 고철 75',{scrap:75},{cost:{relics:5}}),ch('relicMoney','돈 180 → 잔해 5',{relics:5},{cost:{money:180}}),ch('relicScrap','고철 90 → 잔해 5',{relics:5},{cost:{scrap:90}}),pass()]),
-  ev('generator_explosion','발전기 폭발','직원 한 명이 반드시 복구를 시도해야 합니다. 수리 능력에 따라 최대 전력 공급이 +1 / 유지 / −1 됩니다.',[ch('repair','발전기 복구 담당 선택',{part09:'generator'},{dispatch:true})],{requiresStaff:true}),
-  ev('engineer_group','엔지니어 집단','모든 객차를 최대 내구의 70%만큼 회복합니다. 40% 확률로 고철 100을 요구하며, 부족하면 포탑 하나를 골라 넘겨야 합니다.',[ch('accept','수리를 의뢰한다',{repairRatio:.7,part09:'engineers'},{requiresTurretOrScrap:100}),pass()]),
-  ev('memory_damage','직원 기억 손상','기억을 잃은 직원이 발생했습니다. 적극 치료는 다른 직원의 회복 능력, 기다리기는 당사자의 회복 능력을 사용합니다.',[ch('treat','다른 직원에게 적극 치료를 맡긴다',{part09:'memoryTreat'},{dispatch:true,excludePatient:true}),ch('wait','기억이 돌아오기를 믿는다',{part09:'memoryWait'})],{requiresStaff:true}),
-  ev('elite_encounter','정예 조우','철로를 가로막은 정예 부대가 통행료를 요구합니다.',[ch('fight','정예 부대와 전투한다',{part09:'eliteBattle'}),ch('pay','돈 160을 지불하고 통과한다',{}, {cost:{money:160}})]),
-  ev('relic_cache','고대 잔해 대량 발견','뇌우가 드러낸 저장고에 고대 잔해가 남아 있습니다.',[ch('take','잔해를 회수한다',{relics:[18,28]})],{weight:.15}),
-  ev('lightning_rod','피뢰침 획득','버려진 낙뢰 관측소에서 특수 피뢰침 모듈을 발견했습니다.',[ch('take','피뢰침을 회수한다',{part09:'lightningRod'}),pass()])
+  ev('relic_converter','고대 잔해 변환기','벼락에 그을린 자동 교환기가 아직 희미하게 작동하고 있다. 투입구 옆에는 돈과 고철, 고대 잔해의 낡은 교환표가 붙어 있다.',[
+   ch('money','잔해 5 → 돈 150',{money:150},{cost:{relics:5},time:.45}),ch('scrap','잔해 5 → 고철 75',{scrap:75},{cost:{relics:5},time:.45}),ch('relicMoney','돈 180 → 잔해 5',{relics:5},{cost:{money:180},time:.45}),ch('relicScrap','고철 90 → 잔해 5',{relics:5},{cost:{scrap:90},time:.45}),pass()]),
+  ev('generator_explosion','발전기 폭발','객차 아래에서 굉음과 함께 불꽃이 튀었다. 타버린 발전기 내부에서 전선이 계속 스파크를 일으키고 있다.',[ch('repair','발전기 복구 담당 선택',{part09:'generator'},{dispatch:true,time:.65})],{requiresStaff:true}),
+  ev('engineer_group','엔지니어 집단','폭풍을 피해 선로 옆에 자리 잡은 기술자들이 우리 열차를 훑어본다. "고칠 수는 있어. 문제는 대가가 뭐냐는 거지."',[ch('accept','수리를 의뢰한다',{repairRatio:.7,part09:'engineers'},{requiresTurretOrScrap:100,time:.55}),pass()]),
+  ev('memory_damage','직원 기억 손상','낙뢰 충격이 지나간 뒤, 직원 한 명이 자신의 이름조차 제대로 떠올리지 못한다. 익숙한 객차를 낯선 곳처럼 둘러보고 있다.',[ch('treat','다른 직원에게 적극 치료를 맡긴다',{part09:'memoryTreat'},{dispatch:true,excludePatient:true,time:.65}),ch('wait','기억이 돌아오기를 믿는다',{part09:'memoryWait'},{time:.45})],{requiresStaff:true}),
+  ev('elite_encounter','무법자 캠프','선로를 가로질러 폐차와 철판으로 만든 무법자 캠프가 길을 막고 있다. 망루 위의 총구가 우리를 따라 움직이고, 입구에서는 통행료를 요구하는 손짓이 보인다.',[ch('fight','정예 부대와 전투한다',{part09:'eliteBattle'},{time:.35}),ch('pay','돈 160을 지불하고 통과한다',{}, {cost:{money:160},time:.30})]),
+  ev('relic_cache','고대 잔해 대량 발견','연속된 낙뢰가 지반을 갈라 오래된 저장고를 드러냈다. 깨진 문틈 사이로 고대 잔해 특유의 희미한 빛이 새어 나온다.',[ch('take','잔해를 회수한다',{relics:[18,28]},{time:.60})],{weight:.15}),
+  ev('lightning_rod','피뢰침 획득','버려진 낙뢰 관측소의 철탑이 폭풍 속에서도 홀로 서 있다. 제어실에는 열차에 장착할 수 있을 법한 특수 피뢰 장치가 남아 있다.',[ch('take','피뢰침을 회수한다',{part09:'lightningRod'},{time:.50}),pass()])
  );
 })();

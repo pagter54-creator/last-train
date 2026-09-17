@@ -1,7 +1,7 @@
 /* 0.6.0 is the first external-save baseline. Add ordered steps; never replace them. */
 (()=>{
  const g=lastRail,D=GAME_DATA,C=META_CONFIG;
- const F=window.SAVE_FORMAT={gameVersion:'1.0',saveFormatVersion:2,maxBytes:8*1024*1024,migrations:[],idMaps:{turrets:{},modules:{},skills:{},upgrades:{},modifications:{}},retired:{turrets:{},modules:{},upgrades:{}},fallbackEquipmentRefund:{money:100,scrap:20}};
+ const F=window.SAVE_FORMAT={gameVersion:'1.0.1',saveFormatVersion:2,maxBytes:8*1024*1024,migrations:[],idMaps:{turrets:{},modules:{},skills:{},upgrades:{},modifications:{}},retired:{turrets:{},modules:{},upgrades:{}},fallbackEquipmentRefund:{money:100,scrap:20}};
  F.migrations.push({from:'0.6.0',fromFormat:1,to:'0.7.0',toFormat:1,migrate(){/* v0.7 asset loading does not alter save data. */}});
  F.migrations.push({from:'0.7.0',fromFormat:1,to:'0.8.0',toFormat:1,migrate(){/* v0.8 PC controls do not alter save data. */}});
  F.migrations.push({from:'0.8.0',fromFormat:1,to:'0.9.0',toFormat:1,migrate(save){
@@ -48,6 +48,10 @@
    }
   }
   notes?.push('1.0 정식 출시 데이터 구조로 변환: 종말 진행도·기록 보관소·FINAL ACT 호환 정보를 정리했습니다.');
+ }});
+ F.migrations.push({from:'1.0',fromFormat:2,to:'1.0.1',toFormat:2,migrate(save,notes){
+  // 1.0.1 changes event presentation/text only; persistent progression is unchanged.
+  notes?.push('1.0.1 이벤트 연출 및 설명 텍스트 호환 정보를 적용했습니다.');
  }});
  window.SAVE_MIGRATIONS=F.migrations;
  const obj=v=>v&&typeof v==='object'&&!Array.isArray(v),copy=v=>JSON.parse(JSON.stringify(v)),arr=v=>Array.isArray(v)?v:[],n=(v,d=0)=>Number.isFinite(v)?v:d,clamp=(v,max,min=0)=>Math.max(min,Math.min(max,Math.floor(n(v,min))));

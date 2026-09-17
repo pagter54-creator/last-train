@@ -28,7 +28,7 @@
    shield:{capacity:60,recharge:14,capRecharge:.65,cap:'Lv5: 실드 재충전 시간 35% 감소'},
    autoRepair:{repair:.55,emergency:2.5,cap:'Lv5: 내구 30% 이하 수리량 ×2.5'},
    grinder:{money:8,scrap:5,elite:1.2,boss:1.5,capBonus:1.5,cap:'Lv5: 완료 보상 +50%'},
-   targeting:{range:.18,edge:.8,edgeDamage:.22,cap:'Lv5: 최대 사거리 80% 이상 거리의 적 피해 +22%'}
+   targeting:{range:.10,rangeGrowth:.25,edge:.8,edgeDamage:.22,cap:'Lv5: 최대 사거리 80% 이상 거리의 적 피해 +22%'}
   }
  };
  W.maxLevel=C.maxTurretLevel;Object.assign(W.costs,{6:115,7:160,8:230});B.upgrade.heatPerLevel=.025;B.moduleUpgrade.perLevel=C.moduleGrowth;
@@ -43,6 +43,22 @@
  for(const t of Object.values(D.TURRETS))t.heat*=C.baseHeatMultiplier;
  const names={overdrive:['과열 증폭 모듈','▲',125],crewArms:['승무원 강화 모듈','✚',105],shield:['실드 모듈','◇',140],autoRepair:['자동수리 모듈','⚒',115],grinder:['분쇄기 모듈','¤',130],targeting:['조준 보조 모듈','◎',110]};
  for(const[id,[name,icon,price]]of Object.entries(names))D.MODULES[id]={name,icon,price,effect:id,range:0,description:C.modules[id].cap};
+ // Ancient equipment is a real gameplay/category flag, not just a codex label.
+ // Later update files add more marked equipment using the same shared flavor table.
+ const ancientFlavor=window.LAST_RAIL_ANCIENT_GEAR_FLAVOR={
+  tesla:'코일의 권선 수와 입력 전압은 계산이 맞지 않는다. 그런데 전류는 손실 없이 다음 표적으로 뛰어간다. 정비반은 원리를 설명하는 대신 절연 장갑을 두 겹 낀다.',
+  repulsor:'폭약도 탄체도 없는데 공기가 먼저 밀려난다. 내부의 검은 공진판을 분해한 사람은 있었지만, 같은 배열로 다시 조립해 작동시킨 사람은 없었다.',
+  frost:'냉매 탱크도 압축기도 보이지 않는다. 전원을 넣으면 포신의 안쪽부터 서리가 피고, 맞은 금속은 한겨울처럼 굳는다. 어디로 열이 사라지는지는 아직 모른다.',
+  interceptor:'사격통제 장치는 표적이 나타나기 전부터 포신을 움직일 때가 있다. 오작동으로 기록하려 했지만, 몇 초 뒤 늘 그 방향에서 무언가가 날아왔다.',
+  penetrator:'탄체가 장갑을 뚫었다기보다 장갑이 아주 짧은 순간 비켜난 것처럼 흔적이 남는다. 포수들은 관통포라 부르지만, 기술자들은 그 이름부터 정확하지 않다고 말한다.',
+  overdrive:'보통 장비는 열을 버려야 오래 버틴다. 이 모듈은 반대로 열이 쌓일수록 더 많은 출력을 끌어낸다. 왜 녹지 않는지는 설명서에도 적혀 있지 않다.',
+  swiftWarp:'이동 명령 뒤 직원은 분명 다음 객차에서 발견된다. 문제는 두 객차 사이의 감시 기록에서 몇 프레임이 통째로 비어 있다는 것이다.',
+  makeshiftRepair:'파손된 철판에 장치를 대면 용접도 하지 않았는데 균열이 닫힌다. 재료를 채워 넣는 것이 아니라, 객차가 멀쩡했던 모양을 잠깐 기억해내는 것처럼 보인다.',
+  recoveryDrone:'의무반은 이 드론의 처치 순서를 이해하지 못한다. 맥박보다 먼저 신경 반응이 돌아오고, 약물 투여 기록 없이 호흡이 안정된다. 그래도 살아난 사람은 이유를 묻지 않는다.',
+  cooling:'열교환기에서 바깥으로 빠져나가는 열이 측정되지 않는다. 그런데 포신의 온도는 내려간다. 정비반은 장치 주변에서 장시간 잠들지 말라는 규칙만 추가했다.'
+ };
+ const markAncient=id=>{const d=D.TURRETS[id]||D.MODULES[id];if(!d)return;d.ancient=true;d.flavor=ancientFlavor[id]||d.flavor;};
+ for(const id of ['tesla','repulsor','frost','overdrive','cooling'])markAncient(id);
  for(const[id,t]of Object.entries(D.TURRETS)){const spec=C.turret[id]||C.turret.cannon;t.maxLevel=8;t.rangeType=t.range;t.heatGenerationRule=spec.heatRule;t.highHeatEffect=spec.highEffect;t.criticalHeatEffect=spec.criticalEffect;t.level8Capstone=spec.cap;t.baseStats={damage:t.damage,interval:t.interval,heat:t.heat,cool:t.cool};}
  for(const[id,m]of Object.entries(D.MODULES)){m.maxLevel=m.upgradeable===false?1:5;m.auxSlotUnlockLevel=m.upgradeable===false?null:3;m.auxEfficiency=C.auxEfficiency;m.level5Capstone=C.modules[id]?.cap||'기본 기능 강화';}
  B.train.carNames[5]=C.extraCar.name;B.station.carPrices[2]=C.extraCar.price;

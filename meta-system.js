@@ -83,8 +83,11 @@
   const engineHealPulses=engineHealEligible?Math.floor((s.engineHealTick||0)/5):0;
   if(engineHealPulses>0)s.engineHealTick-=engineHealPulses*5;
   for(const [i,c]of s.cars.entries()){
-   if(c.hp<=0)continue;
-   let hp=c.armor>0?value('armorHeal')*seconds:0;
+   if(c.hp<=0){c.armorHealTick=0;continue;}
+   if(c.armor>0)c.armorHealTick=(c.armorHealTick||0)+seconds;else c.armorHealTick=0;
+   const armorHealPulses=c.armor>0?Math.floor((c.armorHealTick||0)/5):0;
+   if(armorHealPulses>0)c.armorHealTick-=armorHealPulses*5;
+   let hp=armorHealPulses>0?value('armorHeal')*armorHealPulses:0;
    if(i===0&&engineHealPulses>0)hp+=value('engineHeal')*engineHealPulses;
    c.hp=Math.min(c.maxHp,c.hp+hp);
    if(i===0&&mod('pressure')&&this.effectiveCarPower(0)>=4&&c.armor<=0)c.hp=Math.max(0,c.hp-c.maxHp*C.tuning.pressureHpPerSecond*seconds);

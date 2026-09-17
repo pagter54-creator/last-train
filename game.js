@@ -350,7 +350,7 @@
         const workDt=this.crewWorkStep?this.crewWorkStep(c,dt):dt;
         const boarders = s.enemies.filter(e => !e.dead && e.boarded && e.targetCar === c.car);
         const repairPriorityRatio=window.SURVIVABILITY_CONFIG?.repairPriorityHpRatio??0.30;
-        const emergencyRepairPriority=car.hp<=0||(car.maxHp>0&&car.hp/car.maxHp<=repairPriorityRatio);
+        const emergencyRepairPriority=boarders.length===0&&(car.hp<=0||(car.maxHp>0&&car.hp/car.maxHp<=repairPriorityRatio));
 
         // Normally crew defend first and repair only after immediate threats are handled.
         // At critical hull (<= configured ratio) or after destruction, everyone on that
@@ -465,7 +465,7 @@
       for (const operator of operators) {
         if (operator.traits.includes('gunner') && eq.type === 'gatling') { interval *= D.TRAITS.gunner.gatlingIntervalMult; heat *= D.TRAITS.gunner.gatlingHeatMult; }
         if (operator.traits.includes('marksman')) damage *= D.TRAITS.marksman.damageMult;
-        if (operator.traits.includes('scholar') && eq.type === 'tesla') damage *= D.TRAITS.scholar.ancientDamageMult;
+        if (operator.traits.includes('scholar') && D.TURRETS[eq.type]?.ancient) damage *= D.TRAITS.scholar.ancientDamageMult;
       }
       heat *= this.moduleEffect(carIndex, 'cooling', 'heatMult');
       if (t.ammo) damage *= this.moduleEffect(carIndex, 'ammo', 'ammoDamageMult');
@@ -575,6 +575,12 @@
       const stage = this.globalStage(), elite = s.battle.elite;
       let money = B.rewards.battleMoneyBase + stage * B.rewards.battleMoneyPerStage;
       let scrap = B.rewards.battleScrapBase + stage * B.rewards.battleScrapPerStage;
+      // 1.0.1 risk/reward pass: standard battles after ACT I pay substantially less money.
+      // Elite rewards keep their existing premium so choosing a harder node still has a clear payoff.
+      if (!elite) {
+        if (s.actId === 'act2') money = Math.round(money * 0.65);
+        else if (s.actId === 'act3') money = Math.round(money * 0.50);
+      }
       if (elite) { money = Math.round(money * B.rewards.eliteMultiplier); scrap = Math.round(scrap * B.rewards.eliteMultiplier); }
       const relics = this.rewardRelics09?.(B.rewards.battleRelics + (elite ? B.rewards.eliteBonusRelics : 0)) ?? (B.rewards.battleRelics + (elite ? B.rewards.eliteBonusRelics : 0));
       money=this.metaGain?.('money',money)??money;scrap=this.metaGain?.('scrap',scrap)??scrap;
@@ -756,7 +762,7 @@
     }
 
     findEquipment(id) { for(const c of this.state.cars){const e=c.equipment.find(x=>x.id===id);if(e)return e;} return null; }
-    moduleDescription(m) { const map={cooling:'과열 억제 및 냉각 강화',medical:'전투 후 직원 회복 강화',repair:'객차 수리 속도 강화',ammo:'실탄 포탑 피해 강화',generator:'배분 가능한 추가 전력 +1'}; return map[m.effect]; }
+    moduleDescription(m) { const map={cooling:'포탑 냉각 강화',medical:'전투 후 직원 회복 강화',repair:'객차 수리 속도 강화',ammo:'실탄 포탑 피해 강화',generator:'배분 가능한 추가 전력 +1'}; return map[m.effect]; }
 
     selectCrew(id) {
       if (!this.state) return; const crew=this.state.crew.find(c=>c.id===id); if(!crew)return;

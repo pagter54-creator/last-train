@@ -27,6 +27,9 @@
  function currentHpDamage(car,rate,minRate){return Math.max(Math.max(0,car.hp)*rate,Math.max(0,car.maxHp)*minRate);}
  function damageByRule(car,rule){return rule?.type==='max'?maxHpDamage(car,rule.rate):currentHpDamage(car,rule?.rate||0,rule?.min||0);}
  function intactCars(){return g.state.cars.map((car,index)=>({car,index})).filter(x=>x.car.hp>0);}
+ function staffedCars(){return intactCars().filter(x=>g.state.crew.some(c=>!c.dead&&c.hp>0&&c.car===x.index));}
+ function weightedCar(list){if(!list.length)return null;const entries=list.map(x=>({c:x.car,i:x.index})),picked=g.pickBossTargetCar09?.(entries);return list.find(x=>x.index===picked)||list[0];}
+ function turretOrdinal(eq,ci){let n=0;for(let i=0;i<g.state.cars.length;i++)for(const item of g.state.cars[i].equipment||[])if(item.kind==='turret'){if(item===eq)return n;n++;}return Math.max(0,ci||0);}
  function nearestCarByNorm(norm){
   const list=intactCars();if(!list.length)return 0;
   // The visual chase train faces right, but the real car array starts with the engine/front car.
@@ -286,9 +289,9 @@
   g.state.enemies.push(e);return e;
  }
  function startDrones(){
-  const live=intactCars();if(!live.length)return;
-  const shuffled=[...live].sort(()=>Math.random()-.5).slice(0,Math.min(C.drone.count,live.length));
-  shuffled.forEach((x,i)=>spawnDrone(x.index,i*.55));
+  const pool=[...staffedCars()];if(!pool.length)return;
+  const chosen=[];while(pool.length&&chosen.length<Math.min(C.drone.count,pool.length+chosen.length)){const x=weightedCar(pool);if(!x)break;chosen.push(x);pool.splice(pool.indexOf(x),1);}
+  chosen.forEach((x,i)=>spawnDrone(x.index,i*.55));
  }
 
  function beginPattern(type){
@@ -373,7 +376,7 @@
   if(e?.titanSwitch10)return true;
   if(e?.titanDrone10){
    if(e.boarded)return oldSpecial?.(e,dt)||false;
-   const car=this.state.cars[e.targetCar];if(!car||car.hp<=0){const target=intactCars()[0];if(!target){e.dead=true;return true;}e.targetCar=target.index;}
+   const car=this.state.cars[e.targetCar],staffed=car&&car.hp>0&&this.state.crew.some(c=>!c.dead&&c.hp>0&&c.car===e.targetCar);if(!staffed){const target=weightedCar(staffedCars());if(!target){e.dead=true;return true;}e.targetCar=target.index;}
    if(e.titanDroneState==='approach'){
     e.approachLeft=Math.max(0,e.approachLeft-dt);e.x=.22+.58*(e.approachLeft/e.approachTotal);
     if(e.approachLeft<=0){e.titanDroneState='cut';e.x=B.battle.boardDistance+.01;this.playSound?.('boardingAlarm');this.log(`${this.state.cars[e.targetCar].name} · 강습 드론 외벽 절단`,'bad');}
@@ -394,29 +397,26 @@
  };
 
  const oldPick=g.pickTurretTarget.bind(g);
- g.pickTurretTarget=function(ci,turret){
-  if(!active())return oldPick(ci,turret);
+ g.pickTurretTarget=function(ci,turret,eq){
+  if(!active())return oldPick(ci,turret,eq);
   const b=this.state.battle,t=b?.titan10,focus=this.state.orders.focus,sw=switchTarget();
   // Rail-crush switches remain a Focus Fire-only environmental target.
   if(sw&&focus.active>0&&focus.target===sw.id)return sw;
 
-  // During the actual chase every turret can engage TITAN regardless of world distance,
-  // its normal min/max range, or the relative chase position.  The currently focused
-  // TITAN part still wins when Focus Fire is active.
+  // During the actual chase every turret can engage TITAN regardless of world distance.
+  // Without Focus Fire, turrets round-robin the currently alive parts so multi-part phases
+  // do not collapse all autonomous fire onto a single body piece.
   if(t&&!t.intro&&!t.transition&&b.phaseTransition09<=0){
-   const parts=(b.parts||[]).filter(p=>p.titanPart09&&p.phase===b.phase&&alive(p));
+   let parts=(b.parts||[]).filter(p=>p.titanPart09&&p.phase===b.phase&&alive(p));
    if(focus.active>0&&focus.target){const chosen=parts.find(p=>p.id===focus.target);if(chosen)return chosen;}
-   const vulnerable=t.vulnerableLeft>0&&t.vulnerablePart?parts.find(p=>p.type===t.vulnerablePart):null;
-   const victory=parts.find(p=>p.victory);
-   const body=parts.find(p=>!p.weapon);
-   const target=vulnerable||victory||body||parts[0];
-   if(target)return target;
+   if(t.vulnerableLeft>0&&t.vulnerablePart){const v=parts.find(p=>p.type===t.vulnerablePart);if(v)parts=[v,...parts.filter(p=>p!==v)];}
+   if(parts.length){const n=turretOrdinal(eq,ci);return parts[n%parts.length];}
   }
 
   // Keep the switch out of autonomous targeting when it is not explicitly focused.
-  if(!sw)return oldPick(ci,turret);
+  if(!sw)return oldPick(ci,turret,eq);
   const arr=this.state.enemies,idx=arr.indexOf(sw);if(idx>=0)arr.splice(idx,1);
-  try{return oldPick(ci,turret);}finally{if(idx>=0)arr.splice(idx,0,sw);}
+  try{return oldPick(ci,turret,eq);}finally{if(idx>=0)arr.splice(idx,0,sw);}
  };
 
  const oldDamage=g.damageEnemy.bind(g);
@@ -431,11 +431,12 @@
   if(!target?.titanPart09)return oldDamage(target,amount,pierce);
   if(!active()||!alive(target)||target.phase!==this.state.battle.phase||this.state.battle.phaseTransition09>0||this.state.battle.titan10?.intro||this.state.battle.titan10?.transition)return;
   const b=this.state.battle,t=b.titan10;
+  let mult=1;
   if(target.type==='titanCore'){
-   if(t.coreOpen<=0)return;
-   if(t.finale){const focus=this.state.orders.focus;if(!(focus.active>0&&focus.target===target.id))return;}
+   if(t.coreOpen<=0)mult*=.10;
+   else if(t.finale){const focus=this.state.orders.focus;if(!(focus.active>0&&focus.target===target.id))return;}
   }
-  let mult=1;if(t.vulnerableLeft>0&&target.type===t.vulnerablePart)mult=1.35;
+  if(t.vulnerableLeft>0&&target.type===t.vulnerablePart)mult*=1.35;
   const before=target.hp;
   oldDamage(target,amount*mult,pierce);
   // Safety fallback: no generic boss wrapper is allowed to nullify TITAN damage.
@@ -497,7 +498,7 @@
   if(e?.titanSwitch10){document.querySelector('#inspector').innerHTML=`<h3>선로 변환 장치</h3><p>내구 ${Math.ceil(e.hp)} / ${Math.ceil(e.maxHp)}</p><p>타이탄의 공격 전방에서 접근 중인 선로 설비.</p>`;return;}
   if(!e?.titanPart09)return oldInspect(e);
   const t=this.state.battle.titan10,locked=e.type==='titanCore'&&t.coreOpen<=0;
-  document.querySelector('#inspector').innerHTML=`<h3>TITAN · ${e.name}</h3><p>HP ${Math.ceil(e.hp)} / ${Math.ceil(e.maxHp)} · 장갑 ${Math.round(e.armor*100)}%</p><p>${locked?'장갑판이 닫혀 있어 현재 피해를 줄 수 없습니다.':t.vulnerableLeft>0&&t.vulnerablePart===e.type?'공격 직후 구조가 노출되어 있습니다.':'공격 가능한 타이탄 부위입니다.'}</p>`;
+  document.querySelector('#inspector').innerHTML=`<h3>TITAN · ${e.name}</h3><p>HP ${Math.ceil(e.hp)} / ${Math.ceil(e.maxHp)} · 장갑 ${Math.round(e.armor*100)}%</p><p>${locked?'장갑판 폐쇄 · 받는 피해 90% 감소':t.vulnerableLeft>0&&t.vulnerablePart===e.type?'공격 직후 구조가 노출되어 있습니다.':'공격 가능한 타이탄 부위입니다.'}</p>`;
  };
 
  function updatePhaseTransition(dt){
@@ -822,7 +823,29 @@
  };
 
  const oldCodex=g.bossCodexHTML.bind(g);
- g.bossCodexHTML=function(id){if(id!=='titan')return oldCodex(id);return '<p>TITAN은 엔진 출력에 반응하는 추격전 보스입니다. 전투 화면 상단의 전경은 실제 열차 상태를 복제한 추격 표시이며, 직원·포탑·객차 조작은 기존 열차 UI에서 그대로 수행합니다.</p><p>PHASE 1은 보행 추격, PHASE 2는 복선과 강습 드론, PHASE 3은 움직임을 예측하는 로켓 추격으로 발전합니다. 위험 동작은 애니메이션과 공격 예정 영역으로 먼저 드러납니다.</p><p>대형 공격은 현재 내구 비례 피해와 최소 피해를 함께 사용합니다. 큰 실수를 수리로 복구할 여지는 있지만 손상을 방치하면 결국 객차가 파괴됩니다.</p>';};
+ g.bossCodexHTML=function(id){
+  if(id!=='titan')return oldCodex(id);
+  const boss=D.BOSSES.titan,pct=v=>`${Math.round(v*1000)/10}%`,part=type=>boss.parts.find(p=>p.type===type),rows=[
+   ['장갑',`모든 TITAN 부위 ${Math.round((part('titanCore')?.armor||.35)*100)}%`],
+   ['상대 위치 조작','기관실 출력 1 = 후방 이동 · 출력 2 = 중립 · 출력 3 이상 = 전방 이동'],
+   ['PHASE 1 · 왼쪽/오른쪽 다리',`각 HP ${part('titanLegL').hp} / ${part('titanLegR').hp} · 양쪽 다리 파괴 시 PHASE 2`],
+   ['대각 미사일',`${C.telegraph.missile}초 경고 · 현재 HP ${pct(C.damage.missile.rate)} 피해 · 최소 최대 HP ${pct(C.damage.missile.min)} · 감속해 후방으로 이동하면 회피`],
+   ['발 구르기',`${C.telegraph.stomp}초 경고 · 현재 HP ${pct(C.damage.stomp.rate)} 피해 · 최소 최대 HP ${pct(C.damage.stomp.min)} · 가속해 전방으로 이동하면 회피 + 공격한 다리 ${2.8}초 노출`],
+   ['비산 잔해',`${C.telegraph.debris}초 경고 · 모든 객차 최대 HP ${pct(C.damage.debris.rate)} 피해`],
+   ['PHASE 2 · 무한궤도 동력부',`HP ${part('titanBody').hp} · 강습 팔 ${part('titanArm').hp} · 머리 레이저 ${part('titanHeadGun').hp} · 동력부 파괴 시 PHASE 3`],
+   ['팔 내려찍기',`${C.telegraph.arm}초 경고 · 현재 HP ${pct(C.damage.arm.rate)} 피해 · 최소 최대 HP ${pct(C.damage.arm.min)} · 가속 회피 시 강습 팔 2.5초 노출`],
+   ['머리 레이저',`${C.telegraph.laser}초 경고 · 현재 HP ${pct(C.damage.laser.rate)} 피해 · 최소 최대 HP ${pct(C.damage.laser.min)} · 감속해 후방으로 이동하면 회피`],
+   ['궤도 파편',`${C.telegraph.trackDebris}초 경고 · 모든 객차 최대 HP ${pct(C.damage.trackDebris.rate)} 피해`],
+   ['선로 분쇄',`${C.telegraph.railCrush}초 경고 · 선로 변환 장치를 집중 사격으로 파괴해 반대 선로로 이동 · 실패 시 모든 객차 현재 HP ${pct(C.damage.railCrush.rate)} 피해, 최소 최대 HP ${pct(C.damage.railCrush.min)}`],
+   ['강습 드론',`직원이 있는 객차만 목표 · HP ${C.drone.hp} / 장갑 ${Math.round(C.drone.armor*100)}% · 접근 ${C.drone.approach}초 + 외벽 절단 ${C.drone.cut}초 · 승선 후 객차 최대 HP ${pct(C.drone.facilityRate)} 피해 및 직원 피해 ${C.drone.crewDamage}`],
+   ['PHASE 3 · 로켓 추진 코어',`HP ${part('titanCore').hp} · 폐쇄 중 받는 피해 90% 감소 · 회피 성공 시 ${C.core.openSeconds}초 정상 노출`],
+   ['로켓 배기',`${C.telegraph.exhaust}초 경고 · 현재 HP ${pct(C.damage.exhaust.rate)} 피해 · 최소 최대 HP ${pct(C.damage.exhaust.min)} · 가속해 전방으로 이동하면 회피`],
+   ['예측 미사일',`${C.telegraph.predictiveMissile}초 경고 · 현재 이동을 예측한 위치 고정 · 고정 뒤 반대 방향으로 충분히 이동하면 회피 · 실패 시 현재 HP ${pct(C.damage.predictiveMissile.rate)}, 최소 최대 HP ${pct(C.damage.predictiveMissile.min)}`],
+   ['유도 돌진',`${C.telegraph.guidedTrack}초 추적 + ${C.telegraph.guidedLock}초 LOCK · 잠금 후 이동 방향을 반전해 ${C.reverseSafe} 이상 벗어나면 회피 · 실패 시 인접 2칸 현재 HP ${pct(C.damage.guidedCharge.rate)}, 최소 최대 HP ${pct(C.damage.guidedCharge.min)}`],
+   ['최종 압박',`코어 HP ${pct(C.core.finaleRatio)} 이하에서는 유도 돌진을 반복 · 코어 노출 중 최종 구간은 집중 사격으로 코어를 지정해야 피해 가능`]
+  ];
+  return '<p>TITAN은 일반적인 고정형 보스가 아니라 열차와 함께 달리는 최종 추격전입니다. 전투 중 열차의 실제 기관실 출력을 바꾸면 추격 전경의 상대 위치가 변하며, 대부분의 대형 패턴은 그 위치를 이용해 회피합니다.</p><p>세 페이즈는 보행형 → 무한궤도형 → 로켓 추진형으로 이어집니다. 모든 공격은 명확한 전조 뒤 실행되며, 강공격은 고정 수치가 아니라 객차의 현재 HP 또는 최대 HP 비율을 기준으로 피해를 줍니다.</p><table class="codex-table">'+rows.map(([k,v])=>`<tr><th>${k}</th><td>${v}</td></tr>`).join('')+'</table><p>공략 핵심: 공격 전조를 보고 기관실 출력을 바꾸는 것이 기본입니다. PHASE 2의 선로 분쇄는 집중 사격을 별도로 남겨 두어야 하며, PHASE 3에서는 LOCK이 끝난 뒤 방향을 바꾸는 것이 핵심입니다. 회피로 열린 추진 코어가 가장 중요한 화력 집중 구간입니다.</p>';
+ };
 
  const oldEnding=g.showEnding.bind(g);
  g.showEnding=function(earned){const r=oldEnding(earned);if(this.state?.actId==='titan'){const box=document.querySelector('.ending');if(box){box.querySelector('.clear').textContent='LAST RAIL · TITAN CLEAR';box.querySelector('h2').textContent='이제, 쫓기지 않는다.';box.querySelector('p').innerHTML='거대한 추격자의 마지막 추진광이 황무지 너머로 사라졌다.<br>선로 위에는 엔진과 바퀴 소리만 남았다.<br><b>마지막 열차는 더 이상 도망치지 않는다.</b>';}}return r;};

@@ -11,7 +11,7 @@
  const disrupted=ci=>!intact(g.state?.cars[ci])||!!g.state.cars[ci].breakerBroken;
  const roster=ci=>g.state.crew.filter(c=>!c.dead&&c.hp>0&&!c.moving&&c.car===ci);
  const old={};
- for(const k of ['updateCrew','updateSpecialEnemy','setCarPower','effectiveCarPower','availableEnginePower','equipmentActive','moduleData','eventEquipmentDisabled','turretStats','moduleEffect','crewMoveMultiplier','moveCrew','swapCrew','turretTargets','carEffectsHTML','startBattle','startBoss','battleClear','bossClear','trainDisruptionMultiplier','rebalancePower'])if(g[k])old[k]=g[k].bind(g);
+ for(const k of ['updateCrew','updateSpecialEnemy','spawnEnemy','setCarPower','effectiveCarPower','availableEnginePower','equipmentActive','moduleData','eventEquipmentDisabled','turretStats','moduleEffect','crewMoveMultiplier','moveCrew','swapCrew','turretTargets','carEffectsHTML','startBattle','startBoss','battleClear','bossClear','trainDisruptionMultiplier','rebalancePower'])if(g[k])old[k]=g[k].bind(g);
  g.clearCarElectrical09=function(c){c.breakerBroken=false;c.breakerRepair=0;c.overchargeLeft=0;c.specialOvercharge=false;c.lightningLocked=false;c.manualOff09=false;};
  g.normalizeCarElectrical09=function(){for(const c of this.state?.cars||[]){
   const restored=Number.isFinite(c._lastHull09)&&c._lastHull09<=0&&c.hp>0;
@@ -56,6 +56,14 @@
  // Later command/skill layers can pass {instant:true} after consuming their own cost.
  // Walking and in-flight walking both use the connector check; teleportation does not.
  g.canTraverse09=(from,to,{instant=false}={})=>instant||!g.pathBlocked09(from,to);
+ // 1.0.1 Balance Part 2: elite bodies become significantly tougher in later acts without raising their damage.
+ // This applies to actual elite-tagged enemies regardless of whether they appear in normal or elite encounters.
+ const eliteActHp09={act2:1.25,act3:1.35};
+ g.spawnEnemy=function(...args){
+  const before=this.state?.enemies?.length||0,r=old.spawnEnemy(...args),e=this.state?.enemies?.length>before?this.state.enemies.at(-1):null,d=e&&D.ENEMIES[e.type],mult=eliteActHp09[this.state?.actId]||1;
+  if(e&&d?.elite&&mult!==1&&!e.eliteActHp09){e.hp*=mult;e.maxHp*=mult;e.eliteActHp09=mult;}
+  return r;
+ };
  g.allowElite09=function(id,list){const d=D.ENEMIES[id],doom=this.state?.metaRun?.apocalypse||0;
   if(d.eliteMinStage>=31&&this.state.actId!=='act3')return false;
   const next=[...list.map(e=>D.ENEMIES[e.type]),d],types=new Set([...list.map(e=>e.type),id]);

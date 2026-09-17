@@ -6,6 +6,7 @@
  const dist=(a,b)=>Math.hypot(a.x-b.x,(a.y-b.y)/D.BALANCE.projectile.laneSpan);
  const priority=e=>!!(e.interceptShot09||e.attached||e.boarded&&['connectorBlocker','tetherDrone'].includes(e.type)||e.dropLeft>0||/drone|missile|suicide|airdrop/i.test(e.type||'')||/드론|미사일|공습|자폭/.test(D.ENEMIES[e.type]?.name||''));
  g.interceptionPriority09=e=>Number(priority(e));
+ const ancientScholarFactor=(eq,ci)=>{const def=(eq?.kind==='turret'?D.TURRETS:D.MODULES)[eq?.type];if(!def?.ancient)return 1;const carIndex=ci??g.equipmentLocation?.(eq)??-1;return g.state?.crew?.some(c=>!c.dead&&!c.moving&&c.hp>0&&c.car===carIndex&&c.traits.includes('scholar'))?D.TRAITS.scholar.ancientDamageMult:1;};
  const targets=g.turretTargets.bind(g);
  g.turretTargets=function(t,eq){const out=targets(t,eq);return out.filter(e=>!e.titanPart09||e.phase===this.state.battle.phase);};
  const pick=g.pickTurretTarget.bind(g);
@@ -50,11 +51,11 @@
  g.preventHullDestruction09=function(ci,remaining){const car=this.state.cars[ci];if(!car||car.hp<=0||remaining<car.hp)return remaining;
   const host=car.equipment.find(e=>e.type==='makeshiftRepair'||e.aux?.type==='makeshiftRepair');if(!host)return remaining;
   if(host.type==='makeshiftRepair')car.equipment.splice(car.equipment.indexOf(host),1);else delete host.aux;
-  this.clearCarElectrical09?.(car);car.destroyed=false;car.destroyedLogged=false;car.repair=0;this.log(`${car.name} · 임시변통 수리 소모 · HP 50% 복구`,'hot');
-  // Signed net damage intentionally makes the caller's existing subtraction heal to 50%.
-  return car.hp-car.maxHp*C.makeshift.restoreRatio;
+  this.clearCarElectrical09?.(car);car.destroyed=false;car.destroyedLogged=false;car.repair=0;const ancientEq=host.type==='makeshiftRepair'?host:host.aux,factor=ancientScholarFactor(ancientEq,ci),ratio=Math.min(.9,C.makeshift.restoreRatio*factor);this.log(`${car.name} · 임시변통 수리 소모 · HP ${Math.round(ratio*100)}% 복구`,'hot');
+  // Signed net damage intentionally makes the caller's existing subtraction heal to the restored ratio.
+  return car.hp-car.maxHp*ratio;
  };
- g.moduleCooldown09=function(eq){const lv=Math.max(0,(eq.level||1)-1);return eq.type==='swiftWarp'?Math.max(4,(C.warp[eq.model]||C.warp.cooldown)-lv*C.warp.levelReduction):Math.max(60,C.recoveryDrone.cooldown-lv*C.recoveryDrone.levelReduction);};
+ g.moduleCooldown09=function(eq){const lv=Math.max(0,(eq.level||1)-1),factor=ancientScholarFactor(eq),base=eq.type==='swiftWarp'?Math.max(4,(C.warp[eq.model]||C.warp.cooldown)-lv*C.warp.levelReduction):Math.max(60,C.recoveryDrone.cooldown-lv*C.recoveryDrone.levelReduction);return base/factor;};
  const sources=type=>g.moduleSources().filter(s=>s.eq.type===type&&s.strength>0);
  const warpSource=ci=>sources('swiftWarp').find(s=>s.car===ci&&(s.eq.abilityCooldown09||0)<=0);
  const move=g.moveCrew.bind(g);
@@ -70,7 +71,7 @@
   return swap(a,b,instant);
  };
  g.reviveCrew09=function(id){const c=this.state.crew.find(x=>x.id===id),source=sources('recoveryDrone').find(s=>(s.eq.abilityCooldown09||0)<=0);if(this.mode!=='battle'||!c||c.dead||c.hp>0||!source)return false;
-  c.hp=Math.max(1,c.maxHp*C.recoveryDrone.hpRatio);source.eq.abilityCooldown09=this.moduleCooldown09(source.eq);this.playSound('skill');this.log(`${c.name} · 회복 드론으로 전투 복귀`,'hot');this.renderAll();this.inspectCrew(c);return true;
+  const ratio=Math.min(.9,C.recoveryDrone.hpRatio*ancientScholarFactor(source.eq,source.car));c.hp=Math.max(1,c.maxHp*ratio);source.eq.abilityCooldown09=this.moduleCooldown09(source.eq);this.playSound('skill');this.log(`${c.name} · 회복 드론으로 전투 복귀 · HP ${Math.round(ratio*100)}%`,'hot');this.renderAll();this.inspectCrew(c);return true;
  };
  const crew=g.updateCrew.bind(g);
  g.updateCrew=function(dt){crew(dt);if(this.mode!=='battle')return;
@@ -79,7 +80,7 @@
  };
  const inspect=g.inspectCrew.bind(g);
  const select=g.selectCrew.bind(g);g.selectCrew=function(id){const c=this.state?.crew.find(c=>c.id===id);if(this.mode==='battle'&&c&&!c.dead&&c.hp<=0&&!document.querySelector('#overlay').classList.contains('show')){this.state.selectedCrew=null;this.setTactical(true);this.inspectCrew(c);return;}return select(id);};
- g.inspectCrew=function(c,...args){const r=inspect(c,...args);if(c&&!c.dead&&c.hp<=0&&this.mode==='battle'){const box=document.querySelector('#inspector');box?.querySelector('[data-revive09]')?.remove();const b=document.createElement('button');b.dataset.revive09=c.id;b.textContent='회복 드론으로 복귀 · HP 35%';b.disabled=!sources('recoveryDrone').some(s=>(s.eq.abilityCooldown09||0)<=0);b.onclick=()=>this.reviveCrew09(c.id);box?.append(b);}return r;};
+ g.inspectCrew=function(c,...args){const r=inspect(c,...args);if(c&&!c.dead&&c.hp<=0&&this.mode==='battle'){const box=document.querySelector('#inspector');box?.querySelector('[data-revive09]')?.remove();const ready=sources('recoveryDrone').filter(s=>(s.eq.abilityCooldown09||0)<=0),best=ready.reduce((m,s)=>Math.max(m,ancientScholarFactor(s.eq,s.car)),1),ratio=Math.min(.9,C.recoveryDrone.hpRatio*best),b=document.createElement('button');b.dataset.revive09=c.id;b.textContent=`회복 드론으로 복귀 · HP ${Math.round(ratio*100)}%`;b.disabled=!ready.length;b.onclick=()=>this.reviveCrew09(c.id);box?.append(b);}return r;};
  const cards=g.renderCars.bind(g);
  g.renderCars=function(){cards();if(!this.state)return;for(const s of [...sources('swiftWarp'),...sources('recoveryDrone')])document.querySelector(`[data-equipment="${s.host.id}"]`)?.classList.toggle('module-ready09',(s.eq.abilityCooldown09||0)<=0);};
  const html=g.equipmentHTML.bind(g);

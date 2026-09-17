@@ -5,7 +5,7 @@
  */
 window.GAME_DATA = (() => {
   const BALANCE = {
-    version: '1.0',
+    version: '1.0.1',
     simulation: { tickRate: 30, maxDelta: 0.1, tacticalScale: 0.3, speedOptions: [0, 1, 2, 3], canvasWidth: 1440, canvasHeight: 700 },
     run: { startingMoney: 150, startingScrap: 20, startingRelics: 0, startingTitanDistance: 5, branchDistanceBonus: 0.35, maxTitanDistance: 99.9, clearRelicBonus: 5 },
     train: {
@@ -28,7 +28,7 @@ window.GAME_DATA = (() => {
       eliteHp: 1.08, eliteDamage: 1.03, eliteCount: 1.16, eliteSpecialChance: 0.42, maxSecondaryTargets: 20,
       doctrineRepairThreshold: 0.35, doctrineMinRepairStat: 6, nonFatalEventMinHp: 1
     },
-    rewards: { battleMoneyBase: 30, battleMoneyPerStage: 4, battleScrapBase: 12, battleScrapPerStage: 2, battleRelics: 1, eliteMultiplier: 1.5, eliteBonusRelics: 2 },
+    rewards: { battleMoneyBase: 22, battleMoneyPerStage: 3, battleScrapBase: 12, battleScrapPerStage: 2, battleRelics: 1, eliteMultiplier: 1.5, eliteBonusRelics: 2 },
     upgrade: { level2Scrap: 25, level3Scrap: 45, branchScrap: 70, damagePerLevel: 0.18, heatPerLevel: -0.06 },
     armor: { maxCharge: 100, duration: 5, healRatio: 0.15, battleCharge: 30, eliteCharge: 45, coolingMultiplier: 5 },
     focus: { duration: 4, cooldown: 20, damageBonus: 0.2, rangeBonus: 0.25 },
@@ -77,7 +77,7 @@ window.GAME_DATA = (() => {
   TURRETS.mortar.trajectory='arc';
 
   const MODULES = {
-    cooling: { name: '냉각 모듈', icon: '❄', price: 90, effect: 'cooling', heatMult: 0.90, coolingMult: 1.15, range: 1 },
+    cooling: { name: '냉각 모듈', icon: '❄', price: 90, effect: 'cooling', coolingMult: 1.12, range: 1 },
     medical: { name: '의료 모듈', icon: '+', price: 85, effect: 'medical', stageHealMult: 1.3, range: 1 },
     repair: { name: '수리 모듈', icon: '⚒', price: 80, effect: 'repair', repairMult: 1.3, range: 1 },
     ammo: { name: '탄약 모듈', icon: '▦', price: 105, effect: 'ammo', ammoDamageMult: 1.15, range: 1 },
