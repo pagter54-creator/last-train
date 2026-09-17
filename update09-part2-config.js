@@ -42,7 +42,7 @@
   ['swiftWarp','신속 워프','↗',210,'출발 객차의 직원을 즉시 이동 · 차단 통로 무시. 집중형 8초 / 표준형 24초 / 광역형 단체 이동 65초.'],
   ['makeshiftRepair','임시변통 수리 모듈','!',650,'치명적 피해를 취소하고 객차 HP 50% 복구 · 소모형 · 강화 불가 · 전원 없이 작동.'],
   ['recoveryDrone','회복 드론','✚',250,'직원 선택 후 회복 버튼 · 전투불능 직원 HP 35%로 복귀 · 재사용 100초.']]){
-  const one=id==='makeshiftRepair';D.MODULES[id]={name,icon,price,description,effect:id,range:0,upgradeable:!one,maxLevel:one?1:5,auxSlotUnlockLevel:one?null:3,auxEfficiency:E.auxEfficiency,level5Capstone:null};
+  const one=id==='makeshiftRepair'||id==='recoveryDrone';D.MODULES[id]={name,icon,price,description,effect:id,range:0,upgradeable:!one,maxLevel:one?1:5,auxSlotUnlockLevel:one?null:3,auxEfficiency:E.auxEfficiency,level5Capstone:null};
   E.modules[id]=E.modules[id]||{};
  }
  // Extend the ancient-equipment category to late-game recovered hardware.
@@ -53,7 +53,7 @@
  D.MODULES.medical.level5Capstone=null;
  D.ACTS.act3.nextAct='titan';
  D.ACTS.titan={id:'titan',label:'FINAL',name:'최후의 정비',finalAct:true,stageOffset:45,boss:'titan',intro:'도망의 끝. 마지막 정비를 마치고 Titan에 도전합니다.',stages:[{node:'station',title:'최후의 정비 스테이션'}]};
- const part=(id,name,hp,armor,x,y,phase,weapon=false)=>({id,name,hp,armor:.30,x,y,type:id,phase,weapon,victory:false});
+ const part=(id,name,hp,armor,x,y,phase,weapon=false)=>({id,name,hp,armor:.40,x,y,type:id,phase,weapon,victory:false});
  D.ENEMIES.titanAssaultDrone={...D.ENEMIES.boarder,name:'TITAN 강습 드론',icon:'◆',hp:C.titan.drone.hp,armor:C.titan.drone.armor,speed:0,carDamage:0,crewDamage:C.titan.drone.crewDamage,interval:2.2,boards:true,special:true,fromStage:999,rhythmMinStage:999,threatCost:0,tags:['BOARDING','SPECIAL']};
  D.BOSSES.titan={name:'TITAN',title:'TITAN · 더 이상 도망치지 않는다',duration:420,attack:{interval:4},sharedHp:23000,rewardRelics:12,parts:[
   part('titanLegL','왼쪽 다리',3000,.45,.17,.45,1),part('titanLegR','오른쪽 다리',3000,.45,.31,.45,1),

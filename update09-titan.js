@@ -311,28 +311,44 @@
   if(b.phase===3&&t.finale)type='guided';
   beginPattern(type);
  }
- function dodgeRear(){return g.state.battle.titan10.position>C.rearSafe;}
- function dodgeFront(){return g.state.battle.titan10.position<C.frontSafe;}
- function splashAround(index,rate){
-  for(const i of [index-1,index+1])if(i>=0&&i<g.state.cars.length&&g.state.cars[i].hp>0)hitCar(i,{type:'max',rate},'폭발 파편');
+ function titanSpeedZone(){
+  const p=g.state.battle.titan10.position;
+  if(p<C.frontSafe)return 'decelerate';
+  if(p>C.rearSafe)return 'accelerate';
+  return 'neutral';
+ }
+ function dodgeRear(){return titanSpeedZone()==='accelerate';}
+ function dodgeFront(){return titanSpeedZone()==='decelerate';}
+ function hitEdgeCars(side,count,rule,kind){
+  const n=g.state.cars.length,indices=[];
+  if(side==='front'){for(let i=0;i<Math.min(count,n);i++)indices.push(i);}
+  else{for(let i=Math.max(0,n-count);i<n;i++)indices.push(i);}
+  for(const i of indices)hitCar(i,rule,kind);
+ }
+ function resolveZoneAttack(side,rule,kind,onSafe){
+  const zone=titanSpeedZone();
+  const safe=(side==='rear'&&zone==='accelerate')||(side==='front'&&zone==='decelerate');
+  if(safe){onSafe?.();return 'safe';}
+  if(zone==='neutral'){hitEdgeCars(side,2,rule,kind);return 'neutral';}
+  hitAll(rule,kind);return 'danger';
  }
  function resolvePattern(a){
   const b=g.state.battle,t=b.titan10;
   if(!a.fireCue&&['missile','laser','predictiveMissile','railCrush','arm','exhaust','debris','trackDebris'].includes(a.type))executionCue(a);
   switch(a.type){
    case 'missile':{
-    impactCue('missile',a);const safe=dodgeFront(),ci=nearestCarByNorm(.82);if(!safe){hitCar(ci,C.damage.missile,'대각 미사일');splashAround(ci,C.damage.missile.splash);}else g.log('대각 미사일 회피','hot');break;
+    impactCue('missile',a);const result=resolveZoneAttack('front',C.damage.missile,'대각 미사일',()=>g.log('대각 미사일 회피','hot'));if(result==='neutral')g.log('대각 미사일 · 정속 구간 피격 / 전방 객차 2칸','bad');else if(result==='danger')g.log('대각 미사일 · 가속 구간 직격 / 전 객차 피격','bad');break;
    }
    case 'stomp':{
-    impactCue('stomp',a);const safe=dodgeRear();if(!safe)hitAdjacent(.18,C.damage.stomp,1,'발 구르기');else{g.log('발 구르기 회피 · 다리 노출','hot');t.vulnerablePart=a.leg;t.vulnerableLeft=2.8;}break;
+    impactCue('stomp',a);const result=resolveZoneAttack('rear',C.damage.stomp,'발 구르기',()=>{g.log('발 구르기 회피 · 다리 노출','hot');t.vulnerablePart=a.leg;t.vulnerableLeft=2.8;});if(result==='neutral')g.log('발 구르기 · 정속 구간 피격 / 후방 객차 2칸','bad');else if(result==='danger')g.log('발 구르기 · 감속 구간 직격 / 전 객차 피격','bad');break;
    }
    case 'debris':impactCue('debris',a);hitAll(C.damage.debris,'비산 잔해');break;
    case 'walk':impactCue('walk',a);break;
    case 'arm':{
-    impactCue('arm',a);const safe=dodgeRear();if(!safe)hitAdjacent(.20,C.damage.arm,1,'팔 내려찍기');else{g.log('팔 내려찍기 회피 · 강습 팔 노출','hot');t.vulnerablePart='titanArm';t.vulnerableLeft=2.5;}break;
+    impactCue('arm',a);const result=resolveZoneAttack('rear',C.damage.arm,'팔 내려찍기',()=>{g.log('팔 내려찍기 회피 · 강습 팔 노출','hot');t.vulnerablePart='titanArm';t.vulnerableLeft=2.5;});if(result==='neutral')g.log('팔 내려찍기 · 정속 구간 피격 / 후방 객차 2칸','bad');else if(result==='danger')g.log('팔 내려찍기 · 감속 구간 직격 / 전 객차 피격','bad');break;
    }
    case 'laser':{
-    impactCue('laser',a);const safe=dodgeFront();if(!safe)hitAdjacent(.80,C.damage.laser,1,'머리 레이저');else g.log('머리 레이저 회피','hot');break;
+    impactCue('laser',a);const result=resolveZoneAttack('front',C.damage.laser,'머리 레이저',()=>g.log('머리 레이저 회피','hot'));if(result==='neutral')g.log('머리 레이저 · 정속 구간 피격 / 전방 객차 2칸','bad');else if(result==='danger')g.log('머리 레이저 · 가속 구간 직격 / 전 객차 피격','bad');break;
    }
    case 'trackDebris':impactCue('trackDebris',a);hitAll(C.damage.trackDebris,'궤도 파편');break;
    case 'railCrush':{
@@ -829,12 +845,12 @@
    ['장갑',`모든 TITAN 부위 ${Math.round((part('titanCore')?.armor||.35)*100)}%`],
    ['상대 위치 조작','기관실 출력 1 = 후방 이동 · 출력 2 = 중립 · 출력 3 이상 = 전방 이동'],
    ['PHASE 1 · 왼쪽/오른쪽 다리',`각 HP ${part('titanLegL').hp} / ${part('titanLegR').hp} · 양쪽 다리 파괴 시 PHASE 2`],
-   ['대각 미사일',`${C.telegraph.missile}초 경고 · 현재 HP ${pct(C.damage.missile.rate)} 피해 · 최소 최대 HP ${pct(C.damage.missile.min)} · 감속해 후방으로 이동하면 회피`],
-   ['발 구르기',`${C.telegraph.stomp}초 경고 · 현재 HP ${pct(C.damage.stomp.rate)} 피해 · 최소 최대 HP ${pct(C.damage.stomp.min)} · 가속해 전방으로 이동하면 회피 + 공격한 다리 ${2.8}초 노출`],
+   ['대각 미사일',`${C.telegraph.missile}초 경고 · 현재 HP ${pct(C.damage.missile.rate)} 피해 · 최소 최대 HP ${pct(C.damage.missile.min)} · 감속 구간은 회피 / 정속은 전방 2칸 / 가속 구간은 전 객차가 각각 동일 피해`],
+   ['발 구르기',`${C.telegraph.stomp}초 경고 · 현재 HP ${pct(C.damage.stomp.rate)} 피해 · 최소 최대 HP ${pct(C.damage.stomp.min)} · 가속 구간은 회피 + 다리 2.8초 노출 / 정속은 후방 2칸 / 감속 구간은 전 객차가 각각 동일 피해`],
    ['비산 잔해',`${C.telegraph.debris}초 경고 · 모든 객차 최대 HP ${pct(C.damage.debris.rate)} 피해`],
    ['PHASE 2 · 무한궤도 동력부',`HP ${part('titanBody').hp} · 강습 팔 ${part('titanArm').hp} · 머리 레이저 ${part('titanHeadGun').hp} · 동력부 파괴 시 PHASE 3`],
-   ['팔 내려찍기',`${C.telegraph.arm}초 경고 · 현재 HP ${pct(C.damage.arm.rate)} 피해 · 최소 최대 HP ${pct(C.damage.arm.min)} · 가속 회피 시 강습 팔 2.5초 노출`],
-   ['머리 레이저',`${C.telegraph.laser}초 경고 · 현재 HP ${pct(C.damage.laser.rate)} 피해 · 최소 최대 HP ${pct(C.damage.laser.min)} · 감속해 후방으로 이동하면 회피`],
+   ['팔 내려찍기',`${C.telegraph.arm}초 경고 · 현재 HP ${pct(C.damage.arm.rate)} 피해 · 최소 최대 HP ${pct(C.damage.arm.min)} · 가속 구간은 회피 + 강습 팔 2.5초 노출 / 정속은 후방 2칸 / 감속 구간은 전 객차가 각각 동일 피해`],
+   ['머리 레이저',`${C.telegraph.laser}초 경고 · 현재 HP ${pct(C.damage.laser.rate)} 피해 · 최소 최대 HP ${pct(C.damage.laser.min)} · 감속 구간은 회피 / 정속은 전방 2칸 / 가속 구간은 전 객차가 각각 동일 피해`],
    ['궤도 파편',`${C.telegraph.trackDebris}초 경고 · 모든 객차 최대 HP ${pct(C.damage.trackDebris.rate)} 피해`],
    ['선로 분쇄',`${C.telegraph.railCrush}초 경고 · 선로 변환 장치를 집중 사격으로 파괴해 반대 선로로 이동 · 실패 시 모든 객차 현재 HP ${pct(C.damage.railCrush.rate)} 피해, 최소 최대 HP ${pct(C.damage.railCrush.min)}`],
    ['강습 드론',`직원이 있는 객차만 목표 · HP ${C.drone.hp} / 장갑 ${Math.round(C.drone.armor*100)}% · 접근 ${C.drone.approach}초 + 외벽 절단 ${C.drone.cut}초 · 승선 후 객차 최대 HP ${pct(C.drone.facilityRate)} 피해 및 직원 피해 ${C.drone.crewDamage}`],

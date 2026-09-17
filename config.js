@@ -77,7 +77,7 @@ window.GAME_DATA = (() => {
   TURRETS.mortar.trajectory='arc';
 
   const MODULES = {
-    cooling: { name: '냉각 모듈', icon: '❄', price: 90, effect: 'cooling', coolingMult: 1.12, range: 1 },
+    cooling: { name: '냉각 모듈', icon: '❄', price: 125, effect: 'cooling', coolingMult: 1.12, range: 1 },
     medical: { name: '의료 모듈', icon: '+', price: 85, effect: 'medical', stageHealMult: 1.3, range: 1 },
     repair: { name: '수리 모듈', icon: '⚒', price: 80, effect: 'repair', repairMult: 1.3, range: 1 },
     ammo: { name: '탄약 모듈', icon: '▦', price: 105, effect: 'ammo', ammoDamageMult: 1.15, range: 1 },

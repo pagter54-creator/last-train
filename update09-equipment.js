@@ -55,7 +55,7 @@
   // Signed net damage intentionally makes the caller's existing subtraction heal to the restored ratio.
   return car.hp-car.maxHp*ratio;
  };
- g.moduleCooldown09=function(eq){const lv=Math.max(0,(eq.level||1)-1),factor=ancientScholarFactor(eq),base=eq.type==='swiftWarp'?Math.max(4,(C.warp[eq.model]||C.warp.cooldown)-lv*C.warp.levelReduction):Math.max(60,C.recoveryDrone.cooldown-lv*C.recoveryDrone.levelReduction);return base/factor;};
+ g.moduleCooldown09=function(eq){const lv=Math.max(0,(eq.level||1)-1),factor=ancientScholarFactor(eq),base=eq.type==='swiftWarp'?Math.max(4,(C.warp[eq.model]||C.warp.cooldown)-lv*C.warp.levelReduction):C.recoveryDrone.cooldown;return base/factor;};
  const sources=type=>g.moduleSources().filter(s=>s.eq.type===type&&s.strength>0);
  const warpSource=ci=>sources('swiftWarp').find(s=>s.car===ci&&(s.eq.abilityCooldown09||0)<=0);
  const move=g.moveCrew.bind(g);

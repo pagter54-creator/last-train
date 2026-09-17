@@ -278,7 +278,7 @@ modal.querySelector('.dialog-body').innerHTML=`<div class="choices"><div class="
       // This bypasses legacy currentTrainSpeed rewrites that previously froze the scenery.
       pace=(overlay||this.state?.speed===0)?0:titanPace;
     }else{
-      pace*=((this.state?.currentTrainSpeed||B.train.speedByPower[B.train.enginePower.start])/B.train.speedByPower[B.train.enginePower.start]);
+      pace*=((this.state?.currentTrainSpeed??B.train.speedByPower[B.train.enginePower.start])/B.train.speedByPower[B.train.enginePower.start]);
     }
     visualClock+=dt*pace;
     const t=visualClock,horizon=h*V.horizon,palette=V.actPalettes?.[this.state?.actId]||V.palette;

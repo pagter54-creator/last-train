@@ -51,7 +51,16 @@
  function enterSplit(){const b=g.state.battle,j=b.janus09;j.phase='combat';j.phaseLeft=0;j.splitClock=0;j.attackLeft=C.splitAttackDelay;j.wall=wall();j.verdict=null;moveTo(homes(false));notice('JANUS 분리 · 봉쇄벽 전개 경고');j.wallArmLeft=C.wallDeployDelay;}
  g.startBoss=function(id){const r=old.startBoss(id);if(id!=='janus')return r;const b=this.state.battle;b.rework=false;b.arrivalLeft=0;b.defeated=false;b.janus09={phase:'combat',phaseLeft:0,splitClock:0,wall:null,wallArmLeft:C.wallDeployDelay,attackLeft:C.splitAttackDelay,telegraphs:[],vulnerableLeft:0,verdict:null};b.parts.forEach((p,i)=>{p.bossPart=false;p.janusPart=true;p.victory=false;p.x=i?1.2:-.2;p.y=homes(false)[i][1];p.facing09=i?-1:1;});moveTo(homes(false));jArrival();notice('JANUS 분리 · 봉쇄벽 전개 경고');return r;};
  function jArrival(){g.state.battle.janus09.arrival09=window.ESCALATION09?.motion.janusTravel||1.6;}
- g.damageJanusWall09=function(c,dt){const j=this.state.battle?.janus09,w=j?.wall;if(!w||w.hp<=0||c.dead||c.hp<=0||c.moving||![w.connector,w.connector+1].includes(c.car))return false;const combat=Math.max(0,this.effectiveStat(c,'combat')),damage=combat*C.wallDpsPerCombat*dt*(this.crewWeaponMultiplier?.(c)??1);if(damage>0){w.hp=Math.max(0,w.hp-damage);if(!(c.wallShot09>0))this.playSound('shotCrack');c.wallShot09=C.wallVisual;}if(w.hp>0&&this.state.cars[c.car].armor<=0)this.hurtCrew(c,C.wallRetaliation*dt,'attack');if(w.hp<=0){j.wall=null;this.playSound('explosion');notice('봉쇄벽 파괴 · JANUS 중앙 합체');enterMerge();}return true;};
+ function janusWallCombatPower09(combat){
+  const v=Math.max(0,combat);
+  // 봉쇄벽은 전투 스탯이 일정 구간에 도달할 때 화력이 크게 뛰는 계단형 성장.
+  // 1~3은 완만, 4 / 7 / 10에서 각각 뚜렷한 돌파 구간을 만든다.
+  if(v>=10)return 16+(v-10)*1.25;
+  if(v>=7)return 10+(v-7)*1.5;
+  if(v>=4)return 5+(v-4)*1.25;
+  return v;
+ }
+ g.damageJanusWall09=function(c,dt){const j=this.state.battle?.janus09,w=j?.wall;if(!w||w.hp<=0||c.dead||c.hp<=0||c.moving||![w.connector,w.connector+1].includes(c.car))return false;const combat=Math.max(0,this.effectiveStat(c,'combat')),wallPower=janusWallCombatPower09(combat),damage=wallPower*C.wallDpsPerCombat*dt*(this.crewWeaponMultiplier?.(c)??1);if(damage>0){w.hp=Math.max(0,w.hp-damage);if(!(c.wallShot09>0))this.playSound('shotCrack');c.wallShot09=C.wallVisual;}if(w.hp>0&&this.state.cars[c.car].armor<=0)this.hurtCrew(c,C.wallRetaliation*dt,'attack');if(w.hp<=0){j.wall=null;this.playSound('explosion');notice('봉쇄벽 파괴 · JANUS 중앙 합체');enterMerge();}return true;};
  function crewHeatDrone(c,dt){const e=g.state.enemies.find(e=>!e.dead&&e.janusHeatDrone&&e.targetCar===c.car);if(!e)return false;let damage=Math.max(0,g.effectiveStat(c,'combat'))*B.crew.personalDpsPerCombat*dt*(g.crewWeaponMultiplier?.(c)??1);if(c.traits.includes('marksman'))damage*=D.TRAITS.marksman.damageMult;if(damage>0){g.damageEnemy(e,damage,1);c.wallShot09=C.wallVisual;}return true;}
  g.bossCrewReturnFire=function(c,dt){if(active()){if(crewHeatDrone(c,dt))return true;if(this.state.battle.janus09?.wall?.hp>0)return this.damageJanusWall09(c,dt);}return old.bossCrewReturnFire(c,dt);};
  g.targetInRange=function(e,r){if(e?.janusWall||e?.janusHeatDrone)return false;if(e?.janusPart&&!live(e))return false;return old.targetInRange(e,r);};
@@ -74,7 +83,7 @@
    ['JANUS · 파괴형',`HP ${crusher.hp} · 장갑 ${Math.round(crusher.armor*100)}% · 강공격 / 다중 포격 / 비정예 증원`],
    ['JANUS · 과열형',`HP ${heater.hp} · 장갑 ${Math.round(heater.armor*100)}% · 과열탄 / 발열 드론`],
    ['분리 상태',`${C.splitSeconds}초 · 중앙 봉쇄벽을 기준으로 좌·우 전선 분리 · 각 JANUS는 자기 측 객차만 공격`],
-   ['봉쇄벽',`HP ${C.wallHp} · 직원 개인화기만 공격 가능 · 전투 1당 초당 ${C.wallDpsPerCombat} 피해 · 공격 중 초당 ${C.wallRetaliation} 반격 피해`],
+   ['봉쇄벽',`HP ${C.wallHp} · 직원 개인화기만 공격 가능 · 전투 스탯 4 / 7 / 10에서 파괴 효율이 크게 상승 · 공격 중 초당 ${C.wallRetaliation} 반격 피해`],
    ['분리 공격 주기',`${C.attackInterval}초 · 집중 사격은 좌우 조준 제한보다 우선`],
    ['파괴형 강공격',`${C.heavyWarning}초 경고 · 대상 객차 현재 HP의 ${pct(C.heavyCurrentHpRatio)} 피해`],
    ['파괴형 다중 포격',`${C.multiWarning}초 경고 · 최대 ${C.multiTargets}개 객차 · 각 객차 최대 HP의 ${pct(C.multiMaxHpRatio)} 피해`],

@@ -5,7 +5,7 @@
  window.UPDATE09={
   lightning:{interval:30,warning:5.0,repairSeconds:12,repairPerStat:.08,overcharge:10,rodSeconds:12,rodPerLevel:2},
   enemies:{droneRepair:.65,droneMove:.65,airdropSeconds:3,airdropCount:3,jamSeconds:5,jamInterval:12,forwardInterval:13},
-  janus:{wallHp:160,wallDpsPerCombat:1.2,wallRetaliation:1,wallVisual:.25,reposition:6,swapAfter:25,swapSeconds:1.2,mergeAfter:50,wallDeployDelay:2.4,splitSeconds:28,mergeSeconds:14,splitAttackDelay:3.2,mergeAttackDelay:2.4,attackInterval:5.2,mergeAttackInterval:5.5,warning:1.8,heavyWarning:2.2,multiWarning:1.8,heatWarning:1.5,droneWarning:2,heavyCurrentHpRatio:.10,multiMaxHpRatio:.055,multiTargets:3,crewDamage:1,heatShot:50,heatDroneHp:30,heatDroneCoolingMult:.55,verdictDelay:5.5,verdictWarning:3,verdictFlipAt:1.2,verdictFlipRatio:.34,verdictCurrentHpRatio:.08,verdictHeat:45,verdictCoolingDebuff:4,verdictCoolingMult:.65,vulnerableSeconds:3.5,vulnerableDamageMult:1.25},
+  janus:{wallHp:320,wallDpsPerCombat:1.2,wallRetaliation:1,wallVisual:.25,reposition:6,swapAfter:25,swapSeconds:1.2,mergeAfter:50,wallDeployDelay:2.4,splitSeconds:28,mergeSeconds:14,splitAttackDelay:3.2,mergeAttackDelay:2.4,attackInterval:5.2,mergeAttackInterval:5.5,warning:1.8,heavyWarning:2.2,multiWarning:1.8,heatWarning:1.5,droneWarning:2,heavyCurrentHpRatio:.10,multiMaxHpRatio:.055,multiTargets:3,crewDamage:1,heatShot:50,heatDroneHp:30,heatDroneCoolingMult:.55,verdictDelay:5.5,verdictWarning:3,verdictFlipAt:1.2,verdictFlipRatio:.34,verdictCurrentHpRatio:.08,verdictHeat:45,verdictCoolingDebuff:4,verdictCoolingMult:.65,vulnerableSeconds:3.5,vulnerableDamageMult:1.25},
   events:{generatorBase:.60,generatorPerRepair:.025,generatorGreat:.15,engineerDemand:.4,engineerScrap:100,memoryBase:.65,memoryPerRecovery:.025,memoryWaitBase:.85,memoryGreat:.2}
  };
  D.ACTS.act2.nextAct='act3';
@@ -27,7 +27,7 @@
   if(i>0)hp+=hpStepByAct[actIndex];
   const stageHp=actIndex===2?hp*ACT3_HP_MULTIPLIER:hp;
   D.STAGE_CURVE.push({stage:i+1,targetPI:65+i*3,hp:stageHp,damage:.7+i*.018,count:1+i*.008,duration});
-  C.stageOverrides[act]??={};C.stageOverrides[act][local]={budget:firstBudget+i*5,duration,eliteDuration:1};
+  C.stageOverrides[act]??={};C.stageOverrides[act][local]={budget:firstBudget+i*5+actIndex*50,duration,eliteDuration:1};
  }
  C.eliteBudget=1.3;R.elite.hp=1.12;R.elite.damage=1.18;
  D.BALANCE.battle.eliteHp=1;D.BALANCE.battle.eliteDamage=1;
@@ -38,17 +38,17 @@
  add('saboteur','raider',{name:'파괴공',hp:105,carDamage:12,crewDamage:1,behavior:'saboteur'},20,['PRESSURE']);
  add('tetherDrone','drone',{name:'구속·견인 드론',hp:75,carDamage:1,crewDamage:0,behavior:'tetherDrone'},18,['DISRUPTION']);
  const elite=(id,name,hp,armor,behavior,hold,slots=1)=>{D.ENEMIES[id]={...D.ENEMIES.raider,name,icon:'◆',hp,armor,speed:.7,carDamage:0,crewDamage:0,interval:12,elite:true,eliteMinStage:31,fromStage:31,rhythmMinStage:31,threatCost:0,tags:['SPECIAL'],specialBehavior:behavior,hold,eliteSlots:slots,help:{airdrop:'여러 객차로 낙하합니다. 착지 전 포탑으로 요격하세요.',signalJammer:'포탑 또는 모듈 하나를 잠시 정지시킵니다. 직원 이동은 방해하지 않습니다.',assaultCarrier:'열차 가까이에서 승선병을 반복 투입합니다. 정예 슬롯 2개를 사용합니다.'}[behavior]};};
- elite('airdropElite','공습 부대',180,.15,'airdrop',.45);D.ENEMIES.airdropElite.speed=1.35;
- elite('signalElite','신호 교란차',200,.25,'signalJammer',.55);
- elite('assaultElite','중장 돌격차',500,.72,'assaultCarrier',.2,2);
+ elite('airdropElite','공습 부대',270,.20,'airdrop',.45);D.ENEMIES.airdropElite.speed=1.35;
+ elite('signalElite','신호 교란차',300,.25,'signalJammer',.55);
+ elite('assaultElite','중장 돌격차',750,.72,'assaultCarrier',.2,2);
  add('airdropSoldier','boarder',{name:'공습 승선병',hp:60,carDamage:1,crewDamage:6,behavior:'airdropSoldier'},0,['BOARDING']);
  D.MODULES.lightningRod={name:'피뢰침',icon:'ϟ',price:160,effect:'lightningRod',range:1,eventOnly:true,upgradeable:true,maxLevel:5,auxSlotUnlockLevel:3,auxEfficiency:EQUIPMENT_REFORM.auxEfficiency,level5Capstone:'특수 과충전 20초',role:'범위 내 낙뢰를 유도해 특수 과충전 · 강화당 지속시간 +2초'};
 
  D.ENEMIES.janusHeatDrone={...D.ENEMIES.raider,name:'발열 드론',icon:'◇',hp:30,armor:0,speed:0,carDamage:0,crewDamage:0,interval:999,boards:false,ranged:false,special:true,fromStage:999,rhythmMinStage:999,threatCost:0,tags:['SPECIAL']};
 
- D.BOSSES.janus={name:'JANUS',duration:420,rewardRelics:22,sharedHp:9200,attack:{interval:4,carDamage:23,crewDamage:1},parts:[
-  {type:'janusCrusher',name:'JANUS · 파괴형',hp:4600,armor:.30,x:.68,y:.35},
-  {type:'janusHeater',name:'JANUS · 과열형',hp:4600,armor:.30,x:.92,y:.58}]};
+ D.BOSSES.janus={name:'JANUS',duration:420,rewardRelics:22,sharedHp:18700,attack:{interval:4,carDamage:23,crewDamage:1},parts:[
+  {type:'janusCrusher',name:'JANUS · 파괴형',hp:9350,armor:.40,x:.68,y:.35},
+  {type:'janusHeater',name:'JANUS · 과열형',hp:9350,armor:.40,x:.92,y:.58}]};
  const ch=(id,label,reward={},extra={})=>({id,label,time:extra.time??0,reward,...extra});
  const ev=(id,title,text,choices,extra={})=>({id,act:3,title,text,choices,...extra});
  const pass=()=>ch('pass','지나간다');

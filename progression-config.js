@@ -1,7 +1,7 @@
 /* Run progression, crew growth and spawn warnings: tune here, not in controllers. */
 window.PROGRESSION_CONFIG={
   crew:{startingStatReduction:1,statGain:1,xpBase:30,xpPerLevel:12,killXp:1,bossPartXp:4,fullHealXp:2,recruitStageStep:3,maxRecruitLevel:7,maxLevel:10,operateDamagePerPoint:.01,maxOperateDamage:.6,repairStart:.5,repairStop:.7},
-  stars:{statBonus:{1:0,2:5,3:13},xpMultiplier:{1:.8,2:1,3:1.3},promotion:{2:6,3:9},eventTalentSlots:1,priceMultiplier:{1:1,2:1.45,3:2.1},
+  stars:{statBonus:{1:0,2:5,3:13},xpMultiplier:{1:.48,2:1,3:1.3},promotion:{2:6,3:9},eventTalentSlots:1,priceMultiplier:{1:1,2:1.45,3:2.1},
     initialWeights:[.95,.05,0],finalWeights:[.25,.45,.3],progressStages:20},
   returnFire:{range:.22,interval:1.5,damageBase:1,damagePerCombat:.7,hitBase:.4,hitPerCombat:.035,hitMin:.2,hitMax:.95,seconds:.16,missOffset:45},
   leftWarning:{seconds:2,width:62,height:100},

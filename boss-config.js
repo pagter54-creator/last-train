@@ -5,11 +5,11 @@
     core:{interval:40,seconds:4,forcedSeconds:8,repairSpeed:1.15,damage:1.2,repairPattern:{chance:.35,seconds:6,healPerSecond:.04,destroyedRepairMult:2.5}},arrivalSeconds:2,arrivalOffscreenWidths:1.1,arrivalExponent:3,defeatFadeSeconds:1.4,repairWarning:3,noticeSeconds:3,shotSeconds:.45,
     phases:[{above:.66,interval:1,repair:1,concurrent:1},{above:.33,interval:1,repair:1,concurrent:2},{above:0,interval:.82,repair:.85,concurrent:2}],
     firstPattern:4,patternGap:5,gripWindup:2.6,gripMax:100,gripDamagePerHp:.12,armStun:2,armRest:5,
-    gripSeconds:18,suppressionCombatPerSecond:.75,engineChance:.2,
+    gripSeconds:18,gripArmorBonus:.25,suppressionCombatPerSecond:.75,engineChance:.2,
     crew:{interval:1,damageBase:3,damagePerCombat:1.6,hitBase:.65,hitPerCombat:.035,hitMax:.97,visualSeconds:.18},
     truck:{hp:950,armor:.30,travel:17,warning:3,boarders:[2,4],boarderHp:115,carDamage:7,crewDamage:5,maxAlive:2,damageRule:{type:'max',rate:.035,legacyBase:7}},
-    behemoth:{hp:11000,cannon:{warning:2.8,damage:100,damageRule:{type:'current',rate:.40,min:.10,legacyBase:100}},drive:{warning:2,seconds:8,speed:.68}},
-    arachne:{hp:17500},
+    behemoth:{hp:12500,cannon:{warning:2.8,damage:100,damageRule:{type:'current',rate:.40,min:.10,legacyBase:100}},drive:{warning:2,seconds:8,speed:.68}},
+    arachne:{hp:19000},
     grips:{
       crush:{name:'파쇄',color:'#ff6868',damagePerSecond:9,damageRule:{type:'max',ratePerSecond:.03,legacyBase:9},help:'팔 집중 사격 / 비상 장갑으로 지속 피해 차단'},
       seal:{name:'봉쇄',color:'#e3e8eb',help:'장비·직원 작업 정지 — 다른 객차의 포탑으로 팔 공격'},
@@ -25,8 +25,8 @@
   ]});
   Object.assign(D.BOSSES.arachne,{sharedHp:C.arachne.hp,summon:null,parts:[
     part('core','CORE',C.arachne.hp,.54,.35,0,{victory:true,armor:.30}),
-    part('crush','파쇄 ARM',1050,.25,.3,28),part('seal','봉쇄 ARM',1050,.78,.3,30),
-    part('drain','흡전 ARM',1000,.24,.5,26),part('suppress','진압 ARM',1000,.8,.5,26)
+    part('crush','파쇄 ARM',1550,.25,.3,28),part('seal','봉쇄 ARM',1550,.78,.3,30),
+    part('drain','흡전 ARM',1500,.24,.5,26),part('suppress','진압 ARM',1500,.8,.5,26)
   ]});
   D.ENEMIES.infiltrationTruck={name:'침투 트럭',hp:C.truck.hp,armor:C.truck.armor,speed:0,carDamage:0,crewDamage:0,interval:99,fromStage:999,behavior:'bossTruck',tags:['PRESSURE']};
   D.BALANCE.audio.steam={noise:true,frequency:1500,duration:.8,gain:.45};

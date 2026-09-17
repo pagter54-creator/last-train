@@ -43,6 +43,8 @@
  for(const t of Object.values(D.TURRETS))t.heat*=C.baseHeatMultiplier;
  const names={overdrive:['과열 증폭 모듈','▲',125],crewArms:['승무원 강화 모듈','✚',105],shield:['실드 모듈','◇',140],autoRepair:['자동수리 모듈','⚒',115],grinder:['분쇄기 모듈','¤',130],targeting:['조준 보조 모듈','◎',110]};
  for(const[id,[name,icon,price]]of Object.entries(names))D.MODULES[id]={name,icon,price,effect:id,range:0,description:C.modules[id].cap};
+ // Crew Arms is a support module with a base reach of one car to either side.
+ D.MODULES.crewArms.range=1;
  // Ancient equipment is a real gameplay/category flag, not just a codex label.
  // Later update files add more marked equipment using the same shared flavor table.
  const ancientFlavor=window.LAST_RAIL_ANCIENT_GEAR_FLAVOR={
