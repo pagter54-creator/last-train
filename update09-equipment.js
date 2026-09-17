@@ -41,7 +41,7 @@
    const p=this.state.projectiles.find(p=>p.hostile&&!p.resolved&&!p.intercepted09&&/missile|rocket|드론|미사일/i.test(p.type+' '+(p.attack?.name||'')));if(!p)continue;
    const s=this.turretStats(eq,ci,this.crewForCar(ci).reduce((n,c)=>n+this.effectiveStat(c,'operate'),0));
    p.interceptHp09??=30;p.interceptHp09-=s.damage*C.interceptor.priorityDamage;if(p.interceptHp09<=0){p.intercepted09=true;p.resolved=true;p.life=0;}
-   eq.cooldown=s.interval;eq.heat=Math.min(D.BALANCE.heat.max,(eq.heat||0)+s.heat);if(eq.heat>=D.BALANCE.heat.max)eq.overheated=true;eq.muzzle=.15;this.playSound('shot');
+   eq.cooldown=s.interval;const maxHeat=this.turretHeatMax(eq);eq.heat=Math.min(maxHeat,(eq.heat||0)+s.heat);if(eq.heat>=maxHeat)eq.overheated=true;eq.muzzle=.15;this.playSound('shot');
   }
   return turrets(dt);
  };

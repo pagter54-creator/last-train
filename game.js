@@ -394,6 +394,12 @@
       return v;
     }
 
+    turretHeatMax(eq) {
+      const lv=Math.max(1,eq?.level||1);
+      const bonus=lv>=8?50:lv>=7?25:lv>=6?10:0;
+      return B.heat.max+bonus;
+    }
+
     updateTurrets(dt) {
       const s = this.state;
       s.cars.forEach((car, carIndex) => {
@@ -405,7 +411,8 @@
           const opMod = clamp(operate * B.heat.operatorCoolingBonusPerPoint, 0, B.heat.maxOperatorModifier);
           let cool = this.turretCooling?this.turretCooling(eq,carIndex):t.cool * (1 + opMod) * this.moduleEffect(carIndex, 'cooling', 'coolingMult');
           if (car.armor > 0) cool *= B.armor.coolingMultiplier;
-          eq.heat = clamp(eq.heat - cool * dt, 0, B.heat.max);
+          const maxHeat = this.turretHeatMax(eq);
+          eq.heat = clamp(eq.heat - cool * dt, 0, maxHeat);
           if (eq.overheated && eq.heat <= B.heat.resumeAt && !eq.rageCooling) eq.overheated = false;
           this.updateRage?.(eq,dt);
           if (!this.equipmentActive(carIndex) || (eq.overheated&&!eq.rageLeft) || eq.rageCooling || this.eventEquipmentDisabled?.(eq) || this.bossCarSealed?.(carIndex)) continue;
@@ -416,8 +423,8 @@
           const stats = this.turretStats(eq, carIndex, operator);
           this.fireTurret(eq, stats, target, carIndex);
           eq.cooldown = stats.interval;
-          eq.heat = clamp(eq.heat + stats.heat, 0, B.heat.max);
-          if (eq.heat >= B.heat.max && !eq.overheated) { eq.overheated = true; this.log(`${t.name} 과열`, 'bad'); }
+          eq.heat = clamp(eq.heat + stats.heat, 0, maxHeat);
+          if (eq.heat >= maxHeat && !eq.overheated) { eq.overheated = true; this.log(`${t.name} 과열`, 'bad'); }
         }
       });
       s.cars.forEach(c => c.armor = Math.max(0, c.armor - dt));

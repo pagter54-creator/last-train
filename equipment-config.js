@@ -5,7 +5,7 @@
   maxTurretLevel:8,maxModuleLevel:5,moduleCosts:{2:25,3:45,4:75,5:110},auxUnlock:3,auxEfficiency:.7,
   baseHeatMultiplier:.9,overheatCoolingMultiplier:2.5,retargetFactor:.25,unarmoredThreshold:.12,closeDistance:.22,
   ballistics:{knockback:.035,breachPierce:.9,extraDelay:.18,extraOffset:.035,chainSeconds:.16,zonePierce:.2},
-  moduleGrowth:.2,moduleCapLevel:5,lowHull:.3,zoneTick:1,maxZones:16,zoneSpreadLimit:3,
+  moduleGrowth:.2,moduleCapLevel:5,heatCapacityBonus:{6:10,7:25,8:50},lowHull:.3,zoneTick:1,maxZones:16,zoneSpreadLimit:3,
   armor:{perHit:.08,maxStacks:5,duration:12,shatterStacks:5,shatter:.3,breach:.15},
   slow:{perHit:.12,maxStacks:4,duration:4,freeze:1.2,eliteFloor:.35,bossFloor:.9,heavyHp:900,heavyKnockback:.15,stun:.4},
   extraCar:{cost:450,price:300,name:'증결 포대'},
@@ -22,13 +22,13 @@
    frost:{high:60,critical:80,highEffect:{slowStacks:2},criticalEffect:{slowStacks:3},heatRule:'shell',cap:{name:'DEEP FREEZE',text:'4중첩 일반 적 1.2초 동결 · 정예 강한 감속 · 보스 최대 10% 감속',effect:{freeze:true}}}
   },
   modules:{
-   cooling:{cap:'Lv5: 냉각 효과량 +35%',capFactor:1.35},medical:{cap:'Lv5: 전투 후 회복 효과량 +50%',capFactor:1.5},repair:{cap:'Lv5: 직원 수리 효과량 +40%',capFactor:1.4},ammo:{cap:'Lv5: 탄약 피해 효과량 +35%',capFactor:1.35},
-   overdrive:{damage:.12,rate:.08,thresholds:[60,80,95],cap:'Lv5: 고열 증폭 효과량 +50%',capFactor:1.5},
-   crewArms:{damage:.2,range:.25,grip:.35,pierce:.25,cap:'Lv5: 개인화기 관통 +25%p'},
-   shield:{capacity:60,recharge:14,capRecharge:.65,cap:'Lv5: 실드 재충전 시간 35% 감소'},
-   autoRepair:{repair:.55,emergency:2.5,cap:'Lv5: 내구 30% 이하 수리량 ×2.5'},
-   grinder:{money:8,scrap:5,elite:1.2,boss:1.5,capBonus:1.5,cap:'Lv5: 완료 보상 +50%'},
-   targeting:{range:.10,rangeGrowth:.25,edge:.8,edgeDamage:.22,cap:'Lv5: 최대 사거리 80% 이상 거리의 적 피해 +22%'}
+   cooling:{},medical:{},repair:{},ammo:{},
+   overdrive:{damage:.12,rate:.08,thresholds:[60,80,95]},
+   crewArms:{damage:.2,range:.25,grip:.35},
+   shield:{capacity:60,recharge:14},
+   autoRepair:{repair:.55},
+   grinder:{money:8,scrap:5,elite:1.2,boss:1.5},
+   targeting:{range:.10,rangeGrowth:.25}
   }
  };
  W.maxLevel=C.maxTurretLevel;Object.assign(W.costs,{6:115,7:160,8:230});B.upgrade.heatPerLevel=.025;B.moduleUpgrade.perLevel=C.moduleGrowth;
@@ -59,8 +59,8 @@
  };
  const markAncient=id=>{const d=D.TURRETS[id]||D.MODULES[id];if(!d)return;d.ancient=true;d.flavor=ancientFlavor[id]||d.flavor;};
  for(const id of ['tesla','repulsor','frost','overdrive','cooling'])markAncient(id);
- for(const[id,t]of Object.entries(D.TURRETS)){const spec=C.turret[id]||C.turret.cannon;t.maxLevel=8;t.rangeType=t.range;t.heatGenerationRule=spec.heatRule;t.highHeatEffect=spec.highEffect;t.criticalHeatEffect=spec.criticalEffect;t.level8Capstone=spec.cap;t.baseStats={damage:t.damage,interval:t.interval,heat:t.heat,cool:t.cool};}
- for(const[id,m]of Object.entries(D.MODULES)){m.maxLevel=m.upgradeable===false?1:5;m.auxSlotUnlockLevel=m.upgradeable===false?null:3;m.auxEfficiency=C.auxEfficiency;m.level5Capstone=C.modules[id]?.cap||'기본 기능 강화';}
+ for(const[id,t]of Object.entries(D.TURRETS)){const spec=C.turret[id]||C.turret.cannon;t.maxLevel=8;t.rangeType=t.range;t.heatGenerationRule=spec.heatRule;t.highHeatEffect=spec.highEffect;t.criticalHeatEffect=spec.criticalEffect;t.level8Capstone=null;t.baseStats={damage:t.damage,interval:t.interval,heat:t.heat,cool:t.cool};}
+ for(const[id,m]of Object.entries(D.MODULES)){m.maxLevel=m.upgradeable===false?1:5;m.auxSlotUnlockLevel=m.upgradeable===false?null:3;m.auxEfficiency=C.auxEfficiency;m.level5Capstone=null;}
  B.train.carNames[5]=C.extraCar.name;B.station.carPrices[2]=C.extraCar.price;
  META_CONFIG.upgrades.extraCar={id:'extraCar',group:'advanced',name:'증결 객차',max:1,costs:[C.extraCar.cost],values:[1],text:'런 중 구매 가능한 최대 객차 5 → 6량'};
 })();
