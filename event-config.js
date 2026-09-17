@@ -58,6 +58,61 @@ window.EVENT_CONFIG=(()=>{
       pass(),choice('fight','직원 한 명을 출전시킨다',.5,{}, {dispatch:true,skill:'combat',...risk(.5,outcome('첫 승리','출전한 직원이 상금을 받아 돌아왔다.',{money:[120,180]}),outcome('상처뿐인 귀환','출전한 직원이 패배했다.',{actorDamage:[30,50]}))}),
       choice('bet','판돈을 걸고 출전한다',.6,{}, {cost:{money:50},dispatch:true,skill:'combat',...risk(.5,outcome('관중의 환호','큰 상금과 실전 경험을 얻었다.',{money:[250,300],possibleTalent:true}),outcome('무거운 패배','판돈을 잃고 출전 직원도 다쳤다.',{actorDamage:50}))})])
   ];
+
+  // 1.0.1 event expansion: forced dilemmas and character incidents.
+  // `acts` lets one incident live in more than one ACT without duplicating its codex entry.
+  events.push(
+    {...event('gatling_zealot',1,'기관총 애호가','가던 길, 수십 문의 개틀링 포탑이 선로 양옆에서 열차를 포위했다. 탄띠를 목에 두른 남자가 열차 앞을 막아선다. “자네들! 개틀링 좋아하는가?” 반응을 잘못하면 열차가 벌집이 될지도 모른다.',[
+      {...choice('show_turret','포탑으로 위협해본다',0,{}),selectTurret:true},
+      choice('persuade','직원으로 설득해본다',0,{forceEventSkill:'gunner'},{dispatch:true,title:'누가 누구를 설득한 거지?',text:'{ACTOR}이(가) 한참 동안 남자와 이야기를 나눴다. 설득은 실패했다. 정확히는, 반대로 설득당했다.'}),
+      choice('ignore','철저히 무시한다',0,{allCarMaxHpDamage:.20},{title:'개틀링을 무시해?',text:'대답 없이 열차를 움직이자 남자의 웃음이 사라졌다. 잠시 뒤 양옆의 총열이 일제히 회전하기 시작했다.'})
+    ]),acts:[1,2],weight:.65},
+
+    {...event('light_failure',1,'전구 고장','객차 하나가 갑자기 어두워졌다. 전구가 나갔다. 별것 아닌 고장처럼 보이지만, 달리는 열차에서 앞이 보이지 않는 건 생각보다 큰 문제다. 수리해야 한다.',[
+      choice('repair','수리한다',0,{},risk(.70,
+        outcome('다시 켜진 불빛','몇 번의 스파크 뒤 조명이 돌아왔다. 별일 아니었다. 이번에는.'),
+        outcome('배선까지 나갔다','뭔가 잘못 건드렸다. 전구 하나가 아니라 객차 하나의 배선 전체가 죽었다.',{blackoutNext:true})
+      )),
+      choice('dark','어두운 생활도 나쁘지 않다',0,{allCrewDamage:10},{title:'어둠에 적응하기 전에',text:'그냥 두기로 했다. 얼마 지나지 않아 누군가는 공구함에 걸려 넘어졌고, 누군가는 문틀에 머리를 부딪혔다.'})
+    ]),acts:[1],weight:.8},
+
+    {...event('connector_cut',2,'연결부 절단 명령','후방 객차의 연결부가 뒤틀린 채 차체를 끌어당기고 있다. 그대로 달리면 열차 전체에 부담이 간다. 멈춰서 고칠 시간은 없다.',[
+      choice('sacrifice','객차를 희생한다',0,{destroyNonEngineCar:true,disableDestroyedCarGear:true},{title:'하나를 버리고 달린다',text:'연결부를 끊었다. 객차 하나는 선로 뒤편으로 멀어졌고, 남은 열차는 다시 속도를 올렸다.'}),
+      choice('drag','억지로 끌고 간다',0,{engineDebuffBattles:2,engineDebuff:.85},{distanceCost:1.5,title:'비명을 지르는 연결부',text:'뒤틀린 연결부를 그대로 끌고 간다. 당장은 객차를 지켰지만, 엔진은 한동안 그 무게를 떠안아야 한다.'})
+    ]),acts:[2,3],weight:.55},
+
+    {...event('crew_conflict',2,'승무원 분열','{A}과(와) {B} 사이의 언쟁이 객차 전체로 번지고 있다. 둘 다 물러날 생각이 없어 보인다. 누군가는 이 문제를 끝내야 한다.',[
+      choice('mediate','직접 중재한다',0,{}, {distanceCost:.6,chance:.60,outcomes:[
+        outcome('중재 성공','한참의 말다툼 끝에 두 사람은 일단 각자의 자리로 돌아갔다.'),
+        outcome('더 나빠졌다','중재는 실패했다. 이제 둘은 서로의 얼굴만 봐도 표정이 굳는다.',{pairRelation:'rival'})
+      ]}),
+      choice('fight','싸우게 둔다',0,{pairDamage:80},{title:'끝까지 가보자는 건가',text:'말싸움은 곧 몸싸움이 됐다. 둘 다 크게 다친 뒤에야 주변이 조용해졌다.'}),
+      choice('time','충분한 시간을 준다',0,{}, {distanceCost:2.2,title:'시간으로 푼 문제',text:'열차를 늦추고 둘이 충분히 이야기할 시간을 줬다. 결국 문제는 풀렸지만, 뒤쪽의 진동은 그만큼 가까워졌다.'})
+    ]),acts:[2,3],minStaff:2,pairEvent:true,weight:.45},
+
+    {...event('tracker_beacon',2,'적의 추적 송신기','차체 아래에서 낯선 송신기가 발견됐다. 언제부터 붙어 있었는지는 알 수 없다. 작은 표시등이 일정한 간격으로 어딘가에 신호를 보내고 있다.',[
+      choice('remove','제거한다',0,{}, {distanceCost:2.0,title:'생각보다 복잡한 장치',text:'단순히 뜯어낼 수 있는 물건이 아니었다. 배선과 차체를 분리하는 동안 타이탄과의 거리가 크게 줄었다.'}),
+      choice('trace','역추적한다',0,{forceEliteNext:true},{title:'신호의 반대편',text:'송신 신호를 거꾸로 따라가기로 했다. 다음 교전에는 이 장치를 달아둔 놈들이 직접 나타날 것이다.'})
+    ]),acts:[2,3],weight:.6},
+
+    {...event('ancient_core_overload',3,'고대 코어 과부하','열차에 장착된 고대 장비 하나가 갑자기 다른 고대 장비들과 동시에 공명하기 시작했다. 계측기는 이해할 수 없는 수치를 내놓고 있고, 기관실에서는 코어를 분리할지 연결할지 결정을 요구한다.',[
+      choice('connect','기관실에 연결한다',0,{ancientCoreBoost:1.25,coreRiskBattles:2,coreRiskDamage:1.15},{title:'이해하지 못한 채 사용하는 힘',text:'코어는 고대 장비들의 출력을 끌어올렸다. 동시에 열차 전체의 보호계통이 불안정해졌다. 앞으로 두 번의 전투는 훨씬 위험하다.'}),
+      choice('salvage','분해한다',0,{relics:12,breakAncientGear:true},{title:'코어를 해체한다',text:'과부하가 번지기 전에 코어를 뜯어냈다. 많은 고대 잔해를 건졌지만, 연결되어 있던 장비 하나는 되돌릴 수 없게 망가졌다.'})
+    ]),acts:[3],requiresAncientGear:true,requiresNoAncientCoreBoost:true,weight:.45},
+
+    {...event('last_spare_parts',3,'마지막 예비 부품','기관실과 후방 객차에서 동시에 심각한 고장이 발견됐다. 남아 있는 예비 부품은 한쪽밖에 살릴 수 없다.',[
+      choice('engine','기관실을 수리한다',0,{destroyNonEngineCar:true},{title:'기관실을 살린다',text:'예비 부품을 기관실에 몰아넣었다. 엔진은 살아났지만, 다른 객차 하나는 더 이상 버티지 못했다.'}),
+      choice('car','객차를 수리한다',0,{enginePowerCapLoss:1},{title:'객차를 살린다',text:'객차 쪽을 살렸다. 대신 기관실의 손상은 완전히 복구하지 못했다. 이 런 동안 기관실의 최대 출력이 감소한다.'})
+    ]),acts:[3],weight:.35},
+
+    {...event('office_romance',1,'사내 연애(?)','{A}과(와) {B} 사이의 기류가 심상치 않다. 둘만 모르는 건지, 둘만 알고 있는 건지 객차의 다른 사람들은 이미 눈치를 챈 것 같다.',[
+      choice('cheer','두 사람의 사랑을 응원한다',0,{}, {chance:.55,outcomes:[
+        outcome('연인이 되었다','결국 {A}과(와) {B}은(는) 서로의 마음을 인정했다. 두 사람은 같은 객차에서 이상할 정도로 손발이 잘 맞기 시작했다.',{pairRelation:'lover'}),
+        outcome('두 사람이 헤어졌다','응원이 부담이었던 걸까. 관계는 오래가지 못했다. 둘 다 한동안 일에 집중하지 못했다.',{pairBreakup:true})
+      ]})
+    ]),acts:[1,2,3],minStaff:3,pairEvent:true,weight:.35}
+  );
+
   // Optional analysis and dispatch rules are data; new events can reuse them.
   events.find(e=>e.id==='distress').analysis=[{trait:'scholar',choice:'investigate',texts:['사람이 보내는 구조 신호','반복 재생되는 인공 신호','고대 장치의 신호']}];
   events.find(e=>e.id==='mystery_merchant').analysis=[{trait:'scholar',choice:'box',texts:['상자에서 강한 에너지 감지','상자에서 일반 장비의 진동 감지','상자에서 금속의 울림 감지','상자에서 아무 반응도 없음']}];

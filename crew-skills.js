@@ -3,8 +3,8 @@
  const g=lastRail,D=GAME_DATA,B=D.BALANCE,C=CREW_SKILLS_CONFIG,P=PROGRESSION_CONFIG;
  const active=c=>c&&!c.dead&&c.hp>0&&!c.moving,clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
  const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
- g.normalizeCrewSkills=function(c){const valid=id=>!!D.TRAITS[id],unique=a=>[...new Set(a||[])].filter(valid);c.starTraits=unique(c.starTraits||c.normalSkills||c.traits).filter(id=>D.TRAITS[id].canBeNormalSkill!==false&&!D.TRAITS[id].captainOnly).slice(0,Math.max(0,(c.stars||1)-1));const event=c.eventSkill??c.eventTraits?.[0];c.eventSkill=valid(event)&&!c.starTraits.includes(event)?event:null;c.eventTraits=c.eventSkill?[c.eventSkill]:[];c.normalSkills=c.starTraits;c.traits=[...c.starTraits,...c.eventTraits,...(c.captain?['fieldCaptain']:[])];return c;};
- g.setEventSkill=function(c,id){this.normalizeCrewSkills(c);if(!D.TRAITS[id]?.canBeEventSkill||c.traits.includes(id))return false;c.eventSkill=id;c.eventTraits=[id];c.traits=[...c.starTraits,id,...(c.captain?['fieldCaptain']:[])];this.recordEncounter?.('skills',id);this.playSound('upgrade');return true;};
+ g.normalizeCrewSkills=function(c){const valid=id=>!!D.TRAITS[id],unique=a=>[...new Set(a||[])].filter(valid);c.starTraits=unique(c.starTraits||c.normalSkills||c.traits).filter(id=>D.TRAITS[id].canBeNormalSkill!==false&&!D.TRAITS[id].captainOnly).slice(0,Math.max(0,(c.stars||1)-1));const event=c.eventSkill??c.eventTraits?.[0];c.eventSkill=valid(event)?event:null;c.eventTraits=c.eventSkill?[c.eventSkill]:[];c.normalSkills=c.starTraits;c.traits=unique([...c.starTraits,...c.eventTraits,...(c.captain?['fieldCaptain']:[])]);if(c.eventRelation&&!['lover','rival'].includes(c.eventSkill))delete c.eventRelation;return c;};
+ g.setEventSkill=function(c,id){this.normalizeCrewSkills(c);if(!D.TRAITS[id]?.canBeEventSkill||c.eventSkill===id)return false;c.eventSkill=id;c.eventTraits=[id];c.traits=[...new Set([...c.starTraits,id,...(c.captain?['fieldCaptain']:[])])];if(!['lover','rival'].includes(id))delete c.eventRelation;this.recordEncounter?.('skills',id);this.playSound('upgrade');return true;};
  g.skillValue=function(c,key){return(c.traits||[]).reduce((n,id)=>n+(Number(D.TRAITS[id]?.effect?.[key])||0),0);};
  const val=(c,k)=>g.skillValue(c,k),crew=ci=>g.crewForCar(ci),sum=(ci,key,except)=>Math.min(C.maxSupport,crew(ci).filter(c=>c!==except).reduce((n,c)=>n+val(c,key),0));
  const burning=ci=>(g.state?.battle?.fires||[]).some(f=>f.car===ci&&f.left>0);
@@ -17,7 +17,12 @@
   if(key==='combat')bonus+=sum(c.car,'combatAura');
   if(key==='repair'){bonus+=val(c,'woundedRepair')*(1-clamp(hp,0,1))+sum(c.car,'repairAura',c);if(hp<=C.lowHull)bonus+=val(c,'lowRepair');}
   if(key==='operate'){bonus+=val(c,'operate');if(this.effectiveCarPower(c.car)>=2)bonus+=val(c,'poweredOperate');if(weapon)bonus+=val(c,'weaponOperate');if(car.equipment.some(e=>e.ancient||(e.kind==='turret'?D.TURRETS:D.MODULES)[e.type]?.ancient||C.ancientTypes.includes(e.type)))bonus+=val(c,'ancientOperate');}
-  return n*(1+Math.min(C.maxStatBonus,bonus));
+  let out=n*(1+Math.min(C.maxStatBonus,bonus));
+  const relation=c.eventRelation,partner=relation?.partnerId?this.state.crew.find(x=>x.id===relation.partnerId):null;
+  const paired=partner&&active(partner)&&partner.car===c.car&&partner.eventRelation?.partnerId===c.id&&partner.eventSkill===c.eventSkill;
+  if(paired&&c.eventSkill==='lover')out+=1;
+  if(paired&&c.eventSkill==='rival')out=Math.max(1,out*.5);
+  return out;
  };
  const stats=g.turretStats.bind(g);g.turretStats=function(eq,ci,...args){const prev=weapon;weapon=eq;try{const s=stats(eq,ci,...args),hot=eq.heat>=(EQUIPMENT_REFORM.turret[eq.type]?.high??B.heat.max);if(this.state.orders.focus.active>0){s.damage*=1+sum(ci,'focusDamage');s.interval/=1+sum(ci,'focusRate');}if(hot){s.damage*=1+sum(ci,'hotDamage');s.interval/=1+sum(ci,'hotRate');}return s;}finally{weapon=prev;}};
  const cool=g.turretCooling.bind(g);g.turretCooling=function(eq,ci){const prev=weapon;weapon=eq;try{return cool(eq,ci)*(1+sum(ci,'cooling'));}finally{weapon=prev;}};

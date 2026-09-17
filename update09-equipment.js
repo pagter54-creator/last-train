@@ -6,7 +6,7 @@
  const dist=(a,b)=>Math.hypot(a.x-b.x,(a.y-b.y)/D.BALANCE.projectile.laneSpan);
  const priority=e=>!!(e.interceptShot09||e.attached||e.boarded&&['connectorBlocker','tetherDrone'].includes(e.type)||e.dropLeft>0||/drone|missile|suicide|airdrop/i.test(e.type||'')||/드론|미사일|공습|자폭/.test(D.ENEMIES[e.type]?.name||''));
  g.interceptionPriority09=e=>Number(priority(e));
- const ancientScholarFactor=(eq,ci)=>{const def=(eq?.kind==='turret'?D.TURRETS:D.MODULES)[eq?.type];if(!def?.ancient)return 1;const carIndex=ci??g.equipmentLocation?.(eq)??-1;return g.state?.crew?.some(c=>!c.dead&&!c.moving&&c.hp>0&&c.car===carIndex&&c.traits.includes('scholar'))?D.TRAITS.scholar.ancientDamageMult:1;};
+ const ancientScholarFactor=(eq,ci)=>{const def=(eq?.kind==='turret'?D.TURRETS:D.MODULES)[eq?.type];if(!def?.ancient)return 1;const carIndex=ci??g.equipmentLocation?.(eq)??-1,scholar=g.state?.crew?.some(c=>!c.dead&&!c.moving&&c.hp>0&&c.car===carIndex&&c.traits.includes('scholar'))?D.TRAITS.scholar.ancientDamageMult:1,event=g.state?.eventAncientBoost||1;return scholar*event;};
  const targets=g.turretTargets.bind(g);
  g.turretTargets=function(t,eq){const out=targets(t,eq);return out.filter(e=>!e.titanPart09||e.phase===this.state.battle.phase);};
  const pick=g.pickTurretTarget.bind(g);
@@ -47,7 +47,7 @@
  };
  // Every combat hull subtraction calls this before destruction/crew casualty checks.
  const absorb=g.absorbHullDamage.bind(g);
- g.absorbHullDamage=function(ci,amount){return this.preventHullDestruction09(ci,absorb(ci,amount));};
+ g.absorbHullDamage=function(ci,amount){const eventMult=this.state?.eventCombat?.coreDamageMult||1;return this.preventHullDestruction09(ci,absorb(ci,amount*eventMult));};
  g.preventHullDestruction09=function(ci,remaining){const car=this.state.cars[ci];if(!car||car.hp<=0||remaining<car.hp)return remaining;
   const host=car.equipment.find(e=>e.type==='makeshiftRepair'||e.aux?.type==='makeshiftRepair');if(!host)return remaining;
   if(host.type==='makeshiftRepair')car.equipment.splice(car.equipment.indexOf(host),1);else delete host.aux;

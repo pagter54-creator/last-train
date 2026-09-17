@@ -22,9 +22,23 @@
   memory_damage:'./image/memory_damage.png',
   elite_encounter:'./image/elite_encounter.png',
   relic_cache:'./image/relic_cache.png',
-  lightning_rod:'./image/lightning_rod.png'
+  lightning_rod:'./image/lightning_rod.png',
+  // 1.0.1 event expansion backgrounds
+  gatling_zealot:'./image/gatling_zealot.png',
+  light_failure:'./image/light_failure.png',
+  connector_cut:'./image/connector_cut.png',
+  crew_conflict:'./image/crew_conflict.png',
+  tracker_beacon:'./image/tracker_beacon.png',
+  ancient_core_overload:'./image/ancient_core_overload.png',
+  last_spare_parts:'./image/last_spare_parts.png',
+  office_romance:'./image/office_romance.png'
  };
  const act3Images=['relic_converter','generator_explosion','engineer_group','memory_damage','elite_encounter','relic_cache','lightning_rod'];
+ const expansionEventImages={
+  act1:['gatling_zealot','light_failure','office_romance'],
+  act2:['gatling_zealot','connector_cut','crew_conflict','tracker_beacon','office_romance'],
+  act3:['connector_cut','crew_conflict','tracker_beacon','ancient_core_overload','last_spare_parts','office_romance']
+ };
  const pendingNames=Object.fromEntries(act3Images.map((id,i)=>[id,`./image/act3 image ${i+1}.png`]));
  const eventEntries=(ids,prefix)=>ids.map(id=>({
   id:`${prefix}-${id}`,
@@ -85,12 +99,14 @@
     {id:'bgm-titan',type:'audio',src:'./bgm/bgm_titan.mp3',required:false}
    ],
    events1:eventEntries([
-    'abandoned_station','wreck_train','injured_survivors','raider_trade','broken_rails','suspicious_fuel','distress'
+    'abandoned_station','wreck_train','injured_survivors','raider_trade','broken_rails','suspicious_fuel','distress',
+    ...expansionEventImages.act1
    ],'event-act1'),
    events2:eventEntries([
-    'ancient_wreck','military_base','other_train','mystery_merchant','ruins','biker_race','arena'
+    'ancient_wreck','military_base','other_train','mystery_merchant','ruins','biker_race','arena',
+    ...expansionEventImages.act2
    ],'event-act2'),
-   events3:eventEntries(act3Images,'event-act3')
+   events3:eventEntries([...act3Images,...expansionEventImages.act3],'event-act3')
   }
  };
 })();

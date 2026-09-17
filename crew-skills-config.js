@@ -40,6 +40,8 @@
  add('railOath','철로의 맹세','story','기관실 또는 선두 객차에서 전투·수리 +25%',{frontStats:.25},true);
  add('lifeDebt','빚진 목숨','story','같은 객차에 다른 활동 직원이 있으면 본인 전투·수리·운용 +20%',{partnerStats:.2},true);
  add('wastelandHunter','황무지의 사냥꾼','story','정예 대상 개인화기 피해 +45% · 정예가 살아 있는 동안 이동속도 +30%',{eliteDamage:.45,eliteMove:.3},true);
+ add('rival','앙숙','story','지정된 앙숙과 같은 객차에 있으면 모든 능력치 ×0.5 · 최소 1',{relationship:'rival'},true);
+ add('lover','연인','story','지정된 연인과 같은 객차에 있으면 모든 능력치 +1',{relationship:'lover'},true);
  window.CREW_SKILLS=D.TRAITS;
  for(const [id,e]of Object.entries(D.ENEMIES)){e.mechanical??=!e.boards&&e.behavior!=='infiltrator';if(/drone/i.test(id)||e.specialBehavior==='stealth')e.family='drone';}
  const eventTexts={
