@@ -120,7 +120,7 @@ window.GAME_DATA = (() => {
     coward: { name: '겁쟁이', text: '승선병이 같은 칸에 있으면 전투 -2, 수리 +2', combatVsBoarder: -2, repairVsBoarder: 2 },
     marksman: { name: '명사수', text: '개인화기 및 포탑 피해 +15%', damageMult: 1.15 },
     fixer: { name: '응급수리공', text: '파괴 객차 수리 +30%', repairMult: 1.3 },
-    gunner: { name: '기관총 애호가', text: '개틀링 연사 +18%, 과열 +8%', gatlingIntervalMult: 0.82, gatlingHeatMult: 1.08 },
+    gunner: { name: '기관총 애호가', text: '개틀링 피해 +18%, 과열 +8%', gatlingDamageMult: 1.18, gatlingHeatMult: 1.08 },
     engineer: { name: '노련한 기관사', text: '기관실 배치 시 열차 속도 +6%', engineSpeedMult: 1.06 },
     medic: { name: '야전의무병', text: '같은 객차 직원 전투 후 회복 +25%', healMult: 1.25 },
     lonewolf: { name: '외로운 늑대', text: '객차에 혼자 있으면 모든 능력 +2', soloBonus: 2 },

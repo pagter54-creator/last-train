@@ -63,10 +63,10 @@ window.EVENT_CONFIG=(()=>{
   // `acts` lets one incident live in more than one ACT without duplicating its codex entry.
   events.push(
     {...event('gatling_zealot',1,'기관총 애호가','가던 길, 수십 문의 개틀링 포탑이 선로 양옆에서 열차를 포위했다. 탄띠를 목에 두른 남자가 열차 앞을 막아선다. “자네들! 개틀링 좋아하는가?” 반응을 잘못하면 열차가 벌집이 될지도 모른다.',[
-      {...choice('show_turret','포탑으로 위협해본다',0,{}),selectTurret:true},
-      choice('persuade','직원으로 설득해본다',0,{forceEventSkill:'gunner'},{dispatch:true,title:'누가 누구를 설득한 거지?',text:'{ACTOR}이(가) 한참 동안 남자와 이야기를 나눴다. 설득은 실패했다. 정확히는, 반대로 설득당했다.'}),
-      choice('ignore','철저히 무시한다',0,{allCarMaxHpDamage:.20},{title:'개틀링을 무시해?',text:'대답 없이 열차를 움직이자 남자의 웃음이 사라졌다. 잠시 뒤 양옆의 총열이 일제히 회전하기 시작했다.'})
-    ]),acts:[1,2],weight:.65},
+      {...choice('show_turret','포탑으로 위협해본다',.4,{}),selectTurret:true},
+      choice('persuade','직원으로 설득해본다',.4,{forceEventSkill:'gunner'},{dispatch:true,title:'누가 누구를 설득한 거지?',text:'{ACTOR}이(가) 한참 동안 남자와 이야기를 나눴다. 설득은 실패했다. 정확히는, 반대로 설득당했다.'}),
+      choice('ignore','철저히 무시한다',.4,{allCarMaxHpDamage:.20},{title:'개틀링을 무시해?',text:'대답 없이 열차를 움직이자 남자의 웃음이 사라졌다. 잠시 뒤 양옆의 총열이 일제히 회전하기 시작했다.'})
+    ]),acts:[1,2],weight:.65,hideChoicePreview:true},
 
     {...event('light_failure',1,'전구 고장','객차 하나가 갑자기 어두워졌다. 전구가 나갔다. 별것 아닌 고장처럼 보이지만, 달리는 열차에서 앞이 보이지 않는 건 생각보다 큰 문제다. 수리해야 한다.',[
       choice('repair','수리한다',0,{},risk(.70,

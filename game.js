@@ -172,13 +172,7 @@
 
     showBranch(node) {
       const labels = { battle: ['일반 전투','위협은 낮지만 보상도 평범하다.','⚔'], elite: ['엘리트 전투','강한 적과 특수 개체. 보상이 크다.','▲'], event: ['미지의 신호','결과를 예측할 수 없다.','?'] };
-      // Every branch always offers a normal battle. Elite and event routes roll independently.
-      // Elite: 30%, Event: 50%. If both miss, guarantee one of the two at random.
-      const rolled=['battle'];
-      if(Math.random()<0.30)rolled.push('elite');
-      if(Math.random()<0.50)rolled.push('event');
-      if(rolled.length===1)rolled.push(Math.random()<0.5?'elite':'event');
-      const options = rolled.map((type) => ({ ...{ type }, label: labels[type][0], text: labels[type][1], hint: type === 'elite' ? '보상 약 1.5배' : type === 'event' ? '선택형 사건' : '표준 보상', icon: labels[type][2] }));
+      const options = node.options.map((type) => ({ ...{ type }, label: labels[type][0], text: labels[type][1], hint: type === 'elite' ? '보상 약 1.5배' : type === 'event' ? '선택형 사건' : '표준 보상', icon: labels[type][2] }));
       this.showDialog('경로 선택', `구간 ${this.state.stageIndex + 1}`, '현재 열차 상태를 보고 다음 선로를 선택하십시오.', options, (o) => {
         this.closeOverlay();
         this.resolveNode(o.type, { title: o.label, dangerousEvent: node.dangerousEvent });
@@ -319,29 +313,16 @@
       const s = this.state;
       const car = s.cars[e.targetCar];
       if (!car) return;
-      const occupants = s.crew.filter(c => !c.dead && !c.moving && c.car === e.targetCar && c.hp > 0);
-
-      // Boarding enemies never damage crew and the car in the same attack.
-      // Once aboard they prioritize living crew; only an empty car is attacked directly.
-      if(e.boarded && occupants.length){
-        const victim = pick(occupants);
-        const reduction = clamp(this.effectiveStat(victim, 'combat') * B.crew.boarderDamageReductionPerCombat, 0, B.crew.maxDamageReduction);
-        if(this.hurtCrew)this.hurtCrew(victim,e.crewDamage*(1-reduction),'boarded');else victim.hp=Math.max(0,victim.hp-e.crewDamage*(1-reduction));
-        if (victim.hp <= 0) this.log(`${victim.name} 전투불능`, 'bad');
-        this.fx(.22 + e.targetCar * .12, .78, '#e35235');
-        return;
-      }
-
       if (car.armor > 0) { this.fx(.22 + e.targetCar * .12, .78, '#f0bd52'); return; }
       const damageSnapshot={car:car.hp,crew:s.crew.map(c=>({id:c.id,hp:c.hp,dead:c.dead}))};
       car.hp = Math.max(0, car.hp - (this.absorbHullDamage?.(e.targetCar,e.carDamage)??e.carDamage));
       car.hitFlash = B.feedback.carFlashSeconds;
       this.playSound?.('hull');
-      // Non-boarding attacks keep their existing mixed hull/crew behavior.
-      if (!e.boarded && occupants.length) {
+      const occupants = s.crew.filter(c => !c.dead && !c.moving && c.car === e.targetCar && c.hp > 0);
+      if (occupants.length) {
         const victim = pick(occupants);
         const reduction = clamp(this.effectiveStat(victim, 'combat') * B.crew.boarderDamageReductionPerCombat, 0, B.crew.maxDamageReduction);
-        if(this.hurtCrew)this.hurtCrew(victim,e.crewDamage*(1-reduction),'attack');else victim.hp=Math.max(0,victim.hp-e.crewDamage*(1-reduction));
+        if(this.hurtCrew)this.hurtCrew(victim,e.crewDamage*(1-reduction),e.boarded?'boarded':'attack');else victim.hp=Math.max(0,victim.hp-e.crewDamage*(1-reduction));
         if (victim.hp <= 0) this.log(`${victim.name} 전투불능`, 'bad');
       }
       if (car.hp <= 0 && !car.destroyedLogged) {
@@ -489,7 +470,7 @@
       heat *= 1-clamp(operate*B.heat.operatorHeatReductionPerPoint,0,B.heat.maxOperatorModifier);
       damage *= 1+clamp(operate*window.PROGRESSION_CONFIG.crew.operateDamagePerPoint,0,window.PROGRESSION_CONFIG.crew.maxOperateDamage);
       for (const operator of operators) {
-        if (operator.traits.includes('gunner') && eq.type === 'gatling') { interval *= D.TRAITS.gunner.gatlingIntervalMult; heat *= D.TRAITS.gunner.gatlingHeatMult; }
+        if (operator.traits.includes('gunner') && eq.type === 'gatling') { damage *= D.TRAITS.gunner.gatlingDamageMult ?? 1; heat *= D.TRAITS.gunner.gatlingHeatMult ?? 1; }
         if (operator.traits.includes('marksman')) damage *= D.TRAITS.marksman.damageMult;
         if (operator.traits.includes('scholar') && D.TURRETS[eq.type]?.ancient) damage *= D.TRAITS.scholar.ancientDamageMult;
       }
