@@ -38,7 +38,7 @@
  add('saboteur','raider',{name:'파괴공',hp:105,carDamage:12,crewDamage:1,behavior:'saboteur'},20,['PRESSURE']);
  add('tetherDrone','drone',{name:'구속·견인 드론',hp:75,carDamage:1,crewDamage:0,behavior:'tetherDrone'},18,['DISRUPTION']);
  const elite=(id,name,hp,armor,behavior,hold,slots=1)=>{D.ENEMIES[id]={...D.ENEMIES.raider,name,icon:'◆',hp,armor,speed:.7,carDamage:0,crewDamage:0,interval:12,elite:true,eliteMinStage:31,fromStage:31,rhythmMinStage:31,threatCost:0,tags:['SPECIAL'],specialBehavior:behavior,hold,eliteSlots:slots,help:{airdrop:'여러 객차로 낙하합니다. 착지 전 포탑으로 요격하세요.',signalJammer:'포탑 또는 모듈 하나를 잠시 정지시킵니다. 직원 이동은 방해하지 않습니다.',assaultCarrier:'열차 가까이에서 승선병을 반복 투입합니다. 정예 슬롯 2개를 사용합니다.'}[behavior]};};
- elite('airdropElite','공습 부대',180,.15,'airdrop',.45);
+ elite('airdropElite','공습 부대',180,.15,'airdrop',.45);D.ENEMIES.airdropElite.speed=1.35;
  elite('signalElite','신호 교란차',200,.25,'signalJammer',.55);
  elite('assaultElite','중장 돌격차',500,.72,'assaultCarrier',.2,2);
  add('airdropSoldier','boarder',{name:'공습 승선병',hp:60,carDamage:1,crewDamage:6,behavior:'airdropSoldier'},0,['BOARDING']);
@@ -46,9 +46,9 @@
 
  D.ENEMIES.janusHeatDrone={...D.ENEMIES.raider,name:'발열 드론',icon:'◇',hp:30,armor:0,speed:0,carDamage:0,crewDamage:0,interval:999,boards:false,ranged:false,special:true,fromStage:999,rhythmMinStage:999,threatCost:0,tags:['SPECIAL']};
 
- D.BOSSES.janus={name:'JANUS',duration:420,rewardRelics:22,sharedHp:7200,attack:{interval:4,carDamage:23,crewDamage:1},parts:[
-  {type:'janusCrusher',name:'JANUS · 파괴형',hp:3600,armor:.18,x:.68,y:.35},
-  {type:'janusHeater',name:'JANUS · 과열형',hp:3600,armor:.18,x:.92,y:.58}]};
+ D.BOSSES.janus={name:'JANUS',duration:420,rewardRelics:22,sharedHp:9200,attack:{interval:4,carDamage:23,crewDamage:1},parts:[
+  {type:'janusCrusher',name:'JANUS · 파괴형',hp:4600,armor:.30,x:.68,y:.35},
+  {type:'janusHeater',name:'JANUS · 과열형',hp:4600,armor:.30,x:.92,y:.58}]};
  const ch=(id,label,reward={},extra={})=>({id,label,time:extra.time??0,reward,...extra});
  const ev=(id,title,text,choices,extra={})=>({id,act:3,title,text,choices,...extra});
  const pass=()=>ch('pass','지나간다');
