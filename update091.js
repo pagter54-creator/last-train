@@ -134,5 +134,24 @@
   else s.titanSpeed=desired*1000/60;
   return result;
  };
+
+ // Boss combat loop support: dealing actual boss HP damage recharges Emergency Armor.
+ // 5,000 effective boss damage = 100% charge. Excess charge is not banked past 100%.
+ const damageEnemy091=g.damageEnemy.bind(g);
+ g.damageEnemy=function(e,amount,pierce,...rest){
+  const s=this.state,b=s?.battle;
+  const bossFight=this.mode==='battle'&&!!b?.bossId;
+  const before=bossFight&&Number.isFinite(b.sharedHp)?b.sharedHp:null;
+  const out=damageEnemy091(e,amount,pierce,...rest);
+  if(bossFight&&before!==null&&Number.isFinite(b.sharedHp)){
+   const dealt=Math.max(0,before-b.sharedHp);
+   if(dealt>0){
+    const gain=dealt/50; // 5000 damage -> 100 charge
+    s.armorCharge=clamp((Number(s.armorCharge)||0)+gain,0,B.armor.maxCharge);
+   }
+  }
+  return out;
+ };
+
  applyCurve();
 })();

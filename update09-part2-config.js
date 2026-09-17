@@ -59,7 +59,10 @@
   part('titanLegL','왼쪽 다리',3000,.45,.17,.45,1),part('titanLegR','오른쪽 다리',3000,.45,.31,.45,1),
   part('titanBody','무한궤도 동력부',7200,.52,.24,.34,2),part('titanArm','강습 팔',1800,.34,.14,.31,2,true),part('titanHeadGun','머리 레이저',1700,.30,.34,.26,2,true),
   part('titanCore','로켓 추진 코어',6300,.28,.23,.28,3)]};
- for(const[id,b]of Object.entries(D.BOSSES))if(id!=='titan')b.rewardRelics=Math.round(B.rewards.battleRelics*C.bossRewardMultiplier);
+ Object.assign(D.BOSSES.behemoth,{rewardRelics:10});
+ if(D.BOSSES.arachne)D.BOSSES.arachne.rewardRelics=15;
+ if(D.BOSSES.janus)D.BOSSES.janus.rewardRelics=22;
+ D.BOSSES.titan.rewardRelics=30;
  const schedule=window.configureStationSchedule;
  window.configureStationSchedule=function(level){schedule(level);D.ACTS.titan.stages=[{node:'station',title:'최후의 정비 스테이션'}];};
 })();

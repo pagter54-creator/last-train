@@ -10,10 +10,10 @@
  };
  D.ACTS.act2.nextAct='act3';
  D.ACTS.act3={id:'act3',label:'III',name:'뇌우의 경계',stageOffset:30,boss:'janus',intro:'낙뢰 경고 중 전력을 끄면 과충전됩니다. 봉쇄와 공습에 대응하고 중앙 봉쇄벽을 직원의 개인화기로 파괴하세요.',stages:[
-  {node:'battle',title:'뇌우 진입'},{node:'event'},{node:'battle',title:'끊긴 연결부'},{node:'station'},
-  {node:'elite',title:'공습 경보'},{node:'event'},{node:'battle',title:'견인 드론 편대'},{node:'battle',title:'손상 부위 추적'},
+  {node:'battle',title:'뇌우 진입'},{node:'branch',options:['battle','elite','event']},{node:'battle',title:'끊긴 연결부'},{node:'station'},
+  {node:'elite',title:'공습 경보'},{node:'event'},{node:'battle',title:'견인 드론 편대'},{node:'branch',options:['battle','elite','event']},
   {node:'elite',title:'신호 교란선'},{node:'station'},{node:'event'},{node:'elite',title:'전진 강습 기지'},
-  {node:'event'},{node:'battle',title:'JANUS 방어선'},{node:'station'}]};
+  {node:'branch',options:['battle','elite','event']},{node:'battle',title:'JANUS 방어선'},{node:'station'}]};
  // Preserve the opening baseline. HP growth rises slightly each ACT while Threat growth stays unchanged.
  const firstHp=D.STAGE_CURVE[0].hp,firstBudget=C.stageOverrides.act1[1].budget;
  const hpStepByAct=[.028,.032,.036];

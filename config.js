@@ -191,10 +191,10 @@ window.GAME_DATA = (() => {
       id: 'act1', label: 'I', name: '재의 궤도', boss: 'behemoth',
       stages: [
         { node: 'battle', title: '먼지의 시동' },
-        { node: 'branch', options: ['battle', 'event'] },
+        { node: 'branch', options: ['battle', 'elite', 'event'] },
         { node: 'battle', title: '갈고리와 총성', forceEnemy: 'boarder' },
         { node: 'station' },
-        { node: 'branch', options: ['battle', 'event'], dangerousEvent: true },
+        { node: 'branch', options: ['battle', 'elite', 'event'], dangerousEvent: true },
         { node: 'elite', title: '강철 포위망' },
         { node: 'event' },
         { node: 'station' },

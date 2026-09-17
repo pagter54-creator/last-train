@@ -20,8 +20,8 @@
   D.ACTS.act1.nextAct='act2';
   D.ACTS.act2={id:'act2',label:'II',name:'포식자의 철로',stageOffset:10,boss:'arachne',
     intro:'고대 다족 추격병기 ARACHNE가 이 노선을 지키고 있습니다. 다리는 객차를 붙잡고, 교란 장치는 전력을 억제하며, 드론 격납고는 침투병을 보냅니다. 직원 이동과 수리, 부위 집중 사격을 준비하십시오.',
-    stages:[{node:'battle',title:'끊어지지 않는 추격'},{node:'branch',options:['battle','event']},{node:'battle',title:'갈고리 수송대'},{node:'station'},
-      {node:'elite',title:'전력 봉쇄선'},{node:'branch',options:['battle','event']},{node:'battle',title:'고대 억제 구역'},{node:'station'},
+    stages:[{node:'battle',title:'끊어지지 않는 추격'},{node:'branch',options:['battle','elite','event']},{node:'battle',title:'갈고리 수송대'},{node:'station'},
+      {node:'elite',title:'전력 봉쇄선'},{node:'branch',options:['battle','elite','event']},{node:'battle',title:'고대 억제 구역'},{node:'station'},
       {node:'branch',options:['battle','elite','event']},{node:'battle',title:'포식자의 둥지',allEnemies:true}]};
   const budgets=[260,275,290,310,330,350,370,390,415,440],hp=[1,1.05,1.1,1.15,1.2,1.3,1.35,1.45,1.5,1.65],damage=[1,1,1.05,1.05,1.1,1.1,1.15,1.2,1.25,1.3],durations=[110,115,120,120,125,130,130,140,140,150],base=D.STAGE_CURVE[9];
   C.stageOverrides.act2={};
