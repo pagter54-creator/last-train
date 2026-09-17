@@ -115,6 +115,27 @@
 
   // Formation edits use live train slots, with time charged once on completion.
   let formation=null;const finish=document.createElement('section');finish.className='formation-finish';finish.hidden=true;finish.innerHTML='<b>열차 재정비</b><p></p><button>재정비 완료</button>';document.body.append(finish);
+  function closeFormationInspector(){
+    document.body.classList.remove('formation-inspecting');
+    g.inspectedEquipment=null;g.inspectedCrew=null;g.moduleRange=null;
+    const inspector=$('#inspector');if(inspector)inspector.innerHTML='<p>포탑, 모듈 또는 직원을 누르면 상세 정보가 표시됩니다.</p>';
+    const head=document.querySelector('.tactical-head span');if(head)head.textContent='재정비 · 대상 정보';
+    if(guide)guide.textContent='';
+  }
+  function showFormationInspector(kind,id){
+    if(!formation||!g.state)return;
+    document.body.classList.add('formation-inspecting');
+    if(kind==='crew'){const c=g.state.crew.find(x=>x.id===id);if(!c)return closeFormationInspector();g.inspectCrew(c);}
+    else {const eq=g.findEquipment(id);if(!eq)return closeFormationInspector();g.showEquipmentDetails(id);}
+    const head=document.querySelector('.tactical-head span');if(head)head.textContent=kind==='crew'?'재정비 · 직원 정보':'재정비 · 장비 정보';
+    if(guide)guide.textContent='정보를 확인하면서 같은 대상을 다시 누르거나 빈 슬롯/다른 대상을 눌러 재배치할 수 있습니다.';
+  }
+  function refreshFormationInspector(){
+    if(!formation||!document.body.classList.contains('formation-inspecting'))return;
+    if(g.inspectedCrew){const c=g.state.crew.find(x=>x.id===g.inspectedCrew);if(c)return showFormationInspector('crew',c.id);}
+    if(g.inspectedEquipment&&g.findEquipment(g.inspectedEquipment))return showFormationInspector('equipment',g.inspectedEquipment);
+    closeFormationInspector();
+  }
   function formationSeconds(){if(!formation)return 0;let moved=0;g.state.cars.forEach((c,ci)=>c.equipment.forEach((eq,slot)=>{if(eq.kind==='turret'&&formation.turrets.has(eq.id)&&formation.turrets.get(eq.id)!==`${ci}:${slot}`)moved++;}));return moved?B.formation.baseSeconds+moved*B.formation.secondsPerChange:0;}
   const sell=document.createElement('button');sell.className='equipment-sale';sell.hidden=true;sell.textContent='판매';document.body.append(sell);
   const saleDialog=document.createElement('dialog');saleDialog.className='sale-confirm';saleDialog.innerHTML='<h3>정말로 판매하겠습니까?</h3><p></p><button data-cancel>취소</button><button data-confirm>판매 확인</button>';document.body.append(saleDialog);let saleId=null;
@@ -123,21 +144,24 @@
   sell.onclick=()=>{const eq=formation?.selected&&g.findEquipment(formation.selected.id);if(!eq)return;saleId=eq.id;const q=saleQuote(eq);saleDialog.querySelector('p').textContent=`${(eq.kind==='turret'?D.TURRETS:D.MODULES)[eq.type].name} Lv.${eq.level||1}${eq.aux?` + 보조 ${D.MODULES[eq.aux.type].name} 함께 판매`:``} · 돈 ${q.money} / 고철 ${q.scrap} 획득`;saleDialog.showModal();saleDialog.querySelector('[data-cancel]').focus();};
   saleDialog.querySelector('[data-cancel]').onclick=()=>saleDialog.close();
   saleDialog.querySelector('[data-confirm]').onclick=()=>{const eq=formation&&g.findEquipment(saleId),car=eq&&g.state.cars.find(c=>c.equipment.includes(eq));if(!car||g.metaEquipmentLocked?.(eq)){saleDialog.close();return;}const q=saleQuote(eq);car.equipment.splice(car.equipment.indexOf(eq),1);g.state.money+=q.money;g.state.scrap+=q.scrap;formation.selected=null;formation.changes++;saleDialog.close();sell.hidden=true;g.rebalancePower();g.refreshFormation();g.renderCars();g.playSound('purchase');};
-  g.enterFormation=function(){if(this.mode!=='station'||formation)return;A.cancelSelection();closeHelp();formation={selected:null,changes:0,turrets:new Map(this.state.cars.flatMap((c,ci)=>c.equipment.map((eq,slot)=>eq.kind==='turret'?[eq.id,`${ci}:${slot}`]:null).filter(Boolean)))};this.formationSelectedId=null;this.stationTab='gear';$('#overlay').classList.remove('show');document.body.classList.add('is-formation');finish.hidden=false;this.refreshFormation();this.renderCars();};
+  g.enterFormation=function(){if(this.mode!=='station'||formation)return;A.cancelSelection();closeHelp();closeFormationInspector();formation={selected:null,changes:0,turrets:new Map(this.state.cars.flatMap((c,ci)=>c.equipment.map((eq,slot)=>eq.kind==='turret'?[eq.id,`${ci}:${slot}`]:null).filter(Boolean)))};this.formationSelectedId=null;this.stationTab='gear';$('#overlay').classList.remove('show');document.body.classList.add('is-formation');finish.hidden=false;this.refreshFormation();this.renderCars();};
   g.refreshFormation=function(){if(!formation)return;const seconds=formationSeconds();finish.querySelector('p').textContent=`장비/직원 → 빈자리 또는 교환 대상 · 모듈 → Lv.3+ 모듈 위 보조 슬롯 · ${formation.changes}회 변경`;finish.querySelector('button').innerHTML=`재정비 완료${this.timeHTML(seconds)}`;};
   function swapMainAndAux(mainId,hostId){
     const main=g.findEquipment(mainId),host=g.findEquipment(hostId),oldAux=host?.aux;if(!main||!host||!oldAux||main===host||main.kind!=='module'||host.kind!=='module'||g.auxHostFor?.(main)||main.aux)return false;
     const car=g.state.cars.find(c=>c.equipment.includes(main));if(!car)return false;const i=car.equipment.indexOf(main);if(i<0)return false;
     car.equipment[i]=oldAux;host.aux=main;g.rebalancePower();g.renderAll?.();return true;
   }
-  finish.querySelector('button').onclick=()=>{if(!formation)return;const seconds=formationSeconds();formation=null;g.formationSelectedId=null;finish.hidden=true;sell.hidden=true;saleDialog.close();document.body.classList.remove('is-formation');A.cancelSelection();if(g.spendTime(seconds))g.showStation();g.playSound('equip');};
+  finish.querySelector('button').onclick=()=>{if(!formation)return;const seconds=formationSeconds();formation=null;g.formationSelectedId=null;finish.hidden=true;sell.hidden=true;saleDialog.close();document.body.classList.remove('is-formation');closeFormationInspector();A.cancelSelection();if(g.spendTime(seconds))g.showStation();g.playSound('equip');};
+  document.addEventListener('click',e=>{if(!formation||!e.target.closest('.tactical-panel .tactical-head button'))return;e.preventDefault();e.stopImmediatePropagation();closeFormationInspector();},{capture:true});
+  document.addEventListener('keydown',e=>{if(!formation||e.key!=='Escape'||!document.body.classList.contains('formation-inspecting'))return;e.preventDefault();e.stopImmediatePropagation();closeFormationInspector();},{capture:true});
   $('#train-cars').addEventListener('click',e=>{if(!formation)return;e.stopImmediatePropagation();const car=e.target.closest('[data-car-index]');if(!car)return;const ci=Number(car.dataset.carIndex),auxSlot=e.target.closest('.aux-module-slot'),crew=e.target.closest('[data-crew]'),gear=e.target.closest('[data-equipment]'),blank=e.target.closest('.empty-equipment,.empty-crew');
     if(e.target.closest('[data-output],[data-captain]'))return;
     const selected=formation.selected;
     if(auxSlot){const hostId=auxSlot.dataset.auxHost,auxId=auxSlot.dataset.auxEquipment;
-      if(auxId){if(selected?.kind==='equipment'){const source=g.findEquipment(selected.id);if(source?.kind!=='module'){g.toast('보조 슬롯과 교환할 수 있는 것은 일반 모듈뿐입니다.');return;}if(swapMainAndAux(selected.id,hostId)){formation.changes++;formation.selected=null;g.formationSelectedId=null;g.state.selectedCrew=null;g.refreshFormation();g.renderCars();g.playSound('equip');}else g.toast('보조 모듈과 위치를 교환할 수 없습니다. 다른 일반 모듈을 선택하세요.');return;}if(selected?.kind==='aux'&&selected.id===auxId){formation.selected=null;g.formationSelectedId=null;g.renderCars();return;}formation.selected={kind:'aux',id:auxId,hostId};g.formationSelectedId=auxId;g.state.selectedCrew=null;g.renderCars();g.playSound('ui');return;}
+      if(auxId){showFormationInspector('equipment',auxId);if(selected?.kind==='equipment'){const source=g.findEquipment(selected.id);if(source?.kind!=='module'){g.toast('보조 슬롯과 교환할 수 있는 것은 일반 모듈뿐입니다.');return;}if(swapMainAndAux(selected.id,hostId)){formation.changes++;formation.selected=null;g.formationSelectedId=null;g.state.selectedCrew=null;g.refreshFormation();g.renderCars();refreshFormationInspector();g.playSound('equip');}else g.toast('보조 모듈과 위치를 교환할 수 없습니다. 다른 일반 모듈을 선택하세요.');return;}if(selected?.kind==='aux'&&selected.id===auxId){formation.selected=null;g.formationSelectedId=null;g.renderCars();return;}formation.selected={kind:'aux',id:auxId,hostId};g.formationSelectedId=auxId;g.state.selectedCrew=null;g.renderCars();g.playSound('ui');return;}
       if(!selected){g.toast('보조로 장착할 모듈을 먼저 선택하세요.');return;}if(selected.kind!=='equipment'){g.toast('일반 모듈을 선택한 뒤 빈 보조 슬롯을 누르세요.');return;}const source=g.findEquipment(selected.id);if(source?.kind!=='module'){g.toast('보조 슬롯에는 모듈만 장착할 수 있습니다.');return;}if(g.attachAux(hostId,selected.id)){formation.changes++;formation.selected=null;g.formationSelectedId=null;g.state.selectedCrew=null;g.refreshFormation();g.renderCars();}else g.toast('보조 슬롯 상태와 선택한 모듈을 확인하세요.');return;}
     const hit=crew?{kind:'crew',id:crew.dataset.crew}:gear?{kind:'equipment',id:gear.dataset.equipment}:null;
+    if(hit)showFormationInspector(hit.kind,hit.id);
     if(selected&&hit?.id===selected.id){formation.selected=null;g.formationSelectedId=null;g.state.selectedCrew=null;g.renderCars();return;}
     if(selected?.kind==='aux'&&hit?.kind==='equipment'){const target=g.findEquipment(hit.id);if(target?.kind!=='module'){g.toast('보조 모듈은 일반 모듈과만 위치를 교환할 수 있습니다.');return;}if(swapMainAndAux(hit.id,selected.hostId)){formation.changes++;formation.selected=null;g.formationSelectedId=null;g.state.selectedCrew=null;g.refreshFormation();g.renderCars();g.playSound('equip');}else g.toast('해당 모듈과 위치를 교환할 수 없습니다.');return;}
     let changed=false;
@@ -147,7 +171,7 @@
       else{const from=g.state.cars.find(c=>c.equipment.some(eq=>eq.id===selected.id)),to=g.state.cars[ci];if(from){const a=from.equipment.findIndex(eq=>eq.id===selected.id),b=to.equipment.findIndex(eq=>eq.id===hit.id);if(g.metaEquipmentLocked?.(from.equipment[a])||g.metaEquipmentLocked?.(to.equipment[b]))g.toast('특수 장갑 개조: 설치된 포탑은 고정됩니다.');else{[from.equipment[a],to.equipment[b]]=[to.equipment[b],from.equipment[a]];g.rebalancePower();changed=true;}}}
     }else if(selected&&blank&&((selected.kind==='crew'&&blank.matches('.empty-crew'))||(selected.kind==='equipment'&&blank.matches('.empty-equipment'))))changed=g.rearrange(selected.kind,selected.id,ci);
     else if(hit){formation.selected=hit;g.formationSelectedId=hit.id;g.state.selectedCrew=hit.kind==='crew'?hit.id:null;g.renderCars();g.playSound('ui');return;}
-    if(changed){formation.changes++;formation.selected=null;g.formationSelectedId=null;g.state.selectedCrew=null;g.playSound('equip');}else if(selected&&blank)g.toast(selected.kind==='aux'?'보조 모듈을 내릴 빈 장비 칸을 확인하세요.':'이 위치에는 배치할 수 없습니다.');g.refreshFormation();g.renderCars();
+    if(changed){formation.changes++;formation.selected=null;g.formationSelectedId=null;g.state.selectedCrew=null;g.playSound('equip');}else if(selected&&blank)g.toast(selected.kind==='aux'?'보조 모듈을 내릴 빈 장비 칸을 확인하세요.':'이 위치에는 배치할 수 없습니다.');g.refreshFormation();g.renderCars();refreshFormationInspector();
   },true);
   g.renderCars=function(){prior.renderCars();refreshSale();if(!formation){this.formationSelectedId=null;return;}const selected=formation.selected;this.formationSelectedId=selected?.id||null;document.querySelectorAll('#train-cars .empty-equipment').forEach(el=>{if(el.tagName==='BUTTON')return;const button=document.createElement('button');button.className='empty-equipment';button.textContent='+';button.setAttribute('aria-label',`${el.closest('[data-car-index]').getAttribute('aria-label')} 빈 장비 슬롯`);el.replaceWith(button);});document.querySelectorAll('#train-cars .empty-crew').forEach(el=>el.disabled=false);document.querySelectorAll('#train-cars [data-equipment],#train-cars [data-crew]').forEach(el=>el.classList.toggle('formation-selected',el.dataset.equipment===selected?.id||el.dataset.crew===selected?.id));document.querySelectorAll('#train-cars .empty-equipment,#train-cars .empty-crew').forEach(el=>el.classList.toggle('formation-destination',!!selected&&el.matches(selected.kind==='crew'?'.empty-crew':'.empty-equipment')));};
 
