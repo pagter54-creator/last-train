@@ -48,7 +48,7 @@
   required:true
  }));
  window.LAST_RAIL_ASSET_CONFIG={
-  gameVersion:'1.0.1',
+  gameVersion:'1.0.2',
   assetVersion:'1.0.1',
   initialGroups:['core','act1'],
   backgroundQueue:['boss1','act2','boss2','act3','boss3','titan','events1','events2','events3'],
