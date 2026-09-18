@@ -76,15 +76,14 @@
  const resolve=g.resolveProjectile.bind(g);g.resolveProjectile=function(p){if(p.hostile)return resolve(p);const previous=shot;shot=p;
   try{
    if(p.type==='repulsor'){
-    const eq=this.findEquipment(p.sourceId),r=this.rangeBounds(D.TURRETS.repulsor,eq);for(const e of this.turretTargets(D.TURRETS.repulsor,eq).filter(e=>this.targetInRange(e,r))){resolve({...p,targetId:e.id,target:e,tx:e.x,ty:e.y,stats:{...p.stats,chains:1,splash:0,knockback:(p.stats.knockback||C.ballistics.knockback)*(e.maxHp>=C.slow.heavyHp?C.slow.heavyKnockback:1)}});}
-    this.state.impacts??=[];this.state.impacts.push({world:{x:r.max/2,y:p.ty},radius:r.max/2,screen:p.end,life:B.projectile.impactSeconds});this.playSound('explosion');return;
+    p={...p,stats:{...p.stats,splash:D.TURRETS.mortar.splash,knockback:p.stats.knockback||C.ballistics.knockback}};
    }
    if(p.type==='tesla'){
     const pool=this.turretTargets(D.TURRETS.tesla,this.findEquipment(p.sourceId)),first=pool.find(e=>e.id===p.targetId);if(!first)return;let current=first;const visited=[];
     for(let i=0;i<p.stats.chains&&current;i++){visited.push(current);resolve({...p,targetId:current.id,target:current,tx:current.x,ty:current.y,stats:{...p.stats,damage:p.stats.damage*Math.pow(p.stats.chainRatio,i),chains:1,splash:0,armorPierce:1}});const next=pool.filter(e=>alive(e)&&!visited.includes(e)&&distance(e,current)<=p.stats.chainRange).sort((a,b)=>distance(a,current)-distance(b,current))[0];if(next){const a=A.project(current,this.view.w,this.view.h),b=A.project(next,this.view.w,this.view.h);this.state.projectiles.push({start:{x:a.x/this.view.w,y:a.y/this.view.h},end:{x:b.x/this.view.w,y:b.y/this.view.h},life:C.ballistics.chainSeconds,duration:C.ballistics.chainSeconds,resolved:true,stats:{},type:'tesla'});}current=next;}
     heat(this.findEquipment(p.sourceId),Math.max(0,visited.length-1)*C.turret.tesla.heatPerHit);if(p.stats.reform?.revisit&&p.stats.hot&&visited.length>=3&&alive(first))resolve({...p,targetId:first.id,target:first,stats:{...p.stats,damage:p.stats.damage*p.stats.chainRatio,chains:1,splash:0,armorPierce:1}});return;
    }
-   resolve(p);if(p.type==='phosphorus')zone(p);
+   if(p.type==='frost')p={...p,stats:{...p.stats,splash:D.TURRETS.mortar.splash}};resolve(p);if(p.type==='phosphorus')zone(p);
   }finally{shot=previous;}
  };
  function slow(e){if(e.frozen>0)return 0;if(!(e.slowLeft>0))return 1;const floor='destroyed'in e?C.slow.bossFloor:D.ENEMIES[e.type]?.elite?C.slow.eliteFloor:.2;return Math.max(floor,e.deepFreeze&&D.ENEMIES[e.type]?.elite?floor:1-(e.slowStacks||0)*C.slow.perHit);}
@@ -103,10 +102,9 @@
   s.cars.forEach((car,ci)=>{car.shieldFlash=Math.max(0,(car.shieldFlash||0)-dt);const sources=this.moduleSources(ci),shields=sources.filter(x=>x.eq.type==='shield');car.shieldMax=shields.reduce((n,x)=>n+C.modules.shield.capacity*x.strength,0);car.shieldRecharge=C.modules.shield.recharge;if(!car.shieldMax||car.hp<=0){car.shieldHp=0;car.shieldTimer=car.shieldRecharge;}else{car.shieldHp=Math.min(car.shieldMax,car.shieldHp||0);if(!car.shieldHp){car.shieldTimer=Math.max(0,(car.shieldTimer??0)-dt);if(!car.shieldTimer){car.shieldHp=car.shieldMax;this.playSound('armor');}}}
    if(tick&&car.hp>0){const repair=sources.filter(x=>x.eq.type==='autoRepair').reduce((n,x)=>n+C.modules.autoRepair.repair*x.strength,0);car.hp=Math.min(car.maxHp,car.hp+repair*tick);}
   });if(tick)this.reportHealthChanges?.(before,true);
+  const b=s.battle;if(this.mode==='battle'&&b){b.grinderClock=(b.grinderClock||0)+dt;while(b.grinderClock>=C.modules.grinder.interval){b.grinderClock-=C.modules.grinder.interval;const grinders=this.moduleSources().filter(x=>x.eq.type==='grinder');if(grinders.length){const money=Math.round(grinders.reduce((n,x)=>n+C.modules.grinder.money*x.strength,0)),scrap=Math.round(grinders.reduce((n,x)=>n+C.modules.grinder.scrap*x.strength,0));if(money>0)s.money+=this.metaGain?.('money',money)??money;if(scrap>0)s.scrap+=this.metaGain?.('scrap',scrap)??scrap;}}}
  };
- for(const name of ['startBattle','startBoss']){const old=g[name].bind(g);g[name]=function(...args){const result=old(...args);this.state.weaponZones=[];this.state.battle.moduleEconomy=this.moduleSources().filter(s=>s.eq.type==='grinder').map(s=>({id:s.eq.id,money:C.modules.grinder.money*s.strength,scrap:C.modules.grinder.scrap*s.strength}));return result;};}
- function payout(){const b=g.state?.battle;if(!b||b.modulePaid)return;b.modulePaid=true;const active=new Set(g.moduleSources().map(s=>s.eq.id)),mult=b.boss?C.modules.grinder.boss:b.elite?C.modules.grinder.elite:1;for(const k of ['money','scrap']){const n=Math.round((b.moduleEconomy||[]).filter(s=>active.has(s.id)).reduce((n,s)=>n+s[k],0)*mult);g.state[k]+=g.metaGain?.(k,n)??n;} }
- for(const name of ['battleClear','bossClear']){const old=g[name].bind(g);g[name]=function(...args){payout();return old(...args);};}
+ for(const name of ['startBattle','startBoss']){const old=g[name].bind(g);g[name]=function(...args){const result=old(...args);this.state.weaponZones=[];if(this.state.battle)this.state.battle.grinderClock=0;return result;};}
  const init=g.makeInitialState.bind(g);g.makeInitialState=function(){const s=init();B.train.maxCars=5+(s.metaRun?.upgrades.extraCar?1:0);return s;};
  const restore=g.restoreMetaRun.bind(g);g.restoreMetaRun=function(){restore();B.train.maxCars=5+(this.state.metaRun?.upgrades.extraCar?1:0);};
  g.moduleUpgradePlan=eq=>D.MODULES[eq.type].upgradeable===false?null:!eq.model&&eq.level>=2?{level:Math.max(3,eq.level),branch:true,cost:eq.level>=3?0:C.moduleCosts[3]}:eq.level>=C.maxModuleLevel?null:{level:(eq.level||1)+1,branch:false,cost:C.moduleCosts[(eq.level||1)+1]};

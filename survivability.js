@@ -125,8 +125,10 @@
     const living=this.state.enemies.filter(e=>!e.dead);
     const engaged=living.filter(isEngaged).length,caps=pressureCaps();
     const approaching=living.filter(e=>!e.boarded&&!isEngaged(e)&&Number.isFinite(e.x)).sort((a,b)=>a.x-b.x);
-    const saved=[];
-    approaching.forEach((e,i)=>{const mult=movementMultiplier(engaged+i,caps);if(mult!==1){saved.push([e,e.speed]);e.speed*=mult;e.pressureMoveMultiplier=mult;}else e.pressureMoveMultiplier=1;});
+    const saved=living.map(e=>[e,e.speed]);
+    const lowCountBoost=living.length>0&&living.length<=C.lowEnemyThreshold?C.lowEnemySpeedMultiplier:1;
+    if(lowCountBoost!==1)for(const e of living)e.speed*=lowCountBoost;
+    approaching.forEach((e,i)=>{const mult=movementMultiplier(engaged+i,caps);e.pressureMoveMultiplier=mult;if(mult!==1)e.speed*=mult;});
     try{return old.updateEnemies(dt);}finally{for(const[e,speed]of saved)e.speed=speed;}
   };
 

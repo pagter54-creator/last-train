@@ -27,7 +27,7 @@
    crewArms:{damage:.2,range:.25,grip:.35},
    shield:{capacity:60,recharge:14},
    autoRepair:{repair:.55},
-   grinder:{money:8,scrap:5,elite:1.2,boss:1.5},
+   grinder:{interval:5,money:5,scrap:3},
    targeting:{range:.10,rangeGrowth:.25}
   }
  };
@@ -38,8 +38,8 @@
  const add=(id,name,icon,role,damage,interval,range,heat,cool,price,extra={})=>D.TURRETS[id]={name,icon,role,damage,interval,range,heat,cool,price,ammo:true,armorPierce:0,power:REVISION_CONFIG.power.map(p=>({...p})),...extra};
  add('breaker','철갑파괴포','B','장갑 약화 / 지원',42,3.8,'long',65,6,175,{armorPierce:.6});
  add('phosphorus','백린탄포','P','지속 화염지대',32,3.2,'long',58,5,180,{trajectory:'arc',minRange:'mortarMin'});
- add('repulsor','충격파 포탑','R','접근 차단 / 넉백',18,2.1,'close',38,6,135,{ammo:false});
- add('frost','동결포','F','감속 / 군중 제어',15,1.8,'medium',33,6,145,{ammo:false});
+ B.targeting.repulsor=.55;add('repulsor','충격파 포탑','R','광역 제압 / 넉백',18,2.1,'repulsor',38,6,135,{ammo:false,splash:D.TURRETS.mortar.splash});
+ add('frost','동결포','F','광역 감속 / 군중 제어',15,1.8,'medium',33,6,145,{ammo:false,splash:D.TURRETS.mortar.splash});
  for(const t of Object.values(D.TURRETS))t.heat*=C.baseHeatMultiplier;
  const names={overdrive:['과열 증폭 모듈','▲',125],crewArms:['승무원 강화 모듈','✚',105],shield:['실드 모듈','◇',140],autoRepair:['자동수리 모듈','⚒',115],grinder:['분쇄기 모듈','¤',130],targeting:['조준 보조 모듈','◎',110]};
  for(const[id,[name,icon,price]]of Object.entries(names))D.MODULES[id]={name,icon,price,effect:id,range:0,description:C.modules[id].cap};

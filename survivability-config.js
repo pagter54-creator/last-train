@@ -20,6 +20,8 @@ window.SURVIVABILITY_CONFIG = Object.freeze({
   enemyAttackHardCap: 10,
   overflowEnemyMoveMultiplier: 0.50,
   heavyOverflowEnemyMoveMultiplier: 0.20,
+  lowEnemyThreshold: 5,
+  lowEnemySpeedMultiplier: 1.30,
   eliteSoftCapBonus: 2,
   eliteHardCapBonus: 2,
   crisisSoftCapBonus: 1,

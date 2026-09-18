@@ -10,7 +10,7 @@ window.WEAPON_UPGRADES={
     5:{
       piercing:{name:'관통탄',text:'공격 속도 -10% · 피해 +15% · 관통 +25%p',rate:.9,damage:1.15,pierce:.25},
       double:{name:'포대 추가',text:'서로 다른 적 2개체 조준 · 각 발 피해 ×0.7',targets:2,damage:.7},
-      impact:{name:'충격탄',text:'명중 시 후퇴 · 발열 +20% · 냉각 -15%',knockback:.035,heat:1.2,cooling:.85},
+      impact:{name:'충격탄',text:'명중 시 약한 후퇴 · 발열 +20% · 냉각 -15%',knockback:.01,heat:1.2,cooling:.85},
       spread:{name:'산탄',text:'사거리 -25% · 피해 +35%',range:.75,damage:1.35},
       expanded:{name:'포대 확장',text:'사거리 +30% · 발열 +20% · 공격 속도 -15%',range:1.3,heat:1.2,rate:.85}
     }
