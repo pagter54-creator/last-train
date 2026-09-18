@@ -389,7 +389,7 @@
       let v = c.stats[stat];
       if(c.traits.includes('coward')&&this.state.enemies.some(e=>!e.dead&&e.boarded&&e.targetCar===c.car))v+=stat==='combat'?D.TRAITS.coward.combatVsBoarder:stat==='repair'?D.TRAITS.coward.repairVsBoarder:0;
       const same = this.state.crew.filter(x => !x.dead && !x.moving && x.car === c.car && x.hp > 0).length;
-      if (c.traits.includes('lonewolf') && same === 1) v += D.TRAITS.lonewolf.soloBonus;
+      if (c.traits.includes('lonewolf') && same === 1) v *= D.TRAITS.lonewolf.soloMultiplier;
       if (this.state.orders.command.active > 0 && this.state.orders.command.car === c.car && ['combat','operate','repair'].includes(stat)) v += this.commandStatBonus?.()??B.crew.directCommandBonus;
       return v;
     }

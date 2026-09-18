@@ -123,7 +123,7 @@ window.GAME_DATA = (() => {
     gunner: { name: '기관총 애호가', text: '개틀링 피해 +18%, 과열 +8%', gatlingDamageMult: 1.18, gatlingHeatMult: 1.08 },
     engineer: { name: '노련한 기관사', text: '기관실 배치 시 열차 속도 +6%', engineSpeedMult: 1.06 },
     medic: { name: '야전의무병', text: '같은 객차 직원 전투 후 회복 +25%', healMult: 1.25 },
-    lonewolf: { name: '외로운 늑대', text: '객차에 혼자 있으면 모든 능력 +2', soloBonus: 2 },
+    lonewolf: { name: '외로운 늑대', text: '객차에 혼자 있으면 모든 능력 +50%', soloMultiplier: 1.5 },
     scholar: { name: '고대기술 연구자', text: '고대 장비 운용 +25%', ancientDamageMult: 1.25, unlockSpent: 15 }
   };
 

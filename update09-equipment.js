@@ -41,7 +41,7 @@
    const p=this.state.projectiles.find(p=>p.hostile&&!p.resolved&&!p.intercepted09&&/missile|rocket|드론|미사일/i.test(p.type+' '+(p.attack?.name||'')));if(!p)continue;
    const s=this.turretStats(eq,ci,this.crewForCar(ci).reduce((n,c)=>n+this.effectiveStat(c,'operate'),0));
    p.interceptHp09??=30;p.interceptHp09-=s.damage*C.interceptor.priorityDamage;if(p.interceptHp09<=0){p.intercepted09=true;p.resolved=true;p.life=0;}
-   eq.cooldown=s.interval;const maxHeat=this.turretHeatMax(eq);eq.heat=Math.min(maxHeat,(eq.heat||0)+s.heat);if(eq.heat>=maxHeat)eq.overheated=true;eq.muzzle=.15;this.playSound('shot');
+   eq.cooldown=s.interval;const maxHeat=this.turretHeatMax(eq);eq.heat=Math.min(maxHeat,(eq.heat||0)+s.heat);if(eq.heat>=maxHeat)eq.overheated=true;eq.muzzle=.15;triggerTurretRecoil09(eq);this.playSound('shot');
   }
   return turrets(dt);
  };
@@ -93,8 +93,19 @@
  const samplePoint=(p,u,w,h)=>({x:(p.start.x+(p.end.x-p.start.x)*u)*w,y:(p.start.y+(p.end.y-p.start.y)*u)*h-(p.arc?4*u*(1-u)*h*D.BALANCE.projectile.arcHeight:0)});
  const carPoint=i=>{const p=A.getCarPosition(i);return p?{x:p.x/g.view.w,y:(p.y-35)/g.view.h}:{x:.5,y:.7};};
  const point=e=>{const p=A.project(e,g.view.w,g.view.h);return{x:p.x/g.view.w,y:p.y/g.view.h};};
+ const recoilCfg=window.COMBAT_CONFIG?.feedback||{recoilSeconds:.18,recoilPixels:8};
+ const triggerTurretRecoil09=eq=>{
+  if(!eq)return;
+  eq.recoil=recoilCfg.recoilSeconds;
+  const svg=document.querySelector(`[data-equipment="${eq.id}"] svg`);
+  if(svg&&!matchMedia('(prefers-reduced-motion: reduce)').matches){
+   svg.getAnimations?.().forEach(a=>{if(a.effect?.target===svg)a.cancel();});
+   svg.animate([{transform:'translateY(0)'},{transform:`translateY(${recoilCfg.recoilPixels}px)`},{transform:'translateY(0)'}],{duration:recoilCfg.recoilSeconds*1000,easing:'cubic-bezier(.2,.8,.35,1)'});
+  }
+ };
  
  g.fireTurret=function(eq,stats,target,ci){
+  triggerTurretRecoil09(eq);
   const arc=D.TURRETS[eq.type].trajectory==='arc',duration=arc?D.BALANCE.projectile.arcSeconds:D.BALANCE.projectile.directSeconds;
   const projectile={hostile:false,from:ci,start:carPoint(ci),end:point(target),targetId:target.id,target,tx:target.x,ty:target.y,life:duration,duration,arc,type:eq.type,stats:{...stats}};
   if(eq.type==='interceptor'&&priority(target))projectile.stats.damage*=C.interceptor.priorityDamage;
