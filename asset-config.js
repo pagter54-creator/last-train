@@ -23,7 +23,7 @@
   elite_encounter:'./image/elite_encounter.png',
   relic_cache:'./image/relic_cache.png',
   lightning_rod:'./image/lightning_rod.png',
-  // 1.0.1 event expansion backgrounds
+  // 1.0.2 event expansion backgrounds
   gatling_zealot:'./image/gatling_zealot.png',
   light_failure:'./image/light_failure.png',
   connector_cut:'./image/connector_cut.png',
@@ -49,7 +49,7 @@
  }));
  window.LAST_RAIL_ASSET_CONFIG={
   gameVersion:'1.0.2',
-  assetVersion:'1.0.1',
+  assetVersion:'1.0.2',
   initialGroups:['core','act1'],
   backgroundQueue:['boss1','act2','boss2','act3','boss3','titan','events1','events2','events3'],
   autoRetries:3,

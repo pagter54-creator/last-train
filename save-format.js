@@ -54,8 +54,8 @@
   notes?.push('1.0.1 이벤트 연출 및 설명 텍스트 호환 정보를 적용했습니다.');
  }});
  F.migrations.push({from:'1.0.1',fromFormat:2,to:'1.0.2',toFormat:2,migrate(save,notes){
-  // 1.0.2 adds cloud share transport; the persistent save schema itself is unchanged.
-  notes?.push('1.0.2 클라우드 공유 세이브 호환 정보를 적용했습니다.');
+  // 1.0.2 adds optional account-based cloud sync. The save payload itself is unchanged.
+  notes?.push('1.0.2 계정 기반 클라우드 저장 호환 정보를 적용했습니다.');
  }});
  window.SAVE_MIGRATIONS=F.migrations;
  const obj=v=>v&&typeof v==='object'&&!Array.isArray(v),copy=v=>JSON.parse(JSON.stringify(v)),arr=v=>Array.isArray(v)?v:[],n=(v,d=0)=>Number.isFinite(v)?v:d,clamp=(v,max,min=0)=>Math.max(min,Math.min(max,Math.floor(n(v,min))));
