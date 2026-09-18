@@ -7,28 +7,28 @@
  const STAMP_PREFIX='lastTrainCloudSyncStampV1:';
  const POLL_MS=10000;
  const DEBOUNCE_MS=4000;
- const state={ready:false,user:null,lastCloudAt:null,syncLinked:false,syncPaused:false,busy:false,error:'',message:''};
+ const state={ready:false,user:null,lastCloudAt:null,syncLinked:false,syncPaused:false,needsChoice:false,busy:false,error:'',message:''};
  const listeners=new Set();
- let client=null,pollTimer=null,saveTimer=null,lastSignature=null,lastSavedSignature=null;
+ let client=null,pollTimer=null,saveTimer=null,lastSignature=null,lastSavedSignature=null,forceCompareNext=false;
  const emit=()=>{for(const fn of listeners)try{fn({...state});}catch(e){console.warn(e);}};
  const set=(patch)=>{Object.assign(state,patch);emit();};
  const api=window.LAST_RAIL_CLOUD={
   state,subscribe(fn){listeners.add(fn);fn({...state});return()=>listeners.delete(fn);},
   get client(){return client;},get user(){return state.user;},
   async signUp(email,password){if(!client)throw Error('클라우드 모듈을 사용할 수 없습니다.');set({busy:true,error:'',message:'회원가입 중...'});try{const {data,error}=await client.auth.signUp({email,password});if(error)throw error;if(!data.session)set({message:'가입이 완료되었습니다. 이메일 인증이 필요한 설정이라면 메일을 확인하세요.'});else set({message:'회원가입 및 로그인 완료.'});return data;}finally{set({busy:false});}},
-  async signIn(email,password){if(!client)throw Error('클라우드 모듈을 사용할 수 없습니다.');set({busy:true,error:'',message:'로그인 중...'});try{const {data,error}=await client.auth.signInWithPassword({email,password});if(error)throw error;set({message:'로그인했습니다.'});return data;}finally{set({busy:false});}},
+  async signIn(email,password){if(!client)throw Error('클라우드 모듈을 사용할 수 없습니다.');forceCompareNext=true;set({busy:true,error:'',message:'로그인 중...'});try{const {data,error}=await client.auth.signInWithPassword({email,password});if(error)throw error;set({message:'로그인했습니다. 로컬/클라우드 저장을 확인합니다.'});return data;}catch(e){forceCompareNext=false;throw e;}finally{set({busy:false});}},
   async signOut(){if(!client)return;set({busy:true,error:'',message:'로그아웃 중...'});try{const {error}=await client.auth.signOut();if(error)throw error;set({message:'로그아웃했습니다.'});}finally{set({busy:false});}},
   async refreshCloudInfo(){return refreshCloudInfo();},
   async saveNow(options={}){return saveNow(options);},
   async fetchSave(){return fetchSave();},
-  markLinked(updatedAt=null){if(!state.user)return;try{localStorage.setItem(LINK_KEY,state.user.id);if(updatedAt)localStorage.setItem(STAMP_PREFIX+state.user.id,updatedAt);}catch{}set({syncLinked:true,syncPaused:false,lastCloudAt:updatedAt||state.lastCloudAt});},
+  markLinked(updatedAt=null){if(!state.user)return;try{localStorage.setItem(LINK_KEY,state.user.id);if(updatedAt)localStorage.setItem(STAMP_PREFIX+state.user.id,updatedAt);}catch{}set({syncLinked:true,syncPaused:false,needsChoice:false,lastCloudAt:updatedAt||state.lastCloudAt});},
   requestAutosave(){scheduleAutosave();}
  };
  function getSaveApi(){return window.LAST_RAIL_SAVE_API;}
  function signature(save){const copy=JSON.parse(JSON.stringify(save));copy.exportedAt='';return JSON.stringify(copy);}
  async function fetchRow(){if(!state.user)throw Error('로그인이 필요합니다.');const {data,error}=await client.from('cloud_saves').select('user_id,save_data,game_version,save_format_version,created_at,updated_at').eq('user_id',state.user.id).maybeSingle();if(error)throw error;return data||null;}
  async function refreshCloudInfo(){if(!client||!state.user){set({lastCloudAt:null});return null;}try{const row=await fetchRow();set({lastCloudAt:row?.updated_at||null,error:''});return row;}catch(e){set({error:friendly(e)});throw e;}}
- async function reconcileUser(user){clearTimeout(saveTimer);saveTimer=null;state.user=user||null;state.lastCloudAt=null;state.error='';state.message='';state.syncLinked=false;state.syncPaused=false;lastSignature=null;lastSavedSignature=null;
+ async function reconcileUser(user,{forceCompare=false}={}){clearTimeout(saveTimer);saveTimer=null;state.user=user||null;state.lastCloudAt=null;state.error='';state.message='';state.syncLinked=false;state.syncPaused=false;state.needsChoice=false;lastSignature=null;lastSavedSignature=null;
   if(!user){emit();return;}
   let linked='',stamp='';try{linked=localStorage.getItem(LINK_KEY)||'';stamp=localStorage.getItem(STAMP_PREFIX+user.id)||'';}catch{}
   state.syncLinked=linked===user.id;
@@ -37,16 +37,27 @@
    const row=await fetchRow();state.lastCloudAt=row?.updated_at||null;
    if(row){
     const cloudMs=Date.parse(row.updated_at)||0,stampMs=Date.parse(stamp)||0;
-    if(state.syncLinked&&stampMs&&cloudMs<=stampMs+1000){state.syncPaused=false;state.message='클라우드 자동 동기화가 연결되어 있습니다.';setTimeout(()=>saveNow({force:true,reason:'auto'}).catch(()=>{}),0);}
-    else if(state.syncLinked&&stampMs&&cloudMs>stampMs+1000){state.syncPaused=true;state.message='다른 기기에서 더 새로운 클라우드 저장이 확인되었습니다. 불러올지, 현재 로컬로 교체할지 선택하세요.';}
-    else{state.syncPaused=true;state.message='기존 클라우드 세이브가 있습니다. 불러오거나 현재 로컬 저장으로 교체한 뒤 자동 동기화가 시작됩니다.';}
+    const shouldCompare=forceCompare||!state.syncLinked||!stampMs||cloudMs>stampMs+1000;
+    if(shouldCompare){
+     state.syncPaused=true;state.needsChoice=true;
+     state.message='로컬 저장과 클라우드 저장을 비교한 뒤 사용할 데이터를 선택하세요.';
+     emit();
+     const chooser=getSaveApi()?.chooseCloudSource;
+     if(typeof chooser==='function'){
+      try{await chooser(row);state.needsChoice=false;emit();}
+      catch(e){state.error=friendly(e);state.message='';emit();}
+     }
+     return;
+    }
+    state.syncPaused=false;state.needsChoice=false;state.message='클라우드 자동 동기화가 연결되어 있습니다.';
+    emit();
+    setTimeout(()=>saveNow({force:true,reason:'auto'}).catch(()=>{}),0);
    }else{
-    state.syncPaused=false;state.syncLinked=true;try{localStorage.setItem(LINK_KEY,user.id);}catch{}
-    state.message='새 계정 클라우드 슬롯을 준비했습니다.';
+    state.syncPaused=false;state.needsChoice=false;state.syncLinked=true;try{localStorage.setItem(LINK_KEY,user.id);}catch{}
+    state.message='새 계정 클라우드 슬롯을 준비했습니다. 현재 로컬 저장을 첫 클라우드 세이브로 등록합니다.';
     emit();
     setTimeout(()=>saveNow({force:true,reason:'first-cloud-save'}).catch(()=>{}),0);return;
    }
-   emit();
   }catch(e){state.error=friendly(e);emit();}
  }
  async function saveNow({force=false,reason='manual'}={}){
@@ -60,7 +71,7 @@
    const payload={user_id:state.user.id,save_data:save,game_version:window.SAVE_FORMAT?.gameVersion||save.gameVersion,save_format_version:window.SAVE_FORMAT?.saveFormatVersion||save.saveFormatVersion};
    const {data,error}=await client.from('cloud_saves').upsert(payload,{onConflict:'user_id'}).select('updated_at').single();if(error)throw error;
    lastSavedSignature=sig;lastSignature=sig;try{localStorage.setItem(LINK_KEY,state.user.id);if(data?.updated_at)localStorage.setItem(STAMP_PREFIX+state.user.id,data.updated_at);}catch{}
-   set({syncLinked:true,syncPaused:false,lastCloudAt:data?.updated_at||new Date().toISOString(),message:reason==='auto'?'클라우드 자동 저장 완료.':'현재 진행을 클라우드에 저장했습니다.'});
+   set({syncLinked:true,syncPaused:false,needsChoice:false,lastCloudAt:data?.updated_at||new Date().toISOString(),message:reason==='auto'?'클라우드 자동 저장 완료.':'현재 진행을 클라우드에 저장했습니다.'});
    return data;
   }catch(e){set({error:friendly(e),message:''});throw e;}finally{set({busy:false});}
  }
@@ -71,8 +82,13 @@
  async function init(){
   if(!window.supabase?.createClient){set({ready:true,error:'Supabase 라이브러리를 불러오지 못했습니다. 로컬 저장은 계속 사용할 수 있습니다.'});return;}
   client=window.supabase.createClient(URL,KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
-  const {data,error}=await client.auth.getSession();if(error)state.error=friendly(error);await reconcileUser(data?.session?.user||null);
-  client.auth.onAuthStateChange((_event,session)=>{setTimeout(()=>reconcileUser(session?.user||null),0);});
+  const {data,error}=await client.auth.getSession();if(error)state.error=friendly(error);await reconcileUser(data?.session?.user||null,{forceCompare:false});
+  client.auth.onAuthStateChange((event,session)=>{
+   if(event==='INITIAL_SESSION'||event==='TOKEN_REFRESHED')return;
+   const force=event==='SIGNED_IN'&&forceCompareNext;
+   if(event==='SIGNED_IN')forceCompareNext=false;
+   setTimeout(()=>reconcileUser(session?.user||null,{forceCompare:force}),0);
+  });
   state.ready=true;emit();pollTimer=setInterval(poll,POLL_MS);
   document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')poll();});
  }
