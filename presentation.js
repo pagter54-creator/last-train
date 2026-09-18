@@ -120,7 +120,7 @@
     g.inspectedEquipment=null;g.inspectedCrew=null;g.moduleRange=null;
     const inspector=$('#inspector');if(inspector)inspector.innerHTML='<p>포탑, 모듈 또는 직원을 누르면 상세 정보가 표시됩니다.</p>';
     const head=document.querySelector('.tactical-head span');if(head)head.textContent='재정비 · 대상 정보';
-    if(guide)guide.textContent='';
+    const tacticalGuide=document.querySelector('.selection-guide');if(tacticalGuide)tacticalGuide.textContent='';
   }
   function showFormationInspector(kind,id){
     if(!formation||!g.state)return;
@@ -128,7 +128,7 @@
     if(kind==='crew'){const c=g.state.crew.find(x=>x.id===id);if(!c)return closeFormationInspector();g.inspectCrew(c);}
     else {const eq=g.findEquipment(id);if(!eq)return closeFormationInspector();g.showEquipmentDetails(id);}
     const head=document.querySelector('.tactical-head span');if(head)head.textContent=kind==='crew'?'재정비 · 직원 정보':'재정비 · 장비 정보';
-    if(guide)guide.textContent='정보를 확인하면서 같은 대상을 다시 누르거나 빈 슬롯/다른 대상을 눌러 재배치할 수 있습니다.';
+    const tacticalGuide=document.querySelector('.selection-guide');if(tacticalGuide)tacticalGuide.textContent='정보를 확인하면서 같은 대상을 다시 누르거나 빈 슬롯/다른 대상을 눌러 재배치할 수 있습니다.';
   }
   function refreshFormationInspector(){
     if(!formation||!document.body.classList.contains('formation-inspecting'))return;
