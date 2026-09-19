@@ -3,7 +3,8 @@ window.EVENT_CONFIG=(()=>{
   const outcome=(title,text,reward={},weight=1)=>({title,text,reward,weight});
   const choice=(id,label,time,reward={},extra={})=>({id,label,time,reward,...extra});
   const pass=(distance=.2)=>choice('pass','멈추지 않고 통과한다',0,{distance},{title:'뒤돌아보지 않는다',text:'열차는 속도를 유지하며 사건 현장을 지나쳤다.'});
-  const risk=(chance,good,bad)=>({chance,outcomes:[good,bad]});
+  const EVENT_RISK_SUCCESS_MULTIPLIER=0.9;
+  const risk=(chance,good,bad)=>({chance:Math.max(.1,Math.min(.95,chance*EVENT_RISK_SUCCESS_MULTIPLIER)),outcomes:[good,bad]});
   const event=(id,act,title,text,choices)=>({id,act,title,text,choices});
   const events=[
     event('abandoned_station',1,'버려진 정거장','녹슨 급수탑 아래, 닫힌 창고와 군수품 상자가 남아 있다.',[

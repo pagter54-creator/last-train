@@ -580,10 +580,10 @@
       s.orders.command.active=0;s.orders.command.car=null;
       s.orders.focus.active=0;s.orders.focus.target=null;
       const stage = this.globalStage(), elite = s.battle.elite;
-      let money = B.rewards.battleMoneyBase + stage * B.rewards.battleMoneyPerStage;
-      let scrap = B.rewards.battleScrapBase + stage * B.rewards.battleScrapPerStage;
-      // 1.0.1 risk/reward pass: standard battles after ACT I pay substantially less money.
-      // Elite rewards keep their existing premium so choosing a harder node still has a clear payoff.
+      let money = Math.round((B.rewards.battleMoneyBase + stage * B.rewards.battleMoneyPerStage) * (B.rewards.battleMoneyMultiplier ?? 1));
+      let scrap = Math.round((B.rewards.battleScrapBase + stage * B.rewards.battleScrapPerStage) * (B.rewards.battleScrapMultiplier ?? 1));
+      // 1.0.2 economy pass: money is trimmed slightly, while scrap is cut more sharply to slow late-run firepower growth.
+      // Elite combat still pays a full x2 premium, preserving the high-risk/high-reward route identity.
       if (!elite) {
         if (s.actId === 'act2') money = Math.round(money * 0.65);
         else if (s.actId === 'act3') money = Math.round(money * 0.50);

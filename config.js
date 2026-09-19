@@ -28,7 +28,7 @@ window.GAME_DATA = (() => {
       eliteHp: 1.08, eliteDamage: 1.03, eliteCount: 1.16, eliteSpecialChance: 0.42, maxSecondaryTargets: 20,
       doctrineRepairThreshold: 0.35, doctrineMinRepairStat: 6, nonFatalEventMinHp: 1
     },
-    rewards: { battleMoneyBase: 22, battleMoneyPerStage: 3, battleScrapBase: 12, battleScrapPerStage: 2, battleRelics: 1, eliteMultiplier: 1.5, eliteBonusRelics: 2 },
+    rewards: { battleMoneyBase: 22, battleMoneyPerStage: 3, battleScrapBase: 12, battleScrapPerStage: 2, battleMoneyMultiplier: 0.837, battleScrapMultiplier: 0.738, battleRelics: 1, eliteMultiplier: 2.0, eliteBonusRelics: 2 },
     upgrade: { level2Scrap: 25, level3Scrap: 45, branchScrap: 70, damagePerLevel: 0.18, heatPerLevel: -0.06 },
     armor: { maxCharge: 100, duration: 5, healRatio: 0.15, battleCharge: 30, eliteCharge: 45, coolingMultiplier: 5 },
     focus: { duration: 4, cooldown: 20, damageBonus: 0.2, rangeBonus: 0.25 },

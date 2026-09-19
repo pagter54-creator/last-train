@@ -4,7 +4,6 @@
  const g=window.lastRail,D=window.GAME_DATA,B=D.BALANCE,C=window.UPDATE09_PART2;
  const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
  const ACT_BOOST={act1:1,act2:2,act3:3};
- const BOOST_DISTANCE=.2;
  const SPEEDS={4:2.8,5:3.2,6:3.4};
  const loopOf=()=>Math.max(1,Math.floor(Number(g.state?.loop09)||1));
  const inferBoost=s=>{
@@ -44,22 +43,20 @@
   s.powerCapacityBonus=(Number(s.powerCapacityBonus)||0)+delta;
   applyCurve();
   g.rebalancePower?.();
-  g.log?.(`보스 부품 엔진 강화 · 전력 +${delta} · 엔진 최대 전력 +${delta} · 구간 거리 +${(BOOST_DISTANCE*delta).toFixed(1)} km`,'hot');
+  g.log?.(`보스 부품 엔진 강화 · 전력 +${delta} · 엔진 최대 전력 +${delta}`,'hot');
   return delta;
  }
  function rewardForBoss(){
   const s=g.state,b=s?.battle;if(!b)return {money:0,scrap:0,relics:0};
   if(b.clearReward091)return b.clearReward091;
   const mult=C?.bossRewardMultiplier||2,stage=g.globalStage();
-  const moneyRaw=Math.round((B.rewards.battleMoneyBase+stage*B.rewards.battleMoneyPerStage)*mult);
-  const scrapRaw=Math.round((B.rewards.battleScrapBase+stage*B.rewards.battleScrapPerStage)*mult);
+  const moneyRaw=Math.round((B.rewards.battleMoneyBase+stage*B.rewards.battleMoneyPerStage)*mult*(B.rewards.battleMoneyMultiplier??1));
+  const scrapRaw=Math.round((B.rewards.battleScrapBase+stage*B.rewards.battleScrapPerStage)*mult*(B.rewards.battleScrapMultiplier??1));
   const relicRaw=D.BOSSES[b.bossId]?.rewardRelics||0;
   return {money:g.metaGain?.('money',moneyRaw)??moneyRaw,scrap:g.metaGain?.('scrap',scrapRaw)??scrapRaw,relics:g.rewardRelics09?.(relicRaw)??relicRaw};
  }
  const initial=g.makeInitialState.bind(g);
  g.makeInitialState=function(...args){const s=initial(...args);s.engineBoosts091=0;s.enginePowerBonus091=0;applyCurve();return s;};
- const depart=g.departureDistance.bind(g);
- g.departureDistance=function(){return depart()+ensure()*BOOST_DISTANCE;};
  const hud=g.updateHUD.bind(g);
  g.updateHUD=function(...args){ensure();return hud(...args);};
  const bossClear=g.bossClear.bind(g);
@@ -82,10 +79,10 @@
   if(!match)return dialog(title,kicker,text,choices,onChoice,...rest);
   const s=this.state,reward=rewardForBoss(),delta=grantActBoost();
   const upgradeText=delta>0
-   ?'보스의 부품으로 엔진이 강화되었다. 더 멀리 갈 수 있을 것 같다.<br>스테이지 통과 시 확보 거리 +0.2km, 전력 +1, 엔진의 최대 전력 +1'
-   :`엔진은 이미 1회차의 보스 부품으로 최대 단계까지 강화되어 있다.<br>추가 전력 증가는 없으며, 스테이지 통과 시 엔진 강화 거리 +${(ensure()*BOOST_DISTANCE).toFixed(1)}km를 유지한다.`;
+   ?'보스의 부품으로 엔진이 강화되었다.<br>전력 +1, 엔진의 최대 전력 +1'
+   :'엔진은 이미 1회차의 보스 부품으로 최대 단계까지 강화되어 있다.<br>추가 전력 증가는 없다.';
   const rewardText=`돈 ${reward.money}, 고철 ${reward.scrap}, 고대잔해 ${reward.relics} 획득`;
-  const nextChoices=(choices||[]).map((c,i)=>i===0?{...c,text:rewardText,hint:delta>0?'스테이지 통과 시 확보 거리 +0.2 km · 전력 +1 · 엔진 최대 전력 +1':c.hint}:c);
+  const nextChoices=(choices||[]).map((c,i)=>i===0?{...c,text:rewardText,hint:delta>0?'전력 +1 · 엔진 최대 전력 +1':c.hint}:c);
   const modal=dialog(title,kicker,upgradeText,nextChoices,onChoice,...rest);
   // ACT III is replaced by the existing Janus decision dialog. Preserve its two
   // choices, but show the same reward/engine result above them.
@@ -100,23 +97,26 @@
  // 1.0 chase curve. ACT III has a deliberate acceleration arc, while endless can keep
  // escalating for one more full loop before reaching the 4.0 km/min hard cap.
  const TITAN_SPEED={act3Start:2.5,act3End:3.0,endlessCap:4.0,act3FirstStage:31,act3LastStage:45};
+ const TITAN_ACT_MULT={act1:1.05,act2:1.10,act3:1.18};
  function titanChaseSpeed(){
   const s=g.state;if(!s)return B.titan.speedBase;
   const loop=loopOf(),stage=Math.max(1,Math.min(45,g.globalStage?.()||1));
   if(loop>=2){
-   // Loop 2: 3.0 -> 4.0 over its 45 stages. Loop 3+ stays at the 4.0 cap.
+   // Endless starts from the strengthened ACT III endpoint, then approaches the existing 4.0 cap.
    const endlessIndex=(loop-2)*45+(stage-1);
    const progress=clamp(endlessIndex/44,0,1);
-   return TITAN_SPEED.act3End+(TITAN_SPEED.endlessCap-TITAN_SPEED.act3End)*progress;
+   const start=TITAN_SPEED.act3End*TITAN_ACT_MULT.act3;
+   return start+(TITAN_SPEED.endlessCap-start)*progress;
   }
   if(stage>=TITAN_SPEED.act3FirstStage){
    const progress=clamp((stage-TITAN_SPEED.act3FirstStage)/(TITAN_SPEED.act3LastStage-TITAN_SPEED.act3FirstStage),0,1);
-   return TITAN_SPEED.act3Start+(TITAN_SPEED.act3End-TITAN_SPEED.act3Start)*progress;
+   const base=TITAN_SPEED.act3Start+(TITAN_SPEED.act3End-TITAN_SPEED.act3Start)*progress;
+   return base*TITAN_ACT_MULT.act3;
   }
-  // Keep ACT I-II monotonic into the new ACT III entry point instead of letting the
-  // old curve briefly exceed 2.5 and then drop when ACT III begins. Stage 30 reaches 2.5.
+  // ACT I-II use the same smooth base curve, then gain an act-specific chase multiplier.
   const preProgress=clamp((stage-1)/(TITAN_SPEED.act3FirstStage-2),0,1);
-  return B.titan.speedBase+(TITAN_SPEED.act3Start-B.titan.speedBase)*preProgress;
+  const base=B.titan.speedBase+(TITAN_SPEED.act3Start-B.titan.speedBase)*preProgress;
+  return base*(stage<=15?TITAN_ACT_MULT.act1:TITAN_ACT_MULT.act2);
  }
  g.titanSpeedNow=function(){return titanChaseSpeed();};
  const updateTitan=g.updateTitan.bind(g);
